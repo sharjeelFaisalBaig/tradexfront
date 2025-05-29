@@ -1,11 +1,11 @@
-:root {
+/* :root {
   --color-light-gray: #F5F7FA;
   --color-gray: #CBD5E0;
   --color-dark-gray: #2D3748;
   --color-dark-blue: #1A1A2E;
   --color-green: #00AA67;
   --color-blue: #0088CC;
-}
+} */
 
 #root {
   max-width: 1280px;
@@ -65,4 +65,8 @@
 
 .text-light-gray {
   color: var(--color-light-gray);
+}
+#remember[data-state="checked"] {
+  background-color: #2563eb !important;  /* Tailwind blue-600 */
+  border-color: #2563eb !important;
 }
