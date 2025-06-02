@@ -22,7 +22,7 @@ const Header = () => {
     return (
         <header className="flex items-center justify-between bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-6 py-4">
             {/* Left Section */}
-            <div className="flex items-center space-x-20">
+            <div className="flex    items-center space-x-20">
                 <Image
                     src="/logo.png"
                     alt="Logo"
@@ -39,9 +39,8 @@ const Header = () => {
                         style={{ paddingTop: '18px', paddingBottom: '18px' }}
                     >
                         <Affiliate
-                            width={24}
                             height={24}
-                            style={{ objectFit: "contain" }}
+                            style={{ objectFit: "contain", width: "25px", margin: "10px 14px" }}
                             className="mr-1 shrink-0"
                         />
                         Affiliate
@@ -56,7 +55,7 @@ const Header = () => {
                         <UnlockIcon
                             width={24}
                             height={24}
-                            style={{ objectFit: "contain" }}
+                            style={{ objectFit: "contain", width: "25px", margin: "10px 14px" }}
                             className="mr-1 shrink-0"
                         />
                         Unlock $100

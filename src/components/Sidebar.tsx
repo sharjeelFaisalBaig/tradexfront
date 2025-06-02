@@ -11,6 +11,7 @@ import Recent from "../icons/recent.svg";
 import Favorites from "../icons/favorites.svg";
 import Templates from "../icons/templates.svg";
 import Folder from "../icons/folder.svg";
+import Toogle from "../icons/three_dot.svg";
 import ShareBlue from "../icons/shareblue.svg";
 
 const navigation = [
@@ -41,14 +42,18 @@ const Sidebar = () => {
             size="sm"
             onClick={() => setCollapsed(!collapsed)}
             className="h-8 w-8 p-0"
+            style={{ width: "-webkit-fill-available"}}
           >
-            <span className="text-lg">☰</span>
+            <Toogle />
           </Button>
         </div>
 
-        <div className="p-4">
+        <div className="p-2">
           <Button
-            className="w-full text-white pl-[18px] py-[15px] flex items-center justify-start rounded-[10px] bg-custom-green"
+            className={cn(
+              "w-full text-white pl-[18px] py-[15px] flex items-center justify-start rounded-[10px] bg-[#00AA67]",
+              collapsed ? "w-12 justify-center" : ""
+            )}
           >
             <Plus className="w-6 h-6 mr-2" />
             {!collapsed && "New Strategy"}
@@ -70,7 +75,12 @@ const Sidebar = () => {
                       : "text-dark-gray dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
                   )}
                 >
-                  <item.icon className="mr-3 h-6 w-6" />
+                  <item.icon
+                    className={cn(
+                      "mr-3 h-6 w-6",
+                      collapsed ? "h-8 w-8 mr-0" : "h-6 w-6 mr-3"
+                    )}
+                  />
                   {!collapsed && item.name}
                 </Link>
 
@@ -83,7 +93,7 @@ const Sidebar = () => {
                       </span>
                       <div className="w-[60%]"></div>
                       <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                        <Plus className=" text-[var(--color-green)]" />
+                        <Plus className="text-[#00AA67]" />
                       </Button>
                     </div>
                   </div>

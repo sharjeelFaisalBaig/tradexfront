@@ -1,4 +1,4 @@
-"use client";
+'use client'
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -8,34 +8,34 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ThemeToggle } from "@/components/ThemeToggle";
-import { toast } from "@/hooks/use-toast";
+import { Checkbox } from '@/components/ui/checkbox'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { ThemeToggle } from '@/components/ThemeToggle'
+import { toast } from '@/hooks/use-toast'
 
-import ExclamationIcon from "../../icons/exclamation.svg";
+import ExclamationIcon from '../../icons/exclamation.svg'
 
-const Login = () => {
-  const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [rememberMe, setRememberMe] = useState(false);
+export default function LoginPage() {
+  const router = useRouter()
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [rememberMe, setRememberMe] = useState(false)
 
   const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault()
     toast({
-      title: "Login Successful",
-      description: "Welcome to Tradex AI!",
-    });
-    router.replace("/dashboard");
-  };
+      title: 'Login Successful',
+      description: 'Welcome to Tradex AI!',
+    })
+    router.replace('/dashboard')
+  }
 
   const handleGoogleLogin = () => {
     toast({
-      title: "Google Login",
-      description: "Google OAuth integration would go here",
-    });
-  };
+      title: 'Google Login',
+      description: 'Google OAuth integration would go here',
+    })
+  }
 
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-[#f6f8fb] p-4 dark:bg-gray-900">
@@ -44,6 +44,7 @@ const Login = () => {
       </div>
 
       <div className="w-full max-w-lg">
+        {/* Top Label Bar */}
         <div className="rounded-t-[20px] border border-[#0088CC1C] bg-[#0088CC1C] py-2 px-3 text-left dark:border-[#0088CC1C] dark:bg-cyan-900/20">
           <p className="flex items-center gap-2 text-base font-medium text-cyan-600 dark:text-cyan-300">
             <span className="flex h-6 w-8 items-center justify-center rounded-full pl-2">
@@ -53,6 +54,7 @@ const Login = () => {
           </p>
         </div>
 
+        {/* Login Card */}
         <Card className="rounded-b-[20px] rounded-t-none border-0 shadow-lg">
           <CardHeader className="flex flex-col items-center gap-2 pb-4 pt-8 text-center">
             <Image
@@ -61,6 +63,7 @@ const Login = () => {
               width={148}
               height={32}
               className="mt-2 object-contain"
+              priority
             />
             <CardTitle className="text-base font-normal text-gray-700 dark:text-gray-300">
               Please sign in to continue
@@ -68,6 +71,7 @@ const Login = () => {
           </CardHeader>
 
           <CardContent className="px-8 sm:px-12">
+            {/* Google Button */}
             <Button
               variant="outline"
               className="mb-6 flex h-12 w-full items-center justify-center bg-teal-900 text-sm text-white"
@@ -82,12 +86,14 @@ const Login = () => {
               Continue with Google
             </Button>
 
+            {/* Divider */}
             <div className="my-6 flex items-center">
               <hr className="flex-grow border-t border-gray-300" />
               <span className="mx-4 text-sm text-gray-500">OR</span>
               <hr className="flex-grow border-t border-gray-300" />
             </div>
 
+            {/* Login Form */}
             <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-sm text-gray-700 dark:text-gray-300">
@@ -138,8 +144,9 @@ const Login = () => {
               </Button>
             </form>
 
+            {/* Footer Links */}
             <div className="mt-6 text-center">
-              <span className="text-sm text-gray-600">Don&apos;t have an account?</span>{" "}
+              <span className="text-sm text-gray-600">Don&apos;t have an account?</span>{' '}
               <Link href="/register" className="text-sm text-teal-500 hover:text-teal-300">
                 Sign up now
               </Link>
@@ -147,15 +154,13 @@ const Login = () => {
 
             <div className="mb-8 mt-6 text-center text-xs leading-relaxed text-gray-500">
               By continuing, you agree to our<br />
-              <a href="#" className="text-cyan-600 hover:underline">Terms of Service</a>,{" "}
-              <a href="#" className="text-cyan-600 hover:underline">Privacy</a> and{" "}
+              <a href="#" className="text-cyan-600 hover:underline">Terms of Service</a>,{' '}
+              <a href="#" className="text-cyan-600 hover:underline">Privacy</a>, and{' '}
               <a href="#" className="text-cyan-600 hover:underline">Refund Policy</a>
             </div>
           </CardContent>
         </Card>
       </div>
     </div>
-  );
-};
-
-export default Login;
+  )
+}

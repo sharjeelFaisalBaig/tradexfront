@@ -1,4 +1,5 @@
 "use client";
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,15 +14,6 @@ import {
 } from "@/components/ui/select";
 import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
-
-import {
-  Search,
-  Star,
-  Clipboard,
-  Link2,
-  MoreHorizontal,
-} from "lucide-react";
-
 import {
   Pagination,
   PaginationContent,
@@ -30,6 +22,13 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import { MoreHorizontal } from "lucide-react";
+
+import SearchIcon from "@/icons/search.svg";
+import Star from "@/icons/stargreen.svg";
+import Clipboard from "@/icons/double.svg";
+import Link2 from "@/icons/sharegreen.svg";
+import Image from "next/image";
 
 const strategies = [
   {
@@ -79,65 +78,28 @@ const strategies = [
 const Dashboard = () => {
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Style for pagination arrows buttons (border + rounded + fixed size + center arrow)
-  const paginationButtonStyle = {
-    fontSize: 0,
-    position: "relative" as const,
-    width: "2.5rem",
-    height: "2.5rem",
-    display: "inline-flex",
-    justifyContent: "center",
-    alignItems: "center",
-    border: "1px solid #ccc",
-    borderRadius: "8px",
-    color: "inherit",
-    cursor: "pointer",
-  };
-
-  // Style for the arrow inside the buttons
-  const arrowStyle = {
-    fontSize: "1.4rem",
-    lineHeight: 1,
-  };
-
-  // Style for the small icon buttons inside cards (border + rounded + padding + size)
-  const iconButtonStyle = {
-    border: "1px solid #ccc",
-    borderRadius: "6px",
-    padding: "0.15rem",
-    minWidth: "28px",
-    minHeight: "28px",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-  };
-
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Header */}
       <Header />
-
       <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar */}
         <Sidebar />
 
-        {/* Main Content */}
         <main className="flex-1 overflow-y-auto p-6">
+          {/* Header Controls */}
           <div className="flex items-center justify-between mb-6">
-            {/* Search Bar */}
-            <div className="flex items-center max-w-md w-full">
-              <div className="relative w-full">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  placeholder="Search strategies or press Ctrl + S"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 w-full"
-                />
-              </div>
+            {/* Search */}
+            <div className="relative w-full max-w-md">
+              <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-10" />
+              <Input
+                type="text"
+                placeholder="Search strategies or press Ctrl S"
+                className="pl-10"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </div>
 
-            {/* Page Size & Sort */}
+            {/* Filters */}
             <div className="flex items-center space-x-4">
               <Select defaultValue="10">
                 <SelectTrigger className="w-32">
@@ -155,9 +117,7 @@ const Dashboard = () => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="modified">
-                    Sort by: Last Modified
-                  </SelectItem>
+                  <SelectItem value="modified">Sort by: Last Modified</SelectItem>
                   <SelectItem value="name">Sort by: Name</SelectItem>
                   <SelectItem value="created">Sort by: Created</SelectItem>
                 </SelectContent>
@@ -165,7 +125,7 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Cards */}
+          {/* Strategy Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
             {strategies.map((strategy, index) => (
               <Card
@@ -173,7 +133,7 @@ const Dashboard = () => {
                 className="group hover:shadow-lg transition-shadow cursor-pointer overflow-hidden rounded-[10px]"
               >
                 <CardContent className="p-0">
-                  <div className="flex items-start justify-between mt-[30px] px-5">
+                  <div className="flex items-start justify-between mt-8 px-5">
                     <h3 className="font-semibold text-gray-900 dark:text-white group-hover:text-blue-600 transition-colors">
                       {strategy.title}
                     </h3>
@@ -189,10 +149,13 @@ const Dashboard = () => {
                   </div>
 
                   <div className="aspect-video px-5 mb-4">
-                    <img
+                    <Image
                       src={strategy.image}
                       alt={strategy.title}
+                      width={400}
+                      height={200}
                       className="w-full h-full object-cover opacity-80 rounded-[10px]"
+                      unoptimized // Optional: if you're loading from external URLs and don't want to configure a loader
                     />
                   </div>
 
@@ -200,30 +163,9 @@ const Dashboard = () => {
                     <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
                       <span>Last edited {strategy.lastEdited}</span>
                       <div className="flex items-center space-x-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="p-0"
-                          style={iconButtonStyle}
-                        >
-                          <Star className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="p-0"
-                          style={iconButtonStyle}
-                        >
-                          <Clipboard className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="p-0"
-                          style={iconButtonStyle}
-                        >
-                          <Link2 className="h-4 w-4" />
-                        </Button>
+                        <Star className="h-6 w-5" />
+                        <Clipboard className="h-6 w-5" />
+                        <Link2 className="h-6 w-5" />
                       </div>
                     </div>
                   </div>
@@ -236,13 +178,7 @@ const Dashboard = () => {
           <Pagination>
             <PaginationContent>
               <PaginationItem>
-                <PaginationPrevious
-                  href="#"
-                  style={paginationButtonStyle}
-                  aria-label="Previous page"
-                >
-                  <span style={arrowStyle}>←</span>
-                </PaginationPrevious>
+                <PaginationPrevious href="#" className="w-10 h-10" />
               </PaginationItem>
               <PaginationItem>
                 <PaginationLink href="#" isActive>
@@ -259,13 +195,7 @@ const Dashboard = () => {
                 <PaginationLink href="#">10</PaginationLink>
               </PaginationItem>
               <PaginationItem>
-                <PaginationNext
-                  href="#"
-                  style={paginationButtonStyle}
-                  aria-label="Next page"
-                >
-                  <span style={arrowStyle}>→</span>
-                </PaginationNext>
+                <PaginationNext href="#" className="w-10 h-10" />
               </PaginationItem>
             </PaginationContent>
           </Pagination>

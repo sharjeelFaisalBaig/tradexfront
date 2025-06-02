@@ -1,4 +1,5 @@
 'use client';
+
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -151,17 +152,9 @@ const Signup = () => {
                   />
                   <Label htmlFor="agree" className={checkboxLabelClass}>
                     I agree to the{' '}
-                    <a href="#" className={linkClass}>
-                      Terms of Service
-                    </a>
-                    ,{' '}
-                    <a href="#" className={linkClass}>
-                      Privacy
-                    </a>{' '}
-                    and{' '}
-                    <a href="#" className={linkClass}>
-                      Refund Policy
-                    </a>
+                    <a href="#" className={linkClass}>Terms of Service</a>,{' '}
+                    <a href="#" className={linkClass}>Privacy</a> and{' '}
+                    <a href="#" className={linkClass}>Refund Policy</a>
                   </Label>
                 </div>
               </div>
