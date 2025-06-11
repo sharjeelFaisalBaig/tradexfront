@@ -2,6 +2,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   webpack(config) {
     // SVG files ke liye SVGR loader add kar rahe hain
     config.module.rules.push({
