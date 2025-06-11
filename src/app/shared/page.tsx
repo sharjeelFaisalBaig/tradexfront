@@ -11,14 +11,26 @@ import {
   PaginationContent,
   PaginationItem,
   PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
 } from "@/components/ui/pagination";
 import { MoreVertical, Star } from "lucide-react";
 import Image from "next/image";
 import SearchIcon from "@/icons/search.svg";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+
 
 const sharedStrategies = [
+  {
+    title: "NuAglo Research",
+    sharedAgo: "3 days ago",
+    image:
+      "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?w=840&h=420&auto=format&fit=crop",
+  },
+  {
+    title: "NuAglo Research",
+    sharedAgo: "3 days ago",
+    image:
+      "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?w=840&h=420&auto=format&fit=crop",
+  },
   {
     title: "NuAglo Research",
     sharedAgo: "3 days ago",
@@ -70,7 +82,8 @@ export default function SharedWithMe() {
           </div>
 
           {/* Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-28 mr-24">
+
             {sharedStrategies
               .filter((s) =>
                 s.title.toLowerCase().includes(searchTerm.toLowerCase())
@@ -78,7 +91,7 @@ export default function SharedWithMe() {
               .map((strategy, index) => (
                 <Card
                   key={index}
-                  className="group w-full max-w-[458px] h-[299px] cursor-pointer rounded-xl border-0 bg-white shadow-sm transition-shadow hover:shadow-md"
+                  className="group w-full hover:shadow-lg transition-shadow cursor-pointer overflow-hidden rounded-[10px]"
                 >
                   <div className="p-3">
                     <Image
@@ -86,7 +99,7 @@ export default function SharedWithMe() {
                       alt={strategy.title}
                       width={434}
                       height={180}
-                      className="h-[180px] w-full object-cover rounded-xl"
+                      className="h-[200px] w-full object-cover rounded-xl"
                       unoptimized
                       priority={index === 0}
                     />
@@ -128,25 +141,69 @@ export default function SharedWithMe() {
           {/* Pagination */}
           <Pagination>
             <PaginationContent>
+              {/* Previous Button */}
               <PaginationItem>
-                <PaginationPrevious href="#" className="w-10 h-10" />
+                <PaginationLink
+                  href="#"
+                  className="w-10 h-10 flex items-center justify-center rounded-lg border"
+                  style={{ borderColor: "#CBD5E0", color: "#00AA67" }}
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </PaginationLink>
               </PaginationItem>
+
+              {/* Page Numbers */}
               <PaginationItem>
-                <PaginationLink href="#" isActive>
+                <PaginationLink
+                  href="#"
+                  isActive
+                  className="w-10 h-10 flex items-center justify-center rounded-lg border"
+                  style={{ borderColor: "#CBD5E0", color: "#CBD5E0" }}
+                >
                   1
                 </PaginationLink>
               </PaginationItem>
+
               <PaginationItem>
-                <PaginationLink href="#">2</PaginationLink>
+                <PaginationLink
+                  href="#"
+                  className="w-10 h-10 flex items-center justify-center rounded-lg border"
+                  style={{ borderColor: "#CBD5E0", color: "#CBD5E0" }}
+                >
+                  2
+                </PaginationLink>
               </PaginationItem>
+
+              {/* Dots without border */}
               <PaginationItem>
-                <PaginationLink href="#">...</PaginationLink>
+                <PaginationLink
+                  href="#"
+                  className="w-10 h-10 flex items-center justify-center"
+                  style={{ color: "#CBD5E0" }}
+                >
+                  ...
+                </PaginationLink>
               </PaginationItem>
+
               <PaginationItem>
-                <PaginationLink href="#">10</PaginationLink>
+                <PaginationLink
+                  href="#"
+                  className="w-10 h-10 flex items-center justify-center rounded-lg border"
+                  style={{ borderColor: "#CBD5E0", color: "#CBD5E0" }}
+                >
+                  10
+                </PaginationLink>
               </PaginationItem>
+
+              {/* Next Button */}
               <PaginationItem>
-                <PaginationNext href="#" className="w-10 h-10" />
+                <PaginationLink
+                  href="#"
+                  className="w-10 h-10 flex items-center justify-center rounded-lg border"
+                  style={{ borderColor: "#CBD5E0", color: "#00AA67" }}
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </PaginationLink>
               </PaginationItem>
             </PaginationContent>
           </Pagination>

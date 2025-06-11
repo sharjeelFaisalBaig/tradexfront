@@ -19,10 +19,10 @@ import {
   PaginationContent,
   PaginationItem,
   PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
 } from "@/components/ui/pagination";
 import { MoreHorizontal } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+
 
 import SearchIcon from "@/icons/search.svg";
 import Star from "@/icons/stargreen.svg";
@@ -154,7 +154,7 @@ const Dashboard = () => {
                       alt={strategy.title}
                       width={400}
                       height={200}
-                      className="w-full h-full object-cover opacity-80 rounded-[10px]"
+                      className="w-full h-full object-cover rounded-[10px]"
                       unoptimized // Optional: if you're loading from external URLs and don't want to configure a loader
                     />
                   </div>
@@ -177,25 +177,69 @@ const Dashboard = () => {
           {/* Pagination */}
           <Pagination>
             <PaginationContent>
+              {/* Previous Button */}
               <PaginationItem>
-                <PaginationPrevious href="#" className="w-10 h-10" />
+                <PaginationLink
+                  href="#"
+                  className="w-10 h-10 flex items-center justify-center rounded-lg border"
+                  style={{ borderColor: "#CBD5E0", color: "#00AA67" }}
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </PaginationLink>
               </PaginationItem>
+
+              {/* Page Numbers */}
               <PaginationItem>
-                <PaginationLink href="#" isActive>
+                <PaginationLink
+                  href="#"
+                  isActive
+                  className="w-10 h-10 flex items-center justify-center rounded-lg border"
+                  style={{ borderColor: "#CBD5E0", color: "#CBD5E0" }}
+                >
                   1
                 </PaginationLink>
               </PaginationItem>
+
               <PaginationItem>
-                <PaginationLink href="#">2</PaginationLink>
+                <PaginationLink
+                  href="#"
+                  className="w-10 h-10 flex items-center justify-center rounded-lg border"
+                  style={{ borderColor: "#CBD5E0", color: "#CBD5E0" }}
+                >
+                  2
+                </PaginationLink>
               </PaginationItem>
+
+              {/* Dots without border */}
               <PaginationItem>
-                <PaginationLink href="#">...</PaginationLink>
+                <PaginationLink
+                  href="#"
+                  className="w-10 h-10 flex items-center justify-center"
+                  style={{ color: "#CBD5E0" }}
+                >
+                  ...
+                </PaginationLink>
               </PaginationItem>
+
               <PaginationItem>
-                <PaginationLink href="#">10</PaginationLink>
+                <PaginationLink
+                  href="#"
+                  className="w-10 h-10 flex items-center justify-center rounded-lg border"
+                  style={{ borderColor: "#CBD5E0", color: "#CBD5E0" }}
+                >
+                  10
+                </PaginationLink>
               </PaginationItem>
+
+              {/* Next Button */}
               <PaginationItem>
-                <PaginationNext href="#" className="w-10 h-10" />
+                <PaginationLink
+                  href="#"
+                  className="w-10 h-10 flex items-center justify-center rounded-lg border"
+                  style={{ borderColor: "#CBD5E0", color: "#00AA67" }}
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </PaginationLink>
               </PaginationItem>
             </PaginationContent>
           </Pagination>
