@@ -1,9 +1,10 @@
-// next.config.ts (agar aap TypeScript use kar rahe hain)
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  images: {
+    domains: ['images.unsplash.com'], // ✅ Correctly placed
+  },
   webpack(config) {
-    // SVG files ke liye SVGR loader add kar rahe hain
     config.module.rules.push({
       test: /\.svg$/,
       issuer: {
