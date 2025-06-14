@@ -65,7 +65,7 @@ export default function SharedWithMe() {
           <div className="flex items-center justify-between mb-6">
             {/* Search Input */}
             <div className="relative w-full max-w-md">
-              <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-5" />
+              <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-10" />
               <Input
                 type="text"
                 placeholder="Search strategies or press Ctrl S"

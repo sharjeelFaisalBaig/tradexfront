@@ -32,32 +32,22 @@ const Header = () => {
                 />
 
                 <div className="flex items-center space-x-2">
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex items-center rounded-10p"
-                        style={{ paddingTop: '18px', paddingBottom: '18px' }}
-                    >
-                        <Affiliate
-                            height={24}
-                            style={{ objectFit: "contain", width: "25px", margin: "10px 14px" }}
-                            className="mr-1 shrink-0"
-                        />
-                        Affiliate
-                    </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex items-center rounded-10p"
+                        >
+                            <Affiliate />
+
+                            Affiliate
+                        </Button>
 
                     <Button
                         variant="outline"
                         size="sm"
                         className="flex items-center rounded-10p"
-                        style={{ paddingTop: '18px', paddingBottom: '18px' }}
                     >
-                        <UnlockIcon
-                            width={24}
-                            height={24}
-                            style={{ objectFit: "contain", width: "25px", margin: "10px 14px" }}
-                            className="mr-1 shrink-0"
-                        />
+                        <UnlockIcon />
                         Unlock $100
                     </Button>
                 </div>
