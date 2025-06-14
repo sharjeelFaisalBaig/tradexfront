@@ -8,6 +8,7 @@ import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
 import Image from "next/image";
 import SearchIcon from "@/icons/search.svg";
+import TemplateFolderIcon from "@/icons/templatefolder.svg"
 
 const templates = Array(6).fill({
   title: "YT Content System",
@@ -30,7 +31,7 @@ export default function TemplatesPage() {
           {/* Search & Button */}
           <div className="flex items-center justify-between mb-6">
             <div className="relative w-full max-w-md">
-              <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-5" />
+              <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-10" />
               <Input
                 type="text"
                 placeholder="Search strategies or press Ctrl S"
@@ -40,7 +41,7 @@ export default function TemplatesPage() {
               />
             </div>
             <Button className="ml-4 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-md px-4 py-2">
-              ＋ New Board
+              <span className="text-xl mr-2">＋</span> New Board
             </Button>
           </div>
 
@@ -65,9 +66,13 @@ export default function TemplatesPage() {
                       unoptimized
                       priority={index === 0}
                     />
-                    <div className="absolute top-5 left-5 bg-blue-100 text-blue-600 text-xs font-semibold px-2 py-1 rounded">
-                      🧩 Template
+                    <div className="absolute top-5 left-5 bg-white text-[#0088CC] text-xs font-semibold px-[6px] py-[4px] rounded-full flex items-center gap-[0px]">
+                      <TemplateFolderIcon className="w-3.5 h-3.5" />
+                      <span className="leading-none">Template</span>
                     </div>
+
+
+
                   </div>
                   <CardContent className="p-4">
                     <h3 className="text-base font-semibold text-gray-900 dark:text-white">
@@ -76,19 +81,22 @@ export default function TemplatesPage() {
                     <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
                       {template.description}
                     </p>
+                    <div className="h-[1px] bg-gray-100 mb-3" />
                     <div className="flex items-center gap-3">
                       <Image
                         src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=120&h=120&fit=crop&crop=face"
                         alt="Author"
-                        width={32}
-                        height={32}
-                        className="rounded-full"
+                        width={51}
+                        height={51}
+                        className="rounded-full border-[4px]"
+                        style={{ borderColor: "rgba(0, 136, 204, 0.14)" }}
                       />
                       <div>
                         <p className="text-sm font-medium">{template.author}</p>
                         <p className="text-xs text-gray-400">{template.updated}</p>
                       </div>
                     </div>
+
                   </CardContent>
                 </Card>
               ))}
