@@ -8,6 +8,8 @@ import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { CameraIcon } from 'lucide-react'
 import Image from 'next/image'
+import ChangePlanModal from '@/components/modal/ChangePlanModal'
+import BillingHistoryModal from '@/components/modal/BillingHistoryModal'
 
 export default function ProfilePage() {
   const [firstName, setFirstName] = useState('')
@@ -17,6 +19,9 @@ export default function ProfilePage() {
   const [emailNotifications, setEmailNotifications] = useState(true)
   const [twoFactor, setTwoFactor] = useState(false)
   const [autoRenewal, setAutoRenewal] = useState(true)
+  const [showPlanModal, setShowPlanModal] = useState(false)
+  const [showBillingModal, setShowBillingModal] = useState(false)
+
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
@@ -107,10 +112,11 @@ export default function ProfilePage() {
               </div>
 
               <div className="flex gap-3">
-                <Button className="bg-[#0088CC] hover:bg-[#0077b3] text-white">Change Plan</Button>
+                <Button className="bg-[#0088CC] hover:bg-[#0077b3] text-white" onClick={() => setShowPlanModal(true)}>Change Plan</Button>
                 <Button
                   variant="outline"
                   className="text-green-600 border-green-600 hover:bg-green-50 dark:text-green-400 dark:border-green-800/30 dark:hover:bg-green-800/20"
+                  onClick={() => setShowBillingModal(true)}
                 >
                   Billing History
                 </Button>
@@ -127,6 +133,18 @@ export default function ProfilePage() {
               </Button>
             </div>
           </section>
+          {showPlanModal && (
+            <ChangePlanModal
+              isOpen={showPlanModal}
+              onClose={() => setShowPlanModal(false)}
+            />
+          )}
+          {showBillingModal && (
+          <BillingHistoryModal
+            isOpen={showBillingModal}
+            onClose={() => setShowBillingModal(false)}
+          />
+        )}
         </main>
       </div>
     </div>

@@ -14,7 +14,7 @@ import ShareBlue from "../icons/shareblue.svg";
 import { useSidebar } from "@/context/SidebarContext";
 
 const navigation = [
-  { name: "New Strategy", href: "/newStrategy", icon: Plus },
+  { name: "New Strategy", href: "/strategy", icon: Plus },
   { name: "Dashboard", href: "/dashboard", icon: DashboardIcon },
   { name: "Charts", href: "/charts", icon: Chart },
   { name: "My Strategies", href: "/strategies", icon: Strategy },
@@ -80,19 +80,18 @@ const DashboardSidebar = () => {
                 {!collapsed && item.name === "Templates" && (
                   <div className="mt-1">
                     <Link
-                      href="#"
+                      href="/folders"
                       className={cn(
                         "group flex items-center px-[8px] py-[15px] text-sm font-medium rounded-[10px] transition-colors text-dark-gray dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
                       )}
                     >
                       <Folder className="h-6 w-6 mr-3 text-[#0088CC]" />
-                      <span className="flex-1">Folder</span>
+                      <span className="flex-1">Folders</span>
                       <Button
                         variant="ghost"
                         size="sm"
                         className="h-6 w-6 p-0"
                       >
-                        <Plus className="text-[#00AA67]" />
                       </Button>
                     </Link>
                   </div>

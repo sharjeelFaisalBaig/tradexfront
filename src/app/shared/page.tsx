@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
@@ -12,40 +13,46 @@ import {
   PaginationItem,
   PaginationLink,
 } from "@/components/ui/pagination";
-import { MoreVertical, Star } from "lucide-react";
+import {  MoreHorizontal, Star } from "lucide-react";
 import Image from "next/image";
 import SearchIcon from "@/icons/search.svg";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import Clipboard from "@/icons/double.svg";
 
 
 const sharedStrategies = [
   {
     title: "NuAglo Research",
     sharedAgo: "3 days ago",
+    category: "#invest",
     image:
       "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?w=840&h=420&auto=format&fit=crop",
   },
   {
     title: "NuAglo Research",
     sharedAgo: "3 days ago",
+    category: "#invest",
     image:
       "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?w=840&h=420&auto=format&fit=crop",
   },
   {
     title: "NuAglo Research",
     sharedAgo: "3 days ago",
+    category: "#invest",
     image:
       "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?w=840&h=420&auto=format&fit=crop",
   },
   {
     title: "NuAglo Research",
     sharedAgo: "3 days ago",
+    category: "#invest",
     image:
       "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?w=840&h=420&auto=format&fit=crop",
   },
   {
     title: "NuAglo Research",
     sharedAgo: "3 days ago",
+    category: "#invest",
     image:
       "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?w=840&h=420&auto=format&fit=crop",
   },
@@ -68,7 +75,7 @@ export default function SharedWithMe() {
               <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-10" />
               <Input
                 type="text"
-                placeholder="Search strategies or press Ctrl S"
+                placeholder="Search strategies"
                 className="pl-10"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -82,7 +89,7 @@ export default function SharedWithMe() {
           </div>
 
           {/* Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-28 mr-24">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
 
             {sharedStrategies
               .filter((s) =>
@@ -93,6 +100,16 @@ export default function SharedWithMe() {
                   key={index}
                   className="group w-full hover:shadow-lg transition-shadow cursor-pointer overflow-hidden rounded-[10px]"
                 >
+                  <div className="flex items-center justify-between px-5 pt-3 pb-2">
+                  <div className=" ">
+                    <Badge variant="secondary" className="text-xs">
+                      {strategy.category}
+                    </Badge>
+                  </div>
+                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </div>
                   <div className="p-3">
                     <Image
                       src={strategy.image}
@@ -105,8 +122,8 @@ export default function SharedWithMe() {
                     />
                   </div>
 
-                  <CardContent className="flex items-start justify-between px-5 pt-2">
-                    <div className="flex gap-3">
+                  <CardContent className="flex items-center justify-between px-5 pt-2">
+                    <div className="flex gap-3 items-center">
                       <Star
                         size={18}
                         strokeWidth={2.2}
@@ -122,17 +139,7 @@ export default function SharedWithMe() {
                       </div>
                     </div>
 
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-8 w-8 p-0 hover:bg-transparent"
-                    >
-                      <MoreVertical
-                        size={18}
-                        strokeWidth={2.5}
-                        className="text-emerald-500"
-                      />
-                    </Button>
+                    <Clipboard className="h-6 w-5" />
                   </CardContent>
                 </Card>
               ))}

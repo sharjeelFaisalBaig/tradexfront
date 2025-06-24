@@ -1,5 +1,5 @@
 "use client";
-
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
     DropdownMenu,
@@ -18,6 +18,8 @@ import UnlockIcon from '../icons/unlock.svg';
 
 const Header = () => {
     const router = useRouter();
+    const [showNotifications, setShowNotifications] = useState(false);
+
 
     return (
         <header className="flex items-center justify-between bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-6 py-4">
@@ -62,12 +64,73 @@ const Header = () => {
 
                     <ThemeToggle />
 
-                    <BellIcon
-                        width={48}
-                        height={48}
-                        style={{ objectFit: "contain" }}
-                    />
+                    <button
+                        onClick={() => setShowNotifications(!showNotifications)}
+                        className="relative w-12 h-12 rounded-full border border-[#CDDAE6] flex items-center justify-center"
+                        >
+                        {/* Bell Icon inside circle */}
+                        <BellIcon
+                            width={24}
+                            height={24}
+                            style={{ objectFit: "contain" }}
+                            className="text-blue-600"
+                        />
 
+                        {/* Green dot */}
+                        <span className="absolute top-0 right-0 w-4 h-4 bg-green-500 border-2 border-white rounded-full"></span>
+                    </button>
+
+                        {showNotifications && (
+                            <>
+                            {/* Overlay */}
+                            <div
+                                className="fixed inset-0 bg-black/40 z-40"
+                                onClick={() => setShowNotifications(false)}
+                            ></div>
+                        
+                            {/* Notification Popup */}
+                            <div className="absolute right-[100px] top-20 w-[400px] bg-white shadow-xl rounded-xl border border-gray-200 z-50 overflow-hidden">
+                                <div className="flex justify-between items-center px-4 py-3 border-b">
+                                <h3 className="font-semibold text-lg">
+                                    Recent Notification
+                                    <span className="ml-1 text-xs bg-gray-200 px-2 py-0.5 rounded-full">1</span>
+                                </h3>
+                                <button
+                                    className="text-sm text-[#00AA67] font-medium"
+                                    onClick={() => router.push("/notification")}
+                                    >
+                                    View all
+                                </button>
+                                </div>
+                        
+                                <div className="divide-y">
+                                {[
+                                    { time: "Just now" },
+                                    { time: "Yesterday" },
+                                    { time: "2 days ago" },
+                                    { time: "2 days ago" },
+                                ].map((item, i) => (
+                                    <div
+                                    key={i}
+                                    className={`px-4 py-3 ${
+                                        item.time === "Just now" ? "bg-gray-100" : ""
+                                    }`}
+                                    >
+                                    <h4 className="font-medium text-sm flex items-center gap-2">
+                                        <span className="text-[#00AA67] text-xl leading-none">•</span>
+                                        Commission received for unit #012
+                                        <span className="ml-auto text-xs text-gray-500">{item.time}</span>
+                                    </h4>
+                                    <p className="text-sm text-gray-500 mt-1">
+                                        It is a long established fact that a reader will be distracted by the readable content of a page.
+                                    </p>
+                                    </div>
+                                ))}
+                                </div>
+                            </div>
+                            </>
+                        )}
+                        
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <div className="flex items-center space-x-1 cursor-pointer">

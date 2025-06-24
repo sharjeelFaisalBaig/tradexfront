@@ -34,7 +34,7 @@ export default function TemplatesPage() {
               <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-10" />
               <Input
                 type="text"
-                placeholder="Search strategies or press Ctrl S"
+                placeholder="Search Templates"
                 className="pl-10"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -46,7 +46,7 @@ export default function TemplatesPage() {
           </div>
 
           {/* Templates Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-28 mr-24">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
             {templates
               .filter((t) =>
                 t.title.toLowerCase().includes(searchTerm.toLowerCase())

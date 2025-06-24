@@ -10,6 +10,7 @@
     "export": "next export"
   },
   "dependencies": {
+    "@headlessui/react": "^2.2.4",
     "@hookform/resolvers": "^3.9.0",
     "@radix-ui/react-accordion": "^1.2.0",
     "@radix-ui/react-alert-dialog": "^1.1.1",
@@ -59,6 +60,7 @@
     "sonner": "^1.5.0",
     "tailwind-merge": "^2.5.2",
     "tailwindcss-animate": "^1.0.7",
+    "uuid": "^11.1.0",
     "vaul": "^0.9.3",
     "zod": "^3.23.8"
   },
