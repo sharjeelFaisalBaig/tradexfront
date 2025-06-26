@@ -33,20 +33,28 @@ export default function LoginPage() {
     setError("");
 
     try {
-      const result = await signIn("credentials", {
+       const res = await signIn("credentials", {
         email,
         password,
         redirect: false,
       });
 
-      if (result?.error) {
-        setError("Invalid credentials");
-      } else {
-        router.push(callbackUrl);
-      }
+      if(res.error){
+        toast({
+        title: "Login Failed",
+        description: "Please check your credentials and try again.",
+        variant: "destructive",
+      });
+    }else{
+      router.push("/dashboard")
+      toast({
+        title: "Login Successfull",
+        description: "Login successfully, Navigating to dashboard",
+        variant: "default",
+      });
+    }
     } catch (error) {
-      console.error('Login error:', error);
-      setError("An error occurred during login. Please try again.");
+      console.error('Login error:', error)
     } finally {
       setLoading(false);
     }
@@ -188,13 +196,14 @@ export default function LoginPage() {
                 </Link>
               </div>
 
-              <Button
+                <Button
+                disabled={loading}
                 onClick={handleCredentialsSignIn}
                 type="submit"
                 className="h-12 w-full mb-9 bg-cyan-600 hover:bg-cyan-700"
-              >
-                Sign In
-              </Button>
+                >
+                {loading ? "Signing In..." : "Sign In"}
+                </Button>
             </form>
 
             {/* Footer Links */}
@@ -203,7 +212,7 @@ export default function LoginPage() {
                 Don&apos;t have an account?
               </span>{" "}
               <Link
-                href="/register"
+                href="/auth/signup"
                 className="text-sm text-teal-500 hover:text-teal-300"
               >
                 Sign up now

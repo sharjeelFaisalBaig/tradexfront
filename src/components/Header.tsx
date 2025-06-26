@@ -15,9 +15,12 @@ import { useRouter } from "next/navigation";
 import BellIcon from '../icons/bell.svg';
 import Affiliate from '../icons/affiliate.svg';
 import UnlockIcon from '../icons/unlock.svg';
+import { signOut } from "next-auth/react";
+import { useToast } from "@/hooks/use-toast";
 
 const Header = () => {
     const router = useRouter();
+    const {toast} = useToast()
     const [showNotifications, setShowNotifications] = useState(false);
 
 
@@ -151,7 +154,13 @@ const Header = () => {
                             <DropdownMenuItem onClick={() => router.push("/settings")}>
                                 Settings
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => alert("Logged out")}>
+                            <DropdownMenuItem onClick={()=>{
+                                signOut()
+                                toast({
+                                    title:"Logout successfully",
+                                    variant:"default"
+                                })
+                                }}>
                                 Logout
                             </DropdownMenuItem>
                         </DropdownMenuContent>

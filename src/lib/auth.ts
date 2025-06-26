@@ -1,67 +1,25 @@
 // frontend/app/api/auth/[...nextauth]/route.js
-import NextAuth, { AuthError } from "next-auth";
+import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 import Credentials from "next-auth/providers/credentials";
 import { endpoints } from "./endpoints";
-import { AuthAction } from "@auth/core/types";
+import type { NextAuthConfig } from "next-auth";
+import authConfig from "./auth.config";
 
-export const { handlers, signIn, signOut, auth } = NextAuth({
-  providers: [
-    Google({
-      clientId: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    }),
-    Credentials({
-      name: "Credentials",
-      credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" },
-      },
-      async authorize(credentials):AuthAction{
-        if (!credentials?.email || !credentials?.password) {
-          throw new Error("Email and password are required");
-        }
+declare module "next-auth" {
+  interface User {
+    accessToken?: string;
+    refreshToken?: string;
+    expiresAt?: number;
+  }
 
-        try {
-          const response = await fetch(
-            `${process.env.BACKEND_API_URL}${endpoints.AUTH.SIGNIN}`,
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                email: credentials.email,
-                password: credentials.password,
-              }),
-            }
-          );
+  interface Session {
+    accessToken?: string;
+    error?: string;
+  }
+}
 
-          if (!response.ok) {
-            throw new Error("Invalid credentials");
-          }
-
-          const data = await response.json();
-          console.log("Backend response:", response.statusText, data);
-
-          if (data.user && data.access_token) {
-            return {
-              id: data.user.id,
-              email: data.user.email,
-              name: data.user.name,
-              accessToken: data.access_token,
-            };
-          }
-
-          throw new Error("No user or token received from backend");
-        } catch (error) {
-          console.error("Auth error:", error);
-          throw new Error("Authentication failed");
-        }
-      },
-    }),
-  ],
-
+export const { handlers, signIn, signOut, auth }  = NextAuth({
   callbacks: {
     async signIn({ user, account }) {
       if (account?.provider === "google") {
@@ -98,18 +56,47 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
 
     async jwt({ token, user }) {
-      if (user?.accessToken) {
-        token.accessToken = user.accessToken;
-      }
-      return token;
-    },
+  if (user) {
+    token.accessToken = user.accessToken;
+    token.refreshToken = user.refreshToken;
+    token.expiresAt = user.expiresAt; // timestamp in ms
+  }
 
-    async session({ session, token }) {
-      if (token.accessToken) {
-        session.accessToken = token.accessToken
-      }
-      return session;
-    },
+  // Check if token is expired
+  const isExpired = Date.now() > Number(token.expiresAt);
+
+  if (isExpired) {
+    try {
+      const res = await fetch(`${process.env.BACKEND_API_URL}/auth/refresh`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ refreshToken: token.refreshToken }),
+      });
+
+      const refreshed = await res.json();
+
+      if (!res.ok) throw new Error("Failed to refresh token");
+
+      token.accessToken = refreshed.access_token;
+      token.expiresAt = Date.now() + refreshed.expires_in * 1000;
+      token.refreshToken = refreshed.refresh_token ?? token.refreshToken; // optional
+    } catch (error) {
+      console.error("Refresh token error:", error);
+      return { ...token, error: "RefreshAccessTokenError" };
+    }
+  }
+
+  return token;
+},
+ 
+async session({ session, token }) {
+  session.accessToken = token.accessToken as any; 
+  session.error = token.error as any;
+  return session;
+}
+
   },
 
   pages: {
@@ -123,4 +110,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   },
 
   secret: process.env.NEXTAUTH_SECRET,
+
+  ...authConfig
 });

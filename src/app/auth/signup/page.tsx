@@ -1,41 +1,62 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Image from 'next/image';
-import Link from 'next/link';
+import React, { useState } from "react";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
+import Link from "next/link";
 
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { toast } from '@/hooks/use-toast';
-import { ThemeToggle } from '@/components/ThemeToggle';
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { toast } from "@/hooks/use-toast";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { useSignup } from "@/services/auth/auth_Mutation";
 
-const labelClass = 'text-gray-700 dark:text-gray-300';
-const checkboxLabelClass = 'text-sm text-[#7A869A]';
-const linkClass = 'text-cyan-600 underline hover:underline';
+const labelClass = "text-gray-700 dark:text-gray-300";
+const checkboxLabelClass = "text-sm text-[#7A869A]";
+const linkClass = "text-cyan-600 underline hover:underline";
 
 const Signup = () => {
   const router = useRouter();
   const [agreeTerms, setAgreeTerms] = useState(false);
+  const { mutate, isPending } = useSignup();
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    toast({
-      title: 'Account Created',
-      description: 'Welcome to Tradex AI!',
-    });
-
-    router.replace('/dashboard');
+    mutate(
+      {
+        first_name: e.currentTarget.firstName.value,
+        last_name: e.currentTarget.lastName.value,
+        email: e.currentTarget.email.value,
+        password: e.currentTarget.password.value,
+      },
+      {
+        onSuccess: () => {
+          router.replace("/auth/signin");
+          toast({
+            title: "Account Created",
+            description: "Welcome to Tradex AI!",
+          });
+        },
+        onError: () => {
+          toast({
+            title: "Error",
+            description:
+              "There was an issue creating your account. Please try again.",
+            variant: "destructive",
+          });
+        },
+      }
+    );
   };
 
   const handleGoogleLogin = () => {
     toast({
-      title: 'Google Login',
-      description: 'Google OAuth would go here',
+      title: "Google Login",
+      description: "Google OAuth would go here",
     });
   };
 
@@ -90,7 +111,12 @@ const Signup = () => {
               onClick={handleGoogleLogin}
               type="button"
             >
-              <svg className="mr-1 h-5 w-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <svg
+                className="mr-1 h-5 w-5"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                aria-hidden="true"
+              >
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
                 <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
                 <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
@@ -111,13 +137,25 @@ const Signup = () => {
                   <Label htmlFor="first-name" className={labelClass}>
                     First Name
                   </Label>
-                  <Input id="first-name" name="firstName" type="text" required className="h-12" />
+                  <Input
+                    id="first-name"
+                    name="firstName"
+                    type="text"
+                    required
+                    className="h-12"
+                  />
                 </div>
                 <div className="w-1/2">
                   <Label htmlFor="last-name" className={labelClass}>
                     Last Name
                   </Label>
-                  <Input id="last-name" name="lastName" type="text" required className="h-12" />
+                  <Input
+                    id="last-name"
+                    name="lastName"
+                    type="text"
+                    required
+                    className="h-12"
+                  />
                 </div>
               </div>
 
@@ -125,21 +163,39 @@ const Signup = () => {
                 <Label htmlFor="email" className={labelClass}>
                   Email address
                 </Label>
-                <Input id="email" name="email" type="email" required className="h-12" />
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  required
+                  className="h-12"
+                />
               </div>
 
               <div>
                 <Label htmlFor="password" className={labelClass}>
                   Password
                 </Label>
-                <Input id="password" name="password" type="password" required className="h-12" />
+                <Input
+                  id="password"
+                  name="password"
+                  type="password"
+                  required
+                  className="h-12"
+                />
               </div>
 
               <div>
                 <Label htmlFor="confirm-password" className={labelClass}>
                   Confirm Password
                 </Label>
-                <Input id="confirm-password" name="confirmPassword" type="password" required className="h-12" />
+                <Input
+                  id="confirm-password"
+                  name="confirmPassword"
+                  type="password"
+                  required
+                  className="h-12"
+                />
               </div>
 
               <div className="flex items-center justify-between mb-6">
@@ -151,22 +207,39 @@ const Signup = () => {
                     onCheckedChange={(checked) => setAgreeTerms(!!checked)}
                   />
                   <Label htmlFor="agree" className={checkboxLabelClass}>
-                    I agree to the{' '}
-                    <a href="#" className={linkClass}>Terms of Service</a>,{' '}
-                    <a href="#" className={linkClass}>Privacy</a> and{' '}
-                    <a href="#" className={linkClass}>Refund Policy</a>
+                    I agree to the{" "}
+                    <a href="#" className={linkClass}>
+                      Terms of Service
+                    </a>
+                    ,{" "}
+                    <a href="#" className={linkClass}>
+                      Privacy
+                    </a>{" "}
+                    and{" "}
+                    <a href="#" className={linkClass}>
+                      Refund Policy
+                    </a>
                   </Label>
                 </div>
               </div>
 
-              <Button type="submit" className="h-12 w-full mb-9 bg-cyan-600 hover:bg-cyan-700">
-                Create Account
+              <Button
+                disabled={isPending}
+                type="submit"
+                className="h-12 w-full mb-9 bg-cyan-600 hover:bg-cyan-700"
+              >
+                {isPending ? "Creating.." : "Create Account" }
               </Button>
             </form>
 
             <div className="mt-6 text-center">
-              <span className="text-sm text-gray-600">Already have an account?</span>{' '}
-              <Link href="/login" className="text-sm text-teal-500 hover:text-teal-300">
+              <span className="text-sm text-gray-600">
+                Already have an account?
+              </span>{" "}
+              <Link
+                href="/auth/signin"
+                className="text-sm text-teal-500 hover:text-teal-300"
+              >
                 Sign in
               </Link>
             </div>

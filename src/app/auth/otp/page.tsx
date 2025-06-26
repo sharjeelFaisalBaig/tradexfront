@@ -22,7 +22,7 @@ export default function OtpVerificationPage() {
         <h2 className="text-2xl font-bold">OTP Verification</h2>
         <p className="text-gray-500">
           Already Registered?{" "}
-          <a href="/login" className="font-semibold text-black">Proceed To Log In</a>
+          <a href="/auth/signin" className="font-semibold text-black">Proceed To Log In</a>
         </p>
 
         {/* OTP Input Boxes */}
