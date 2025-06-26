@@ -53,11 +53,11 @@ const Signup = () => {
     );
   };
 
-  const handleGoogleLogin = () => {
-    toast({
-      title: "Google Login",
-      description: "Google OAuth would go here",
-    });
+  const handleGoogleLogin = () => { 
+    // toast({
+    //   title: "Google Login",
+    //   description: "Google OAuth would go here",
+    // });
   };
 
   return (
@@ -228,7 +228,7 @@ const Signup = () => {
                 type="submit"
                 className="h-12 w-full mb-9 bg-cyan-600 hover:bg-cyan-700"
               >
-                {isPending ? "Creating.." : "Create Account" }
+                {isPending ? "Creating.." : "Create Account"}
               </Button>
             </form>
 
