@@ -1,4 +1,4 @@
-'use client'
+"use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -8,34 +8,78 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from '@/components/ui/checkbox'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { ThemeToggle } from '@/components/ThemeToggle'
-import { toast } from '@/hooks/use-toast'
-
-import ExclamationIcon from '../../icons/exclamation.svg'
+import { Checkbox } from "@/components/ui/checkbox";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { toast } from "@/hooks/use-toast";
+// import ExclamationIcon from "../../icons/exclamation.svg";
+import { signIn } from "next-auth/react";
 
 export default function LoginPage() {
-  const router = useRouter()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [rememberMe, setRememberMe] = useState(false)
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+
+  // const searchParams = useSearchParams();
+  // const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
+
+
+  const handleCredentialsSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+
+    try {
+       const res = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
+
+      if(res.error){
+        toast({
+        title: "Login Failed",
+        description: "Please check your credentials and try again.",
+        variant: "destructive",
+      });
+    }else{
+      router.push("/dashboard")
+      toast({
+        title: "Login Successfull",
+        description: "Login successfully, Navigating to dashboard",
+        variant: "default",
+      });
+    }
+    } catch (error) {
+      console.error('Login error:', error)
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = () => {
+    // signIn("google", { callbackUrl });
+  };
 
   const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
     toast({
-      title: 'Login Successful',
-      description: 'Welcome to Tradex AI!',
-    })
-    router.replace('/dashboard')
-  }
+      title: "Login Successful",
+      description: "Welcome to Tradex AI!",
+    });
+    router.replace("/dashboard");
+  };
 
-  const handleGoogleLogin = () => {
-    toast({
-      title: 'Google Login',
-      description: 'Google OAuth integration would go here',
-    })
-  }
+  // const handleGoogleLogin = () => {
+  //   toast({
+  //     title: "Google Login",
+  //     description: "Google OAuth integration would go here",
+  //   });
+  // };
+  console.log(error, loading, handleGoogleSignIn, handleCredentialsSignIn);
 
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-[#f6f8fb] p-4 dark:bg-gray-900">
@@ -48,7 +92,7 @@ export default function LoginPage() {
         <div className="rounded-t-[20px] border border-[#0088CC1C] bg-[#0088CC1C] py-2 px-3 text-left dark:border-[#0088CC1C] dark:bg-cyan-900/20">
           <p className="flex items-center gap-2 text-base font-medium text-cyan-600 dark:text-cyan-300">
             <span className="flex h-6 w-8 items-center justify-center rounded-full pl-2">
-              <ExclamationIcon width={24} height={24} />
+              {/* <ExclamationIcon width={24} height={24} /> */}
             </span>
             Login with Tradex AI
           </p>
@@ -75,9 +119,13 @@ export default function LoginPage() {
             <Button
               variant="outline"
               className="mb-6 flex h-12 w-full items-center justify-center bg-teal-900 text-sm text-white"
-              onClick={handleGoogleLogin}
+              onClick={handleGoogleSignIn}
             >
-              <svg className="mr-1 h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
+              <svg
+                className="mr-1 h-5 w-5"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+              >
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
                 <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
                 <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
@@ -96,7 +144,10 @@ export default function LoginPage() {
             {/* Login Form */}
             <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm text-gray-700 dark:text-gray-300">
+                <Label
+                  htmlFor="email"
+                  className="text-sm text-gray-700 dark:text-gray-300"
+                >
                   Email address <span className="text-cyan-500">*</span>
                 </Label>
                 <Input
@@ -110,7 +161,10 @@ export default function LoginPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-sm text-gray-700 dark:text-gray-300">
+                <Label
+                  htmlFor="password"
+                  className="text-sm text-gray-700 dark:text-gray-300"
+                >
                   Password <span className="text-cyan-500">*</span>
                 </Label>
                 <Input
@@ -134,33 +188,55 @@ export default function LoginPage() {
                     Remember me
                   </Label>
                 </div>
-                <Link href="/forgot-password" className="text-sm text-teal-500 hover:text-teal-300">
+                <Link
+                  href="/forgot-password"
+                  className="text-sm text-teal-500 hover:text-teal-300"
+                >
                   Forgot Password
                 </Link>
               </div>
 
-              <Button type="submit" className="h-12 w-full mb-9 bg-cyan-600 hover:bg-cyan-700">
-                Sign In
-              </Button>
+                <Button
+                disabled={loading}
+                onClick={handleCredentialsSignIn}
+                type="submit"
+                className="h-12 w-full mb-9 bg-cyan-600 hover:bg-cyan-700"
+                >
+                {loading ? "Signing In..." : "Sign In"}
+                </Button>
             </form>
 
             {/* Footer Links */}
             <div className="mt-6 text-center">
-              <span className="text-sm text-gray-600">Don&apos;t have an account?</span>{' '}
-              <Link href="/register" className="text-sm text-teal-500 hover:text-teal-300">
+              <span className="text-sm text-gray-600">
+                Don&apos;t have an account?
+              </span>{" "}
+              <Link
+                href="/auth/signup"
+                className="text-sm text-teal-500 hover:text-teal-300"
+              >
                 Sign up now
               </Link>
             </div>
 
             <div className="mb-8 mt-6 text-center text-xs leading-relaxed text-gray-500">
-              By continuing, you agree to our<br />
-              <a href="#" className="text-cyan-600 hover:underline">Terms of Service</a>,{' '}
-              <a href="#" className="text-cyan-600 hover:underline">Privacy</a>, and{' '}
-              <a href="#" className="text-cyan-600 hover:underline">Refund Policy</a>
+              By continuing, you agree to our
+              <br />
+              <a href="#" className="text-cyan-600 hover:underline">
+                Terms of Service
+              </a>
+              ,{" "}
+              <a href="#" className="text-cyan-600 hover:underline">
+                Privacy
+              </a>
+              , and{" "}
+              <a href="#" className="text-cyan-600 hover:underline">
+                Refund Policy
+              </a>
             </div>
           </CardContent>
         </Card>
       </div>
     </div>
-  )
+  );
 }
