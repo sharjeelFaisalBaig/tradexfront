@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { BotMessageSquare, Circle, Diamond, FileText, Folder, Globe, ImageIcon, Key, LayoutDashboard, Play, Plus, Settings, Type } from "lucide-react";
+import { BotMessageSquare, Circle, Diamond, FileText, Folder, Globe, ImageIcon, Key, LayoutDashboard, Play, Plus, SaveAllIcon, Settings, Type } from "lucide-react";
 
 const strategyTools = [
     { id: "image", icon: ImageIcon, label: "Images" },
     { id: "video", icon: Play, label: "Videos" },
     { id: "document", icon: FileText, label: "Documents" },
     { id: "AI Assistant", icon: BotMessageSquare, label: "AI Assistant" },
+    { id: "Save Progress", icon: SaveAllIcon, label: "Save Progress", color: "#0088cc" },
 ];
 const StrategySidebar = () => {
     return (
@@ -19,7 +20,7 @@ const StrategySidebar = () => {
                     <LayoutDashboard className="w-5 h-5" />
                 </Link>
                 {strategyTools.map((item) => {
-                    const Icon = item.icon
+                    const Icon = item.icon;
                     return (
                         <Button
                             key={item.id}
@@ -28,7 +29,7 @@ const StrategySidebar = () => {
                             className={"w-10 h-10 p-0 rounded-lg transition-all duration-200 text-gray-600 hover:text-gray-900 hover:bg-gray-100"}
                             title={item.label}
                         >
-                            <Icon className="w-5 h-5" />
+                            <Icon color={item?.color ?? 'rgb(75 85 99)'} className="w-5 h-5" />
                         </Button>
                     )
                 })}
