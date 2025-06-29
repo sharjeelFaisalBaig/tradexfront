@@ -1,16 +1,19 @@
-const BASE_PATH = process.env.NEXT_PUBLIC_BACKEND_API_URL 
+const API_BASE_PATH = process.env.NEXT_PUBLIC_API_URL || "https://tradexfront.isoft-digital.net/api";
+const DOMAIN_ROOT = API_BASE_PATH.replace("/api", "");
 
 export const endpoints = {
     AUTH: {
-        SIGNIN: `${BASE_PATH}/auth/login`,
-        SIGNUP: `${BASE_PATH}/auth/register`,
-        FORGOT_PASSWORD: `${BASE_PATH}/auth/forgot-password`,
-        RESET_PASSWORD: `${BASE_PATH}/auth/reset-password`,
-        VERIFY_OTP: `${BASE_PATH}/auth/verify-otp`,
-        RESEND_OTP: `${BASE_PATH}/auth/resend-otp`,
-        REFRESH: `${BASE_PATH}/auth/refresh`
+        LOGIN: `${API_BASE_PATH}/auth/login`,
+        SIGNUP: `${API_BASE_PATH}/auth/register`,
+        FORGOT_PASSWORD: `${API_BASE_PATH}/auth/forgot-password`,
+        RESET_PASSWORD: `${API_BASE_PATH}/auth/reset-password`,
+        VERIFY_OTP: `${API_BASE_PATH}/auth/verify-otp`,
+        VERIFY_2FA: `${API_BASE_PATH}/auth/verify-otp`,
+        RESEND_OTP: `${API_BASE_PATH}/auth/resend-otp`,
+        REFRESH: `${API_BASE_PATH}/auth/refresh`,
+        CSRF_COOKIE: `${DOMAIN_ROOT}/sanctum/csrf-cookie`,
     },
     USER: {
-        PROFILE: `${BASE_PATH}/auth/me`,
+        PROFILE: `${API_BASE_PATH}/auth/me`,
     }
 }

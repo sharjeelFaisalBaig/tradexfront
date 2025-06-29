@@ -12,6 +12,12 @@ export interface SignupData {
 interface SignupResponse {
     success: boolean;
     message: string;
+    data: {
+        user: {
+            email: string;
+        };
+        otp_expires_in: number;
+    };
 }
 
 
