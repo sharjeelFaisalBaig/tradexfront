@@ -18,9 +18,9 @@ const OtpVerificationPage = () => {
   const email = searchParams.get("email");
   const twoFactorEnabled = searchParams.get("2fa");
   const expiresIn = searchParams.get("expires_in");
-
+  const [verifying, setVerifying] = useState(false);
   const [otp, setOtp] = useState(Array(6).fill(""));
-  const [timer, setTimer] = useState(expiresIn ? parseInt(expiresIn, 10) : 0);
+  const [timer, setTimer] = useState(expiresIn ? parseInt(expiresIn, 10) : 600); // fallback to 600 if not found
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   useEffect(() => {
@@ -54,6 +54,7 @@ const OtpVerificationPage = () => {
         return data;
       }),
     onSuccess: (data) => {
+      setVerifying(true);
       toast({
         title: "Success",
         description: "2FA verified successfully.",
@@ -66,7 +67,9 @@ const OtpVerificationPage = () => {
         access_token: data.data.access_token,
         redirect: false,
       }).then(() => {
-        router.replace("/dashboard");
+        setTimeout(() => {
+          router.replace("/dashboard");
+        }, 1200); // Optional: short delay for loader
       });
     },
     onError: (error: any) => {
@@ -93,11 +96,14 @@ const OtpVerificationPage = () => {
         return data;
       }),
     onSuccess: () => {
+      setVerifying(true);
       toast({
         title: "Success",
         description: "OTP verified successfully. Please log in.",
       });
-      router.replace("/auth/signin");
+      setTimeout(() => {
+        router.replace("/auth/signin");
+      }, 1200); // Optional: short delay for loader
     },
     onError: (error: any) => {
       toast({
@@ -226,6 +232,37 @@ const OtpVerificationPage = () => {
     }
   };
 
+  if (verifying) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#f6f8fb] dark:bg-gray-900">
+        <div className="flex flex-col items-center">
+          <svg
+            className="animate-spin h-12 w-12 text-cyan-600 mb-4"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+              fill="none"
+            />
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8v8z"
+            />
+          </svg>
+          <span className="text-cyan-600 text-lg font-semibold">
+            Redirecting...
+          </span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-[#f6f8fb] p-4 dark:bg-gray-900">
       <div className="absolute top-4 right-4">
@@ -295,16 +332,26 @@ const OtpVerificationPage = () => {
                 Didn't get the code?{" "}
                 <button
                   onClick={handleResend}
-                  disabled={timer > 0 || resendOtpMutation.isPending}
-                  //   className="text-black font-semibold underline disabled:text-gray-400 disabled:no-underline"
-                  // >
+                  disabled={
+                    timer > 0 ||
+                    (twoFactorEnabled === "true"
+                      ? resend2faMutation.isPending
+                      : resendOtpMutation.isPending)
+                  }
                   className={`font-semibold underline transition-colors
-                      ${timer > 0 || resendOtpMutation.isPending
+                    ${timer > 0 ||
+                      (twoFactorEnabled === "true"
+                        ? resend2faMutation.isPending
+                        : resendOtpMutation.isPending)
                       ? "text-gray-400 cursor-not-allowed"
                       : "text-cyan-600 hover:text-cyan-700"
                     }`}
                 >
-                  {resendOtpMutation.isPending ? "Sending..." : "Resend"}
+                  {(twoFactorEnabled === "true"
+                    ? resend2faMutation.isPending
+                    : resendOtpMutation.isPending)
+                    ? "Sending..."
+                    : "Resend"}
                 </button>
               </div>
               {timer > 0 && (

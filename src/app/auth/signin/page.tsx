@@ -42,7 +42,7 @@ export default function LoginPage() {
       if (res?.error) {
         if (res.error === "CredentialsSignin") {
           // This is the custom error we threw in the authorize function
-          router.push(`/auth/otp?email=${email}&2fa=false`);
+          router.replace(`/auth/otp?email=${encodeURIComponent(email)}&2fa=false`);
           toast({
             title: "Verification Required",
             description: "Please verify your email with the OTP.",
@@ -51,7 +51,7 @@ export default function LoginPage() {
         }
         else if (res.error === "Verification") {
           // This is the custom error we threw in the authorize function
-          router.push(`/auth/otp?email=${email}&2fa=true`);
+          router.replace(`/auth/otp?email=${encodeURIComponent(email)}&2fa=true`);
           toast({
             title: "2FA Required",
             description: "Please verify your email with the OTP.",
@@ -217,7 +217,7 @@ export default function LoginPage() {
                   </Label>
                 </div>
                 <Link
-                  href="/forgot-password"
+                  href="/auth/forgot-password"
                   className="text-sm text-teal-500 hover:text-teal-300"
                 >
                   Forgot Password
