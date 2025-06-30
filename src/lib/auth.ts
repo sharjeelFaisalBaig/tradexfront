@@ -3,6 +3,31 @@ import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
 import type { NextAuthConfig } from "next-auth";
 import { CustomAuthError } from "./error";
+import { endpoints } from "@/lib/endpoints";
+
+// Helper to refresh access token
+async function refreshAccessToken(token: any) {
+  try {
+    const res = await fetch(endpoints.AUTH.REFRESH, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token.accessToken}`,
+      },
+    });
+    const data = await res.json();
+
+    if (!res.ok || data.status === "Error") throw data;
+
+    return {
+      ...token,
+      accessToken: data.data.access_token,
+      accessTokenExpires: Date.now() + (data.data.expires_in || 3600) * 1000,
+    };
+  } catch (error) {
+    return { ...token, error: "RefreshAccessTokenError" };
+  }
+}
 
 export const authConfig: NextAuthConfig = {
   providers: [
@@ -60,13 +85,15 @@ export const authConfig: NextAuthConfig = {
 
           if (!res.ok || !json?.data?.access_token) return null;
 
-          const { access_token, user } = json.data;
+          const { access_token, user, expires_in } = json.data;
 
           return {
             id: user.id,
             name: user.first_name,
             email: user.email,
             accessToken: access_token,
+            // refreshToken: json.data.refresh_token, // If your API returns this
+            accessTokenExpires: Date.now() + (expires_in || 3600) * 1000,
             email_verified_at: user.email_verified_at,
             two_factor_enabled: user.two_factor_enabled,
           };
@@ -149,6 +176,8 @@ export const authConfig: NextAuthConfig = {
             id: String(credentials.email),
             email: String(credentials.email),
             accessToken: String(credentials.access_token),
+            // refreshToken: credentials.refresh_token, // If you have it
+            accessTokenExpires: Date.now() + 3600 * 1000,
           };
         }
         return null;
@@ -161,20 +190,26 @@ export const authConfig: NextAuthConfig = {
       return true;
     },
     async jwt({ token, user }) {
+      // Initial sign in
       if (user) {
         token.id = user.id;
         token.accessToken = user.accessToken;
+        token.accessTokenExpires = user.accessTokenExpires || (Date.now() + 3600 * 1000);
         token.email_verified_at = user.email_verified_at;
         token.two_factor_enabled = user.two_factor_enabled;
       }
+
+      // If token is expired, try to refresh
+      if (token.accessTokenExpires && Date.now() >= token.accessTokenExpires) {
+        return await refreshAccessToken(token);
+      }
+
       return token;
     },
     async session({ session, token }) {
-      if (session.user) {
-        session.user.id = token.id as string;
-        session.user.email_verified_at = token.email_verified_at;
-      }
       session.accessToken = token.accessToken as string;
+      // session.accessTokenExpires = token.accessTokenExpires as number | undefined;
+      session.error = token.error as string | undefined;
       return session;
     },
   },

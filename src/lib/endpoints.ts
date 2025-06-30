@@ -15,5 +15,10 @@ export const endpoints = {
     },
     USER: {
         PROFILE: `${API_BASE_PATH}/auth/me`,
+    },
+    PLANS: {
+        GET_ALL_PLANS: `${API_BASE_PATH}/membership/plans`,
+        GET_PLAN_BY_ID: (id: string) => `${API_BASE_PATH}/membership/plans/${id}`,
+        CHECK_PLAN_ELIGIBILITY: (plan_id: string, billing_cycle: string) => `${API_BASE_PATH}/subscription/eligibility/${plan_id}/${billing_cycle}`,
     }
 }

@@ -5,17 +5,9 @@ import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import clsx from 'clsx'
 import { X } from 'lucide-react'
-
-type PlanStatus = 'Subscribed' | 'Subscribe Now' | 'Renew'
-
-interface Plan {
-  name: string
-  price: string
-  userLimit: string
-  features: string[]
-  status: PlanStatus
-  recommended?: boolean
-}
+import { endpoints } from '@/lib/endpoints'
+import { useSession } from 'next-auth/react'
+import { fetchWithAutoRefresh } from '@/lib/fetchWithAutoRefresh'
 
 export default function ChangePlanModal({
   isOpen,
@@ -24,32 +16,31 @@ export default function ChangePlanModal({
   isOpen: boolean
   onClose: () => void
 }) {
+  const { data: session } = useSession()
   const [billingType, setBillingType] = useState<'monthly' | 'yearly'>('monthly')
+  const [plans, setPlans] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const plans: Plan[] = [
-    {
-      name: 'Lite',
-      price: '$29',
-      userLimit: 'Up to 5 users',
-      features: ['Unlimited sending', 'Email marketing', 'Send newsletters'],
-      status: 'Subscribe Now',
-    },
-    {
-      name: 'Plus',
-      price: '$89',
-      userLimit: 'Up to 25 users',
-      features: ['Unlimited sending', 'Email marketing', 'Send newsletters'],
-      status: 'Subscribed',
-      recommended: true,
-    },
-    {
-      name: 'Enterprise',
-      price: '$159',
-      userLimit: 'Up to 50 users',
-      features: ['Unlimited sending', 'Email marketing', 'Send newsletters'],
-      status: 'Renew',
-    },
-  ]
+  useEffect(() => {
+    async function fetchPlans() {
+      setLoading(true)
+      try {
+        // console.log("Fetching plans with token:", session?.accessToken)
+        const data = await fetchWithAutoRefresh(endpoints.PLANS.GET_ALL_PLANS, session)
+        // console.log("Plans API response:", data)
+        if (data?.status && data?.data?.plans) {
+          setPlans(data.data.plans)
+        } else {
+          setPlans([])
+        }
+      } catch (e) {
+        setPlans([])
+        console.error("Error fetching plans:", e)
+      }
+      setLoading(false)
+    }
+    if (isOpen && session?.accessToken) fetchPlans()
+  }, [isOpen, session?.accessToken])
 
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
@@ -67,94 +58,84 @@ export default function ChangePlanModal({
       <div className="fixed inset-0 flex items-center justify-center">
         <Dialog.Panel className="relative bg-white dark:bg-background h-full flex flex-col items-center justify-center shadow-lg p-8 w-full ">
           <div className='w-full max-w-5xl'>
-          {/* Close Icon */}
-          <button
-            onClick={onClose}
-            className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition-colors"
-            aria-label="Close"
-          >
-            <X className="w-5 h-5" />
-          </button>
+            {/* Close Icon */}
+            <button
+              onClick={onClose}
+              className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Close"
+            >
+              <X className="w-5 h-5" />
+            </button>
 
-          <Dialog.Title className="text-2xl font-bold text-center mb-2">Choose Your Plan</Dialog.Title>
-          <p className="text-sm text-muted-foreground text-center mb-6">No contracts, no surprise fees.</p>
+            <Dialog.Title className="text-2xl font-bold text-center mb-2">Choose Your Plan</Dialog.Title>
+            <p className="text-sm text-muted-foreground text-center mb-6">No contracts, no surprise fees.</p>
 
-          {/* Billing Toggle */}
-          <div className="flex justify-center mb-8">
-            <div className="inline-flex bg-muted rounded-lg p-1">
-              <button
-                className={clsx(
-                  'px-4 py-1 text-sm rounded-lg transition-all',
-                  billingType === 'monthly'
-                    ? 'bg-primary text-white dark:bg-background'
-                    : 'text-muted-foreground hover:text-foreground'
-                )}
-                onClick={() => setBillingType('monthly')}
-              >
-                Monthly
-              </button>
-              <button
-                className={clsx(
-                  'px-4 py-1 text-sm rounded-lg transition-all',
-                  billingType === 'yearly'
-                    ? 'bg-primary text-white dark:bg-background'
-                    : 'text-muted-foreground hover:text-foreground'
-                )}
-                onClick={() => setBillingType('yearly')}
-              >
-                Yearly
-              </button>
-            </div>
-          </div>
-
-          {/* Plans List */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {plans.map((plan) => (
-              <div
-                key={plan.name}
-                className={clsx(
-                  'border rounded-xl p-6 text-center transition-all shadow-sm',
-                  plan.recommended
-                    ? 'bg-primary text-white border-primary dark:bg-background dark:border-border'
-                    : 'bg-white text-foreground border-border dark:bg-muted/50'
-                )}
-              >
-                <h3 className="text-xl font-semibold mb-1">{plan.name}</h3>
-                <p className="text-3xl font-bold mb-2">
-                  {plan.price}
-                  <span className="text-base font-medium"> /month</span>
-                </p>
-
-                <ul
+            {/* Billing Toggle */}
+            <div className="flex justify-center mb-8">
+              <div className="inline-flex bg-muted rounded-lg p-1">
+                <button
                   className={clsx(
-                    'text-sm mb-6 space-y-2 text-left mt-4',
-                    plan.recommended ? 'text-white/90' : 'text-muted-foreground'
+                    'px-4 py-1 text-sm rounded-lg transition-all',
+                    billingType === 'monthly'
+                      ? 'bg-primary text-white dark:bg-background'
+                      : 'text-muted-foreground hover:text-foreground'
                   )}
+                  onClick={() => setBillingType('monthly')}
                 >
-                  {plan.features.map((feature) => (
-                    <li key={feature}>✔ {feature}</li>
-                  ))}
-                  <li>👥 {plan.userLimit}</li>
-                </ul>
-
-                <Button
-                  className={clsx('w-full', plan.status === 'Subscribed' && 'text-black dark:text-white')}
-                  variant={
-                    plan.status === 'Subscribed'
-                      ? 'outline'
-                      : plan.status === 'Renew'
-                      ? plan.recommended
-                        ? 'secondary'
-                        : 'default'
-                      : 'secondary'
-                  }
-                  disabled={plan.status === 'Subscribed'}
+                  Monthly
+                </button>
+                <button
+                  className={clsx(
+                    'px-4 py-1 text-sm rounded-lg transition-all',
+                    billingType === 'yearly'
+                      ? 'bg-primary text-white dark:bg-background'
+                      : 'text-muted-foreground hover:text-foreground'
+                  )}
+                  onClick={() => setBillingType('yearly')}
                 >
-                  {plan.status}
-                </Button>
+                  Yearly
+                </button>
               </div>
-            ))}
-          </div>
+            </div>
+
+            {/* Plans List */}
+            {loading ? (
+              <div className="text-center py-12">Loading plans...</div>
+            ) : plans.length === 0 ? (
+              <div className="text-center py-12 text-red-500">No plans found.</div>
+            ) : (
+              <div className={`grid grid-cols-1 md:grid-cols-${plans.length > 2 ? 3 : plans.length} gap-6`}>
+                {plans.map((plan) => (
+                  <div
+                    key={plan.id}
+                    className={clsx(
+                      'border rounded-xl p-6 text-center transition-all shadow-sm',
+                      'bg-white text-foreground border-border dark:bg-muted/50'
+                    )}
+                  >
+                    <h3 className="text-xl font-semibold mb-1">{plan.name}</h3>
+                    <p className="text-3xl font-bold mb-2">
+                      {billingType === 'monthly'
+                        ? `$${plan.monthly_price}`
+                        : plan.annual_price
+                        ? `$${plan.annual_price}`
+                        : 'N/A'}
+                      <span className="text-base font-medium"> /{billingType}</span>
+                    </p>
+                    <ul className="text-sm mb-6 space-y-2 text-left mt-4 text-muted-foreground">
+                      <li>Credits: {plan.monthly_credits}</li>
+                      <li>USD per credit: {plan.usd_per_credit}</li>
+                      {plan.description && (
+                        <li dangerouslySetInnerHTML={{ __html: plan.description }} />
+                      )}
+                    </ul>
+                    <Button className="w-full">
+                      Subscribe
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </Dialog.Panel>
       </div>

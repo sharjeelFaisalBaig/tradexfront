@@ -10,6 +10,9 @@ declare module "next-auth" {
       email?: string;
       name?: string;
       image?: string;
+      email_verified_at?: string | null;
+      two_factor_enabled?: boolean;
+      accessTokenExpires?: number;
     } & DefaultSession["user"];
   }
 
