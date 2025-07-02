@@ -14,6 +14,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { toast } from "@/hooks/use-toast";
 // import ExclamationIcon from "../../icons/exclamation.svg";
 import { signIn } from "next-auth/react";
+import Loader from "@/components/common/Loader";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -33,45 +34,73 @@ export default function LoginPage() {
     setError("");
 
     try {
-       const res = await signIn("credentials", {
+      const res = await signIn("credentials", {
         email,
         password,
         redirect: false,
       });
-
-      if(res.error){
+      console.log("Login response:", res);
+      if (res?.error) {
+        if (res.error === "CredentialsSignin") {
+          // This is the custom error we threw in the authorize function
+          router.replace(`/auth/otp?email=${encodeURIComponent(email)}&2fa=false`);
+          toast({
+            title: "Verification Required",
+            description: "Please verify your email with the OTP.",
+            variant: "default",
+          });
+        }
+        else if (res.error === "Verification") {
+          // This is the custom error we threw in the authorize function
+          router.replace(`/auth/otp?email=${encodeURIComponent(email)}&2fa=true`);
+          toast({
+            title: "2FA Required",
+            description: "Please verify your email with the OTP.",
+            variant: "default",
+          });
+        } else {
+          toast({
+            title: "Login Failed",
+            description: "Please check your credentials and try again.",
+            variant: "destructive",
+          });
+        }
+      } else {
+        router.push("/dashboard");
         toast({
-        title: "Login Failed",
-        description: "Please check your credentials and try again.",
+          title: "Login Successful",
+          description: "Navigating to dashboard.",
+          variant: "default",
+        });
+      }
+    } catch (error) {
+      console.log("Login error:", error);
+      toast({
+        title: "Login Failed1",
+        description: "An error occurred. Please try again.",
         variant: "destructive",
       });
-    }else{
-      router.push("/dashboard")
-      toast({
-        title: "Login Successfull",
-        description: "Login successfully, Navigating to dashboard",
-        variant: "default",
-      });
     }
-    } catch (error) {
-      console.error('Login error:', error)
-    } finally {
-      setLoading(false);
-    }
+    setLoading(false);
   };
+
+  // const handleGoogleSignIn = () => {
+  //   // signIn("google", { callbackUrl });
+  // };
 
   const handleGoogleSignIn = () => {
-    // signIn("google", { callbackUrl });
+    signIn("google", { callbackUrl: "/dashboard" });
   };
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    toast({
-      title: "Login Successful",
-      description: "Welcome to Tradex AI!",
-    });
-    router.replace("/dashboard");
-  };
+
+  // const handleLogin = (e: React.FormEvent) => {
+  //   e.preventDefault();
+  //   toast({
+  //     title: "Login Successful",
+  //     description: "Welcome to Tradex AI!",
+  //   });
+  //   router.replace("/dashboard");
+  // };
 
   // const handleGoogleLogin = () => {
   //   toast({
@@ -79,7 +108,7 @@ export default function LoginPage() {
   //     description: "Google OAuth integration would go here",
   //   });
   // };
-  console.log(error, loading, handleGoogleSignIn, handleCredentialsSignIn);
+  //console.log(error, loading, handleGoogleSignIn, handleCredentialsSignIn);
 
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-[#f6f8fb] p-4 dark:bg-gray-900">
@@ -142,7 +171,7 @@ export default function LoginPage() {
             </div>
 
             {/* Login Form */}
-            <form onSubmit={handleLogin} className="space-y-4">
+            <form onSubmit={handleCredentialsSignIn} className="space-y-4">
               <div className="space-y-2">
                 <Label
                   htmlFor="email"
@@ -189,21 +218,21 @@ export default function LoginPage() {
                   </Label>
                 </div>
                 <Link
-                  href="/forgot-password"
+                  href="/auth/forgot-password"
                   className="text-sm text-teal-500 hover:text-teal-300"
                 >
                   Forgot Password
                 </Link>
               </div>
 
-                <Button
+              <Button
                 disabled={loading}
                 onClick={handleCredentialsSignIn}
                 type="submit"
                 className="h-12 w-full mb-9 bg-cyan-600 hover:bg-cyan-700"
-                >
-                {loading ? "Signing In..." : "Sign In"}
-                </Button>
+              >
+                {loading ? <Loader text="Signing In..." /> : "Sign In"}
+              </Button>
             </form>
 
             {/* Footer Links */}
@@ -240,3 +269,4 @@ export default function LoginPage() {
     </div>
   );
 }
+

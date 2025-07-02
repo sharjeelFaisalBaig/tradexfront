@@ -203,7 +203,7 @@ export default function FolderExplorer() {
     <div className="p-4 relative" ref={containerRef} onContextMenu={(e) => handleContextMenu(e, currentFolderId)}>
       <div className="flex justify-between items-center mb-4">
         <div className="flex items-center">
-         
+
           <h2 className="text-xl font-bold">Folders - {currentFolder ? currentFolder.name : "Root"}</h2>
         </div>
         <button
@@ -214,13 +214,13 @@ export default function FolderExplorer() {
         </button>
       </div>
       {folderPath.length > 1 && (
-            <button
-              onClick={handleBackClick}
-              className="bg-gray-300 text-black px-2 py-1 rounded mb-2 hover:bg-gray-400"
-            >
-              Back
-            </button>
-          )}
+        <button
+          onClick={handleBackClick}
+          className="bg-gray-300 text-black px-2 py-1 rounded mb-2 hover:bg-gray-400"
+        >
+          Back
+        </button>
+      )}
 
       <div className="space-y-1">
         {currentFolder?.children.map((folder) => (

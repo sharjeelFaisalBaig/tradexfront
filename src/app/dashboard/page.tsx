@@ -25,6 +25,7 @@ import SearchIcon from "@/icons/search.svg";
 import Clipboard from "@/icons/double.svg";
 import Link2 from "@/icons/sharegreen.svg";
 import Image from "next/image";
+import withAuth from "@/components/withAuth";
 
 const strategies = [
   {
@@ -265,4 +266,4 @@ const Dashboard = () => {
   );
 };
 
-export default Dashboard;
+export default withAuth(Dashboard);

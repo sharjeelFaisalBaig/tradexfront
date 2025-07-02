@@ -13,6 +13,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useSignup } from "@/services/auth/auth_Mutation";
+import { getCsrfToken } from "@/services/auth/csrf";
+import Loader from "@/components/common/Loader";
 
 const labelClass = "text-gray-700 dark:text-gray-300";
 const checkboxLabelClass = "text-sm text-[#7A869A]";
@@ -23,41 +25,44 @@ const Signup = () => {
   const [agreeTerms, setAgreeTerms] = useState(false);
   const { mutate, isPending } = useSignup();
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    mutate(
-      {
-        first_name: e.currentTarget.firstName.value,
-        last_name: e.currentTarget.lastName.value,
-        email: e.currentTarget.email.value,
-        password: e.currentTarget.password.value,
-      },
-      {
-        onSuccess: () => {
-          router.replace("/auth/signin");
+    const formData = {
+      first_name: e.currentTarget.firstName.value,
+      last_name: e.currentTarget.lastName.value,
+      email: e.currentTarget.email.value,
+      password: e.currentTarget.password.value,
+    };
+
+    await getCsrfToken();
+
+    mutate(formData, {
+      onSuccess: (data) => {
+        if (data && data.data) {
+          const { user, otp_expires_in } = data.data;
+          router.replace(
+            `/auth/otp?email=${user.email}&expires_in=${otp_expires_in}`
+          );
           toast({
             title: "Account Created",
-            description: "Welcome to Tradex AI!",
+            description: "Please check your email for the OTP.",
           });
-        },
-        onError: () => {
-          toast({
-            title: "Error",
-            description:
-              "There was an issue creating your account. Please try again.",
-            variant: "destructive",
-          });
-        },
-      }
-    );
+        }
+      },
+      onError: () => {
+        toast({
+          title: "Error",
+          description:
+            "There was an issue creating your account. Please try again.",
+          variant: "destructive",
+        });
+      },
+    });
   };
 
-  const handleGoogleLogin = () => { 
-    // toast({
-    //   title: "Google Login",
-    //   description: "Google OAuth would go here",
-    // });
+  const handleGoogleLogin = () => {
+    // Implement Google OAuth logic here
   };
 
   return (
@@ -69,22 +74,6 @@ const Signup = () => {
       <div className="w-full max-w-2xl">
         <div className="rounded-t-[20px] border border-[#0088CC1C] bg-[#0088CC1C] py-2 px-3 text-left dark:border-[#0088CC1C] dark:bg-cyan-900/20">
           <p className="flex items-center gap-2 text-base font-medium text-cyan-600 dark:text-cyan-300">
-            <span className="flex h-6 w-8 items-center justify-center rounded-full pl-2">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={1.5}
-                stroke="currentColor"
-                className="w-6 h-6"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M11.25 9v3.75m0 3.75h.008v.008H11.25v-.008zm-.75-12a9 9 0 11-9 9 9 9 0 019-9z"
-                />
-              </svg>
-            </span>
             Sign Up with Tradex AI
           </p>
         </div>
@@ -228,7 +217,7 @@ const Signup = () => {
                 type="submit"
                 className="h-12 w-full mb-9 bg-cyan-600 hover:bg-cyan-700"
               >
-                {isPending ? "Creating.." : "Create Account"}
+                {isPending ? <Loader text="Creating..." /> : "Create Account"}
               </Button>
             </form>
 
