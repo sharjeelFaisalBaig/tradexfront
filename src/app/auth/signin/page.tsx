@@ -14,6 +14,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { toast } from "@/hooks/use-toast";
 // import ExclamationIcon from "../../icons/exclamation.svg";
 import { signIn } from "next-auth/react";
+import Loader from "@/components/common/Loader";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -230,7 +231,7 @@ export default function LoginPage() {
                 type="submit"
                 className="h-12 w-full mb-9 bg-cyan-600 hover:bg-cyan-700"
               >
-                {loading ? "Signing In..." : "Sign In"}
+                {loading ? <Loader text="Signing In..." /> : "Sign In"}
               </Button>
             </form>
 

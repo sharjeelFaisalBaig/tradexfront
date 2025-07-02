@@ -14,6 +14,7 @@ import { toast } from "@/hooks/use-toast";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useSignup } from "@/services/auth/auth_Mutation";
 import { getCsrfToken } from "@/services/auth/csrf";
+import Loader from "@/components/common/Loader";
 
 const labelClass = "text-gray-700 dark:text-gray-300";
 const checkboxLabelClass = "text-sm text-[#7A869A]";
@@ -216,7 +217,7 @@ const Signup = () => {
                 type="submit"
                 className="h-12 w-full mb-9 bg-cyan-600 hover:bg-cyan-700"
               >
-                {isPending ? "Creating.." : "Create Account"}
+                {isPending ? <Loader text="Creating..." /> : "Create Account"}
               </Button>
             </form>
 

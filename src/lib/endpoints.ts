@@ -20,5 +20,9 @@ export const endpoints = {
         GET_ALL_PLANS: `${API_BASE_PATH}/membership/plans`,
         GET_PLAN_BY_ID: (id: string) => `${API_BASE_PATH}/membership/plans/${id}`,
         CHECK_PLAN_ELIGIBILITY: (plan_id: string, billing_cycle: string) => `${API_BASE_PATH}/subscription/eligibility/${plan_id}/${billing_cycle}`,
+    },
+    SUBSCRIPTION: {
+        CREATE_PAYMENT_INTENT: `${API_BASE_PATH}/subscription/frontend/payment-intent`,
+        CONFIRM_PAYMENT: `${API_BASE_PATH}/subscription/frontend/confirm-payment`,
     }
 }

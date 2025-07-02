@@ -13,8 +13,10 @@ import ChangePlanModal from '@/components/modal/ChangePlanModal'
 import BillingHistoryModal from '@/components/modal/BillingHistoryModal'
 import { endpoints } from '@/lib/endpoints'
 import { fetchWithAutoRefresh } from "@/lib/fetchWithAutoRefresh";
+import Loader from '@/components/common/Loader'
+import withAuth from '@/components/withAuth'
 
-export default function ProfilePage() {
+function ProfilePage() {
   const { data: session } = useSession();
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -63,30 +65,7 @@ export default function ProfilePage() {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#f6f8fb] dark:bg-gray-900">
-        <div className="flex flex-col items-center">
-          <svg
-            className="animate-spin h-12 w-12 text-cyan-600 mb-4"
-            viewBox="0 0 24 24"
-          >
-            <circle
-              className="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              strokeWidth="4"
-              fill="none"
-            />
-            <path
-              className="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8v8z"
-            />
-          </svg>
-          <span className="text-cyan-600 text-lg font-semibold">
-            Loading profile...
-          </span>
-        </div>
+        <Loader text="Loading profile..." />
       </div>
     )
   }
@@ -279,6 +258,8 @@ function InputField({ label, value, setValue, type = 'text', disabled = false }:
     </div>
   )
 }
+
+export default withAuth(ProfilePage)
 
 // Reusable switch card
 function SwitchCard({

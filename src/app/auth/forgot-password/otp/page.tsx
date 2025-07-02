@@ -7,6 +7,7 @@ import { endpoints } from "@/lib/endpoints";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Image from "next/image";
+import Loader from "@/components/common/Loader";
 
 export default function ForgotPasswordOtpPage() {
   const router = useRouter();
@@ -166,7 +167,7 @@ export default function ForgotPasswordOtpPage() {
                 disabled={loading}
                 className="w-full py-3 h-12 rounded-full bg-cyan-600 text-white text-lg font-semibold transition-colors hover:bg-cyan-700 disabled:bg-gray-400"
               >
-                {loading ? "Verifying..." : "Verify"}
+                {loading ? <Loader text="Verifying..." /> : "Verify"}
               </Button>
             </form>
             {/* Resend OTP link */}

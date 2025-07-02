@@ -1,8 +1,43 @@
-import { signIn, getSession } from "next-auth/react";
+import { getSession, signOut } from "next-auth/react";
 import { endpoints } from "@/lib/endpoints";
+import { authConfig } from "./auth"; // Assuming authConfig is exported from auth.ts
 
-export async function fetchWithAutoRefresh(url: string, session: any, options: RequestInit = {}) {
-  // 1st attempt
+async function refreshToken(session: any) {
+  const res = await fetch(endpoints.AUTH.REFRESH, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${session.accessToken}`,
+    },
+  });
+
+  const data = await res.json();
+
+  if (!res.ok || !data.data.access_token) {
+    // If refresh fails, sign out the user
+    await signOut({ redirect: true, callbackUrl: "/auth/signin" });
+    throw new Error("Failed to refresh token");
+  }
+
+  // This is a placeholder for updating the session.
+  // In a real app, you would use a method to update the session state globally.
+  // For NextAuth.js, you might need to trigger a session update.
+  // The logic below is a simplified representation.
+  const newSession = await getSession(); // Refetch session to get the latest state
+  if (newSession) {
+    newSession.accessToken = data.data.access_token;
+    // Here you would ideally trigger a session update.
+    // For now, we'll just return the new token.
+  }
+
+  return data.data.access_token;
+}
+
+export async function fetchWithAutoRefresh(
+  url: string,
+  session: any,
+  options: RequestInit = {}
+) {
   let res = await fetch(url, {
     ...options,
     headers: {
@@ -11,42 +46,22 @@ export async function fetchWithAutoRefresh(url: string, session: any, options: R
       "Content-Type": "application/json",
     },
   });
+
   let data = await res.json();
 
-  // If token expired, refresh and retry
-  if (data?.message === "Token Expired" || data?.message === "Invalid Token") {
-    // Call refresh endpoint
-    const refreshRes = await fetch(endpoints.AUTH.REFRESH, {
-      method: "POST",
+  if (res.status === 401 && data?.message === "Token Expired") {
+    const newAccessToken = await refreshToken(session);
+
+    // Retry the request with the new token
+    res = await fetch(url, {
+      ...options,
       headers: {
-        Authorization: `Bearer ${session?.accessToken}`,
+        ...(options.headers || {}),
+        Authorization: `Bearer ${newAccessToken}`,
         "Content-Type": "application/json",
       },
     });
-    const refreshData = await refreshRes.json();
-
-    if (refreshData?.data?.access_token) {
-      // Update session with new token using signIn (credentials provider)
-      await signIn("credentials", {
-        email: session?.user?.email,
-        access_token: refreshData.data.access_token,
-        redirect: false,
-      });
-
-      // Get updated session
-      const newSession = await getSession();
-
-      // Retry original API call with new token
-      res = await fetch(url, {
-        ...options,
-        headers: {
-          ...(options.headers || {}),
-          Authorization: `Bearer ${refreshData.data.access_token}`,
-          "Content-Type": "application/json",
-        },
-      });
-      data = await res.json();
-    }
+    data = await res.json();
   }
 
   return data;
