@@ -54,7 +54,8 @@ export const createUser = async (userData: SignupData) => {
   });
 
   if (!response.ok) {
-    throw new Error(`Request failed with status ${response.status}`);
+    const errorData = await response.json();
+    throw errorData;
   }
 
   return await response.json();

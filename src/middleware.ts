@@ -6,8 +6,15 @@ export default auth((req) => {
   const isLoggedIn = !!req.auth
 
   const isApiAuthRoute = nextUrl.pathname.startsWith('/api/auth')
-  const isPublicRoute = ['/auth/signin', '/auth/error', '/'].includes(nextUrl.pathname)
+  const isPublicRoute = ['/auth/signin', '/auth/error'].includes(nextUrl.pathname)
   const isAuthRoute = nextUrl.pathname.startsWith('/auth/')
+
+  if (nextUrl.pathname === '/') {
+    if (isLoggedIn) {
+      return NextResponse.redirect(new URL('/dashboard', nextUrl));
+    }
+    return NextResponse.redirect(new URL('/auth/signin', nextUrl));
+  }
 
   // Allow API auth routes
   if (isApiAuthRoute) {

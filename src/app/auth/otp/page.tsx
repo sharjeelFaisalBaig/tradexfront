@@ -73,12 +73,12 @@ const OtpVerificationPage = () => {
       });
     },
     onError: (error: any) => {
+      const message =
+        error?.errors && Object.values(error.errors).flat().join(", ");
       toast({
-        title: "Error",
+        title: error?.message || "Error",
         description:
-          error?.message ||
-          (error?.errors && Object.values(error.errors).flat().join(", ")) ||
-          "Invalid or expired OTP. Please try again.",
+          message || "Invalid or expired OTP. Please try again.",
         variant: "destructive",
       });
     },
@@ -106,12 +106,12 @@ const OtpVerificationPage = () => {
       }, 1200); // Optional: short delay for loader
     },
     onError: (error: any) => {
+      const message =
+        error?.errors && Object.values(error.errors).flat().join(", ");
       toast({
-        title: "Error",
+        title: error?.message || "Error",
         description:
-          error?.message ||
-          (error?.errors && Object.values(error.errors).flat().join(", ")) ||
-          "Invalid or expired OTP. Please try again.",
+          message || "Invalid or expired OTP. Please try again.",
         variant: "destructive",
       });
     },
@@ -138,12 +138,12 @@ const OtpVerificationPage = () => {
       }
     },
     onError: (error: any) => {
+      const message =
+        error?.errors && Object.values(error.errors).flat().join(", ");
       toast({
-        title: "Error",
+        title: error?.message || "Error",
         description:
-          error?.message ||
-          (error?.errors && Object.values(error.errors).flat().join(", ")) ||
-          "Failed to resend OTP. Please try again later.",
+          message || "Failed to resend OTP. Please try again later.",
         variant: "destructive",
       });
     },
@@ -170,16 +170,27 @@ const OtpVerificationPage = () => {
       }
     },
     onError: (error: any) => {
+      const message =
+        error?.errors && Object.values(error.errors).flat().join(", ");
       toast({
-        title: "Error",
+        title: error?.message || "Error",
         description:
-          error?.message ||
-          (error?.errors && Object.values(error.errors).flat().join(", ")) ||
-          "Failed to resend OTP. Please try again later.",
+          message || "Failed to resend OTP. Please try again later.",
         variant: "destructive",
       });
     },
   });
+
+  useEffect(() => {
+    const enteredOtp = otp.join("");
+    if (enteredOtp.length === 6 && !verifyOtpMutation.isPending && !verify2faMutation.isPending) {
+      if (twoFactorEnabled === "true") {
+        verify2faMutation.mutate(enteredOtp);
+      } else {
+        verifyOtpMutation.mutate(enteredOtp);
+      }
+    }
+  }, [otp, twoFactorEnabled, verify2faMutation, verifyOtpMutation]);
 
   const handleChange = (index: number, value: string) => {
     if (!/^\d*$/.test(value)) return;
@@ -320,10 +331,10 @@ const OtpVerificationPage = () => {
 
               <Button
                 type="submit"
-                disabled={verifyOtpMutation.isPending}
+                disabled={verifyOtpMutation.isPending || verify2faMutation.isPending}
                 className="w-full mt-8 py-3 h-12 rounded-full bg-cyan-600 text-white text-lg font-semibold transition-colors hover:bg-cyan-700 disabled:bg-gray-400"
               >
-                {verifyOtpMutation.isPending ? "Verifying..." : "Verify"}
+                {verifyOtpMutation.isPending || verify2faMutation.isPending ? "Verifying..." : "Verify"}
               </Button>
             </form>
 

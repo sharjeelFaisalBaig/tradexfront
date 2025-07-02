@@ -30,6 +30,14 @@ export default function LoginPage() {
 
   const handleCredentialsSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!email || !password) {
+      toast({
+        title: "Error",
+        description: "Please enter both email and password.",
+        variant: "destructive",
+      });
+      return;
+    }
     setLoading(true);
     setError("");
 
@@ -76,7 +84,7 @@ export default function LoginPage() {
     } catch (error) {
       console.log("Login error:", error);
       toast({
-        title: "Login Failed1",
+        title: "Login Failed",
         description: "An error occurred. Please try again.",
         variant: "destructive",
       });
