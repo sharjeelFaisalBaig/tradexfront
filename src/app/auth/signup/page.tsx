@@ -28,11 +28,44 @@ const Signup = () => {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
+    const firstName = e.currentTarget.firstName.value;
+    const lastName = e.currentTarget.lastName.value;
+    const email = e.currentTarget.email.value;
+    const password = e.currentTarget.password.value;
+    const confirmPassword = e.currentTarget.confirmPassword.value;
+
+    if (!firstName || !lastName || !email || !password || !confirmPassword) {
+      toast({
+        title: "Error",
+        description: "Please fill in all fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      toast({
+        title: "Error",
+        description: "Passwords do not match.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (password.length < 8) {
+      toast({
+        title: "Error",
+        description: "Password must be at least 8 characters long.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const formData = {
-      first_name: e.currentTarget.firstName.value,
-      last_name: e.currentTarget.lastName.value,
-      email: e.currentTarget.email.value,
-      password: e.currentTarget.password.value,
+      first_name: firstName,
+      last_name: lastName,
+      email,
+      password,
     };
 
     await getCsrfToken();
@@ -50,10 +83,13 @@ const Signup = () => {
           });
         }
       },
-      onError: () => {
+      onError: (error: any) => {
+        const message =
+          error?.errors && Object.values(error.errors).flat().join(", ");
         toast({
-          title: "Error",
+          title: error?.message || "Error",
           description:
+            message ||
             "There was an issue creating your account. Please try again.",
           variant: "destructive",
         });

@@ -27,6 +27,14 @@ export default function ResetPasswordPage() {
       });
       return;
     }
+    if (password.length < 8) {
+      toast({
+        title: "Error",
+        description: "Password must be at least 8 characters long.",
+        variant: "destructive",
+      });
+      return;
+    }
     if (password !== confirm) {
       toast({
         title: "Error",
@@ -58,9 +66,11 @@ export default function ResetPasswordPage() {
       });
       const data = await res.json();
       if (!res.ok || data.status === "Error") {
+        const message =
+          data?.errors && Object.values(data.errors).flat().join(", ");
         toast({
-          title: "Error",
-          description: data.message || "Failed to reset password.",
+          title: data.message || "Error",
+          description: message || "Failed to reset password.",
           variant: "destructive",
         });
         setLoading(false);

@@ -1,16 +1,4 @@
-"use client"
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-
-
-const Index = () => {
-  const router = useRouter()
-
-  useEffect(() => {
-    router.replace("/dashboard");
-  }, []);
-
+// This page is handled by the middleware now.
+export default function Index() {
   return null;
-};
-
-export default Index;
+}

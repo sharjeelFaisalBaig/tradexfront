@@ -11,6 +11,7 @@ export const endpoints = {
         VERIFY_2FA: `${API_BASE_PATH}/auth/verify-otp`,
         RESEND_OTP: `${API_BASE_PATH}/auth/resend-otp`,
         REFRESH: `${API_BASE_PATH}/auth/refresh`,
+        SOCIAL_LOGIN: `${API_BASE_PATH}/auth/social-login`,
         CSRF_COOKIE: `${DOMAIN_ROOT}/sanctum/csrf-cookie`,
     },
     USER: {
@@ -20,9 +21,28 @@ export const endpoints = {
         GET_ALL_PLANS: `${API_BASE_PATH}/membership/plans`,
         GET_PLAN_BY_ID: (id: string) => `${API_BASE_PATH}/membership/plans/${id}`,
         CHECK_PLAN_ELIGIBILITY: (plan_id: string, billing_cycle: string) => `${API_BASE_PATH}/subscription/eligibility/${plan_id}/${billing_cycle}`,
+        CAN_CHANGE_PLAN: `${API_BASE_PATH}/subscription/can-change-plan`,
     },
     SUBSCRIPTION: {
         CREATE_PAYMENT_INTENT: `${API_BASE_PATH}/subscription/frontend/payment-intent`,
         CONFIRM_PAYMENT: `${API_BASE_PATH}/subscription/frontend/confirm-payment`,
+        CANCEL_SUBSCRIPTION: `${API_BASE_PATH}/subscription/cancel`,
+        UPDATE_SUBSCRIPTION: `${API_BASE_PATH}/subscription/update`,
+        SUBSCRIPTION_STATUS: `${API_BASE_PATH}/subscription/status`,
+    },
+    BILLING: {
+        HISTORY: `${API_BASE_PATH}/billing/history`,
+        STATS: `${API_BASE_PATH}/billing/stats`,
+        GET_RECORD: (id: string) => `${API_BASE_PATH}/billing/history/${id}`,
+        FILTER_OPTIONS: `${API_BASE_PATH}/billing/filter-options`,
+    },
+    CREDITS: {
+        INFO: `${API_BASE_PATH}/credits/info`,
+        CREATE_PAYMENT_INTENT: `${API_BASE_PATH}/credits/purchase/payment-intent`,
+        CONFIRM_PURCHASE: `${API_BASE_PATH}/credits/purchase/confirm`,
+        ACTIVITIES: `${API_BASE_PATH}/credits/activities`,
+        GET_ACTIVITY_BY_ID: (id: string) => `${API_BASE_PATH}/credits/activities/${id}`,
+        ACTIVITIES_SUMMARY: `${API_BASE_PATH}/credits/activities-summary`,
+        ACTIVITIES_FILTER_OPTIONS: `${API_BASE_PATH}/credits/activities-filter-options`,
     }
 }

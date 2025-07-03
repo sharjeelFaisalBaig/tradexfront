@@ -68,7 +68,7 @@ const Strategy = () => {
   const { getInternalNode } = useReactFlow();
 
   const onConnect = useCallback(
-    (params: any) => setEdges((eds) => addEdge(params, eds)),
+    (params: any) => setEdges((eds) => { console.log(edges, nodes); return addEdge(params, eds); }),
     [setEdges],
   );
 
