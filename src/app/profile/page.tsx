@@ -11,10 +11,22 @@ import { CameraIcon } from 'lucide-react'
 import Image from 'next/image'
 import ChangePlanModal from '@/components/modal/ChangePlanModal'
 import BillingHistoryModal from '@/components/modal/BillingHistoryModal'
+import BuyCreditsModal from '@/components/modal/BuyCreditsModal'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { endpoints } from '@/lib/endpoints'
 import { fetchWithAutoRefresh } from "@/lib/fetchWithAutoRefresh";
 import Loader from '@/components/common/Loader'
-import withAuth from '@/components/withAuth'
+import { toast } from '@/hooks/use-toast'
 
 function ProfilePage() {
   const { data: session } = useSession();
@@ -22,11 +34,13 @@ function ProfilePage() {
   const [loading, setLoading] = useState(true)
   const [showPlanModal, setShowPlanModal] = useState(false)
   const [showBillingModal, setShowBillingModal] = useState(false)
+  const [showBuyCreditsModal, setShowBuyCreditsModal] = useState(false)
 
   // Editable fields
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
+  const [phoneNumber, setPhoneNumber] = useState('')
   const [emailNotifications, setEmailNotifications] = useState(true)
   const [inAppNotifications, setInAppNotifications] = useState(true)
   const [twoFactor, setTwoFactor] = useState(false)
@@ -34,32 +48,35 @@ function ProfilePage() {
 
   const fetchedRef = useRef(false);
 
-  useEffect(() => {
-    async function fetchProfile() {
-      setLoading(true);
-      try {
-        if (!session?.accessToken || fetchedRef.current) {
-          setLoading(false);
-          return;
-        }
-        const data = await fetchWithAutoRefresh(endpoints.USER.PROFILE, session);
-        if (data?.status && data?.data?.user) {
-          setProfile(data.data);
-          fetchedRef.current = true; // Mark as fetched
-          setFirstName(data.data.user.first_name || "");
-          setLastName(data.data.user.last_name || "");
-          setEmail(data.data.user.email || "");
-          setEmailNotifications(!!data.data.user.receive_email_notifications);
-          setInAppNotifications(!!data.data.user.receive_inapp_notifications);
-          setTwoFactor(!!data.data.user.two_factor_enabled);
-        }
-      } catch (e) {
-        // handle error
+  const fetchProfile = async () => {
+    setLoading(true);
+    try {
+      if (!session?.accessToken) {
+        setLoading(false);
+        return;
       }
-      setLoading(false);
+      const data = await fetchWithAutoRefresh(endpoints.USER.PROFILE, session);
+      if (data?.status && data?.data?.user) {
+        setProfile(data.data);
+        setFirstName(data.data.user.first_name || "");
+        setLastName(data.data.user.last_name || "");
+        setEmail(data.data.user.email || "");
+        setPhoneNumber(data.data.user.phone_number || "");
+        setEmailNotifications(!!data.data.user.receive_email_notifications);
+        setInAppNotifications(!!data.data.user.receive_inapp_notifications);
+        setTwoFactor(!!data.data.user.two_factor_enabled);
+      }
+    } catch (e) {
+      // handle error
     }
-    if (session?.accessToken && !fetchedRef.current) fetchProfile();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    setLoading(false);
+  }
+
+  useEffect(() => {
+    if (session?.accessToken && !fetchedRef.current) {
+      fetchProfile();
+      fetchedRef.current = true;
+    }
   }, [session?.accessToken])
 
   if (loading) {
@@ -80,9 +97,75 @@ function ProfilePage() {
 
   const { user, credits, subscription, permissions } = profile
 
+  const handleSaveChanges = async () => {
+    const updatedProfile = {
+      first_name: firstName,
+      last_name: lastName,
+      phone_number: phoneNumber,
+      receive_email_notifications: emailNotifications,
+      receive_inapp_notifications: inAppNotifications,
+      two_factor_enabled: twoFactor,
+    };
+
+    try {
+      const data = await fetchWithAutoRefresh(endpoints.USER.PROFILE, session, {
+        method: 'PUT',
+        body: JSON.stringify(updatedProfile),
+      });
+
+      if (data?.status) {
+        toast({
+          title: "Profile Updated",
+          description: "Your profile has been updated successfully.",
+        });
+        fetchProfile(); // Refresh profile data
+      } else {
+        toast({
+          title: "Error",
+          description: data?.message || "Failed to update profile.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCancelSubscription = async () => {
+    try {
+      const data = await fetchWithAutoRefresh(endpoints.SUBSCRIPTION.CANCEL_SUBSCRIPTION, session, {
+        method: 'POST',
+      });
+
+      if (data?.status) {
+        toast({
+          title: "Subscription Cancelled",
+          description: "Your subscription has been cancelled successfully.",
+        });
+        fetchProfile(); // Refresh profile data
+      } else {
+        toast({
+          title: "Error",
+          description: data?.message || "Failed to cancel subscription.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
-      <Header />
+      <Header onSave={handleSaveChanges} />
 
       <div className="flex flex-1">
         {/* Sidebar */}
@@ -97,7 +180,7 @@ function ProfilePage() {
           <div className="relative z-20 flex flex-col items-center">
             <div className="relative mb-4">
               <Avatar className="w-28 h-28">
-                <AvatarImage src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=120&h=120&fit=crop&crop=face" />
+                <AvatarImage src={user.avatar || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=120&h=120&fit=crop&crop=face"} />
                 <AvatarFallback>
                   {user.first_name?.[0] || ''}{user.last_name?.[0] || ''}
                 </AvatarFallback>
@@ -121,11 +204,13 @@ function ProfilePage() {
               <InputField label="First Name" value={firstName} setValue={setFirstName} />
               <InputField label="Last Name" value={lastName} setValue={setLastName} />
               <InputField label="Email" value={email} setValue={setEmail} type="email" disabled />
+              <InputField label="Phone Number" value={phoneNumber} setValue={setPhoneNumber} />
               <InputField label="Status" value={user.status ? "Active" : "Inactive"} setValue={() => {}} disabled />
               <InputField label="Created At" value={user.created_at ? new Date(user.created_at).toLocaleString() : ""} setValue={() => {}} disabled />
               <InputField label="Updated At" value={user.updated_at ? new Date(user.updated_at).toLocaleString() : ""} setValue={() => {}} disabled />
               <InputField label="User Type" value={user.user_type || ""} setValue={() => {}} disabled />
-              <InputField label="Credits" value={String(user.credits ?? 0)} setValue={() => {}} disabled />
+              <InputField label="Stripe ID" value={user.stripe_id || ""} setValue={() => {}} disabled />
+              <InputField label="Payment Method" value={`${user.pm_type} ending in ${user.pm_last_four}`} setValue={() => {}} disabled />
             </div>
           </section>
 
@@ -163,18 +248,18 @@ function ProfilePage() {
                   <div>
                     <h3 className="font-medium mb-1">Current Plan</h3>
                     <p className="text-sm text-muted-foreground">
-                      {subscription ? subscription.plan_name : "No active subscription"}
+                      {subscription ? subscription.name : "No active subscription"}
                     </p>
                   </div>
                   <div className="text-right">
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-800/30 dark:text-green-400 mb-1">
-                      {subscription ? "Active" : "Inactive"}
+                      {subscription ? subscription.stripe_status : "Inactive"}
                     </span>
-                    {subscription && (
+                    {subscription && subscription.current_plan && (
                       <>
-                        <p className="font-semibold">${subscription.price}/month</p>
-                        <p className="text-sm text-muted-foreground">
-                          Next billing: {subscription.next_billing_date}
+                        <p className="font-semibold">
+                          ${subscription.current_plan.is_annual ? subscription.current_plan.annual_price : subscription.current_plan.monthly_price}
+                          /{subscription.current_plan.is_annual ? 'year' : 'month'}
                         </p>
                       </>
                     )}
@@ -187,15 +272,44 @@ function ProfilePage() {
                   onChange={setAutoRenewal}
                 />
               </div>
-              <div className="flex gap-3">
-                <Button className="bg-[#0088CC] hover:bg-[#0077b3] text-white" onClick={() => setShowPlanModal(true)}>Change Plan</Button>
-                <Button
-                  variant="outline"
-                  className="text-green-600 border-green-600 hover:bg-green-50 dark:text-green-400 dark:border-green-800/30 dark:hover:bg-green-800/20"
-                  onClick={() => setShowBillingModal(true)}
-                >
-                  Billing History
-                </Button>
+              <div className="flex flex-col gap-3">
+                <div className="flex gap-3">
+                  <Button
+                    className="bg-[#0088CC] hover:bg-[#0077b3] text-white"
+                    onClick={() => setShowPlanModal(true)}
+                  >
+                    Change Plan
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="text-green-600 border-green-600 hover:bg-green-50 dark:text-green-400 dark:border-green-800/30 dark:hover:bg-green-800/20"
+                    onClick={() => setShowBillingModal(true)}
+                  >
+                    Billing History
+                  </Button>
+                  {subscription && (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="destructive">Cancel Subscription</Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This action cannot be undone. This will permanently cancel your subscription.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={handleCancelSubscription}>Continue</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
+                </div>
+                {!permissions?.can_subscribe && permissions?.subscription_block_reason && (
+                  <p className="text-sm text-red-500">{permissions.subscription_block_reason}</p>
+                )}
               </div>
             </div>
           </section>
@@ -207,7 +321,15 @@ function ProfilePage() {
               <div className="mb-2">Current Credits: <b>{credits?.current_credits ?? 0}</b></div>
               <div className="mb-2">Total Earned This Month: <b>{credits?.total_earned_this_month ?? 0}</b></div>
               <div className="mb-2">Total Spent This Month: <b>{credits?.total_spent_this_month ?? 0}</b></div>
-              {/* You can map recent_activities here if needed */}
+              <h3 className="text-lg font-semibold mt-4">Recent Activities</h3>
+              <ul>
+                {credits?.recent_activities.map((activity: any) => (
+                  <li key={activity.id} className="text-sm text-muted-foreground">
+                    {new Date(activity.created_at).toLocaleString()}: {activity.reason} ({activity.action_type} {activity.amount_changed})
+                  </li>
+                ))}
+              </ul>
+              <Button className="mt-4" onClick={() => setShowBuyCreditsModal(true)}>Buy Credits</Button>
             </div>
           </section>
 
@@ -223,24 +345,33 @@ function ProfilePage() {
           </section>
 
           {/* Danger Zone */}
-          <section>
-            <h2 className="text-xl font-semibold text-destructive mb-6">Danger Zone</h2>
-            <div className="flex gap-3">
-              <Button className="bg-transparent text-destructive border border-destructive hover:bg-destructive/10">
-                Delete Account
-              </Button>
-            </div>
-          </section>
           {showPlanModal && (
             <ChangePlanModal
               isOpen={showPlanModal}
-              onClose={() => setShowPlanModal(false)}
+              onClose={(shouldRefresh) => {
+                setShowPlanModal(false);
+                if (shouldRefresh) {
+                  fetchProfile();
+                }
+              }}
+              subscription={subscription}
             />
           )}
           {showBillingModal && (
             <BillingHistoryModal
               isOpen={showBillingModal}
               onClose={() => setShowBillingModal(false)}
+            />
+          )}
+          {showBuyCreditsModal && (
+            <BuyCreditsModal
+              isOpen={showBuyCreditsModal}
+              onClose={(shouldRefresh) => {
+                setShowBuyCreditsModal(false);
+                if (shouldRefresh) {
+                  fetchProfile();
+                }
+              }}
             />
           )}
         </main>
@@ -259,7 +390,7 @@ function InputField({ label, value, setValue, type = 'text', disabled = false }:
   )
 }
 
-export default withAuth(ProfilePage)
+export default ProfilePage
 
 // Reusable switch card
 function SwitchCard({

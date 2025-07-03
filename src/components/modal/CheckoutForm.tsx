@@ -14,11 +14,13 @@ export default function CheckoutForm({
   billingType,
   onClose,
   onSuccess,
+  isUpdate,
 }: {
   plan: any
-  billingType: 'monthly' | 'yearly'
+  billingType: 'monthly' | 'annual'
   onClose: () => void
   onSuccess: (data: any) => void
+  isUpdate?: boolean
 }) {
   const { data: session } = useSession()
   const stripe = useStripe()
@@ -64,24 +66,35 @@ export default function CheckoutForm({
     }
 
     try {
-      // 1. Create Payment Intent on the server
+      // 1. Create or Update Subscription
+      const endpoint = isUpdate
+        ? endpoints.SUBSCRIPTION.UPDATE_SUBSCRIPTION
+        : endpoints.SUBSCRIPTION.CREATE_PAYMENT_INTENT;
+
+      const body = isUpdate
+        ? {
+            new_membership_plan_id: plan.id,
+            new_billing_cycle: billingType,
+          }
+        : {
+            membership_plan_id: plan.id,
+            billing_cycle: billingType,
+          };
+
       const paymentIntentResponse = await fetchWithAutoRefresh(
-        endpoints.SUBSCRIPTION.CREATE_PAYMENT_INTENT,
+        endpoint,
         session,
         {
           method: 'POST',
-          body: JSON.stringify({
-            membership_plan_id: plan.id,
-            billing_cycle: billingType,
-          }),
+          body: JSON.stringify(body),
         }
       )
 
-      if (!paymentIntentResponse?.client_secret) {
+      if (!paymentIntentResponse?.status || !paymentIntentResponse?.data?.client_secret) {
         throw new Error(paymentIntentResponse?.message || 'Failed to create payment intent.')
       }
 
-      const clientSecret = paymentIntentResponse.client_secret
+      const clientSecret = paymentIntentResponse.data.client_secret
 
       // 2. Confirm the card payment
       const { error: stripeError, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
@@ -91,7 +104,12 @@ export default function CheckoutForm({
       })
 
       if (stripeError) {
-        throw new Error(stripeError.message)
+        console.error("Stripe confirmation error:", stripeError);
+        throw new Error(stripeError.message || 'Failed to confirm payment with Stripe.')
+      }
+
+      if (!paymentIntent || !paymentIntent.id) {
+        throw new Error('Payment Intent not found after confirmation.');
       }
 
       // 3. Confirm the subscription on the server
@@ -107,11 +125,12 @@ export default function CheckoutForm({
       )
 
       if (!confirmResponse?.status) {
-        throw new Error(confirmResponse?.message || 'Failed to confirm subscription.')
+        throw new Error(confirmResponse?.message || 'Failed to confirm subscription on the server.')
       }
 
       onSuccess(confirmResponse.data)
     } catch (err: any) {
+      console.error("Payment processing error:", err);
       setError(err.message || 'An unexpected error occurred.')
     } finally {
       setLoading(false)

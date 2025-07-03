@@ -12,18 +12,21 @@ import { loadStripe } from '@stripe/stripe-js'
 import { Elements } from '@stripe/react-stripe-js'
 import CheckoutForm from './CheckoutForm'
 import Loader from '../common/Loader'
+import { toast } from '@/hooks/use-toast'
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
 
 export default function ChangePlanModal({
   isOpen,
   onClose,
+  subscription,
 }: {
   isOpen: boolean
-  onClose: () => void
+  onClose: (shouldRefresh?: boolean) => void
+  subscription: any
 }) {
   const { data: session } = useSession()
-  const [billingType, setBillingType] = useState<'monthly' | 'yearly'>('monthly')
+  const [billingType, setBillingType] = useState<'monthly' | 'annual'>('monthly')
   const [plans, setPlans] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedPlan, setSelectedPlan] = useState<any | null>(null)
@@ -57,16 +60,46 @@ export default function ChangePlanModal({
     return () => document.removeEventListener('keydown', handleEsc)
   }, [])
 
-  const handleSubscribeClick = (plan: any) => {
+  const handleSubscribeClick = async (plan: any) => {
+    if (subscription) {
+      // Check if user can change plan
+      try {
+        const eligibilityResponse = await fetchWithAutoRefresh(
+          endpoints.PLANS.CAN_CHANGE_PLAN,
+          session,
+          {
+            method: 'POST',
+            body: JSON.stringify({ new_membership_plan_id: plan.id }),
+          }
+        );
+
+        if (!eligibilityResponse?.status) {
+          toast({
+            title: "Eligibility Check Failed",
+            description: eligibilityResponse?.message || "You are not eligible to switch to this plan.",
+            variant: "destructive",
+          });
+          return;
+        }
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "An error occurred while checking plan eligibility.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
     setSelectedPlan(plan)
     setShowCheckout(true)
   }
 
   const handleClose = () => {
+    const shouldRefresh = !!successData
     setShowCheckout(false)
     setSelectedPlan(null)
     setSuccessData(null)
-    onClose()
+    onClose(shouldRefresh)
   }
 
   const handleSuccess = (data: any) => {
@@ -93,8 +126,8 @@ export default function ChangePlanModal({
             <div className="text-center">
               <h2 className="text-2xl font-bold mb-4">Payment Successful!</h2>
               <p><strong>Subscription ID:</strong> {successData.subscription_id}</p>
-              <p><strong>Plan:</strong> {successData.plan_name}</p>
-              <p><strong>Status:</strong> {successData.status}</p>
+              <p><strong>Plan:</strong> {successData.subscription_name}</p>
+              <p><strong>Status:</strong> {successData.stripe_status}</p>
               <Button onClick={handleClose} className="mt-6">Close</Button>
             </div>
           ) : showCheckout && selectedPlan ? (
@@ -104,6 +137,7 @@ export default function ChangePlanModal({
                 billingType={billingType}
                 onClose={() => setShowCheckout(false)}
                 onSuccess={handleSuccess}
+                isUpdate={!!subscription}
               />
             </Elements>
           ) : (
@@ -124,9 +158,9 @@ export default function ChangePlanModal({
                   <button
                     className={clsx(
                       'px-4 py-1 text-sm rounded-lg transition-all',
-                      billingType === 'yearly' ? 'bg-primary text-white dark:bg-background' : 'text-muted-foreground'
+                      billingType === 'annual' ? 'bg-primary text-white dark:bg-background' : 'text-muted-foreground'
                     )}
-                    onClick={() => setBillingType('yearly')}
+                    onClick={() => setBillingType('annual')}
                   >
                     Yearly
                   </button>
@@ -161,8 +195,12 @@ export default function ChangePlanModal({
                           <li dangerouslySetInnerHTML={{ __html: plan.description }} />
                         )}
                       </ul>
-                      <Button className="w-full" onClick={() => handleSubscribeClick(plan)}>
-                        Subscribe
+                      <Button
+                        className="w-full"
+                        onClick={() => handleSubscribeClick(plan)}
+                        disabled={subscription?.name === plan.name}
+                      >
+                        {subscription?.name === plan.name ? 'Current Plan' : 'Subscribe'}
                       </Button>
                     </div>
                   ))}

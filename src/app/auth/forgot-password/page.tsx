@@ -16,6 +16,14 @@ export default function ForgotPasswordPage() {
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!email) {
+      toast({
+        title: "Error",
+        description: "Please enter your email address.",
+        variant: "destructive",
+      });
+      return;
+    }
     setLoading(true);
     try {
       const res = await fetch(endpoints.AUTH.FORGOT_PASSWORD, {
@@ -25,9 +33,11 @@ export default function ForgotPasswordPage() {
       });
       const data = await res.json();
       if (!res.ok || data.status === "Error") {
+        const message =
+          data?.errors && Object.values(data.errors).flat().join(", ");
         toast({
-          title: "Error",
-          description: data.message || "Failed to send OTP.",
+          title: data.message || "Error",
+          description: message || "Failed to send OTP.",
           variant: "destructive",
         });
         setLoading(false);

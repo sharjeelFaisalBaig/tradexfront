@@ -187,6 +187,28 @@ export const authConfig: NextAuthConfig = {
   session: { strategy: "jwt" },
   callbacks: {
     async signIn({ user, account }) {
+      if (account?.provider === "google") {
+        try {
+          const res = await fetch(endpoints.AUTH.SOCIAL_LOGIN, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: user.name,
+              email: user.email,
+              provider: account.provider,
+              provider_id: user.id,
+            }),
+          });
+          const data = await res.json();
+          if (data?.data?.access_token) {
+            user.accessToken = data.data.access_token;
+            return true;
+          }
+          return false;
+        } catch (error) {
+          return false;
+        }
+      }
       return true;
     },
     async jwt({ token, user }) {

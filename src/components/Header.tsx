@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
     DropdownMenu,
@@ -15,13 +15,33 @@ import { useRouter } from "next/navigation";
 import BellIcon from '../icons/bell.svg';
 import Affiliate from '../icons/affiliate.svg';
 import UnlockIcon from '../icons/unlock.svg';
-import { signOut } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import { useToast } from "@/hooks/use-toast";
+import { fetchWithAutoRefresh } from "@/lib/fetchWithAutoRefresh";
+import { endpoints } from "@/lib/endpoints";
 
 const Header = () => {
     const router = useRouter();
+    const { data: session } = useSession();
     const {toast} = useToast()
     const [showNotifications, setShowNotifications] = useState(false);
+    const [profile, setProfile] = useState<any>(null);
+
+    useEffect(() => {
+        async function fetchProfile() {
+            try {
+                const data = await fetchWithAutoRefresh(endpoints.USER.PROFILE, session);
+                if (data?.status) {
+                    setProfile(data.data);
+                }
+            } catch (error) {
+                console.error("Failed to fetch profile", error);
+            }
+        }
+        if (session) {
+            fetchProfile();
+        }
+    }, [session]);
 
 
     return (
@@ -62,7 +82,7 @@ const Header = () => {
             <div className="flex items-center gap-[22px]">
                 <div className="flex items-center gap-[12px]">
                     <span className="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                        0/3000 Credits
+                        {profile ? `${profile.credits.total_spent_this_month}/${profile.credits.total_earned_this_month} Credits` : '0/0 Credits'}
                     </span>
 
                     <ThemeToggle />
