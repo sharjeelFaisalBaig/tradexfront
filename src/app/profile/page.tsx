@@ -12,6 +12,7 @@ import Image from 'next/image'
 import ChangePlanModal from '@/components/modal/ChangePlanModal'
 import BillingHistoryModal from '@/components/modal/BillingHistoryModal'
 import BuyCreditsModal from '@/components/modal/BuyCreditsModal'
+import UpdatePaymentMethodModal from '@/components/modal/UpdatePaymentMethodModal'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,12 +36,14 @@ function ProfilePage() {
   const [showPlanModal, setShowPlanModal] = useState(false)
   const [showBillingModal, setShowBillingModal] = useState(false)
   const [showBuyCreditsModal, setShowBuyCreditsModal] = useState(false)
+  const [showUpdatePaymentMethodModal, setShowUpdatePaymentMethodModal] = useState(false)
 
   // Editable fields
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
   const [phoneNumber, setPhoneNumber] = useState('')
+  const [avatar, setAvatar] = useState('')
   const [emailNotifications, setEmailNotifications] = useState(true)
   const [inAppNotifications, setInAppNotifications] = useState(true)
   const [twoFactor, setTwoFactor] = useState(false)
@@ -62,6 +65,7 @@ function ProfilePage() {
         setLastName(data.data.user.last_name || "");
         setEmail(data.data.user.email || "");
         setPhoneNumber(data.data.user.phone_number || "");
+        setAvatar(data.data.user.avatar || "");
         setEmailNotifications(!!data.data.user.receive_email_notifications);
         setInAppNotifications(!!data.data.user.receive_inapp_notifications);
         setTwoFactor(!!data.data.user.two_factor_enabled);
@@ -99,16 +103,19 @@ function ProfilePage() {
 
   const handleSaveChanges = async () => {
     const updatedProfile = {
+      name: `${firstName} ${lastName}`,
       first_name: firstName,
       last_name: lastName,
       phone_number: phoneNumber,
+      email: email,
       receive_email_notifications: emailNotifications,
       receive_inapp_notifications: inAppNotifications,
       two_factor_enabled: twoFactor,
+      avatar: avatar,
     };
 
     try {
-      const data = await fetchWithAutoRefresh(endpoints.USER.PROFILE, session, {
+      const data = await fetchWithAutoRefresh(endpoints.USER.UPDATE_PROFILE, session, {
         method: 'PUT',
         body: JSON.stringify(updatedProfile),
       });
@@ -163,6 +170,70 @@ function ProfilePage() {
     }
   };
 
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('avatar', file);
+
+    try {
+      const data = await fetchWithAutoRefresh(endpoints.USER.UPLOAD_AVATAR, session, {
+        method: 'POST',
+        body: formData,
+        headers: {}, // Let the browser set the Content-Type for FormData
+      });
+
+      if (data?.status) {
+        toast({
+          title: "Avatar Uploaded",
+          description: "Your avatar has been updated successfully.",
+        });
+        fetchProfile(); // Refresh profile data
+      } else {
+        toast({
+          title: "Error",
+          description: data?.message || "Failed to upload avatar.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleAvatarDelete = async () => {
+    try {
+      const data = await fetchWithAutoRefresh(endpoints.USER.DELETE_AVATAR, session, {
+        method: 'DELETE',
+      });
+
+      if (data?.status) {
+        toast({
+          title: "Avatar Deleted",
+          description: "Your avatar has been deleted successfully.",
+        });
+        fetchProfile(); // Refresh profile data
+      } else {
+        toast({
+          title: "Error",
+          description: data?.message || "Failed to delete avatar.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
       <Header onSave={handleSaveChanges} />
@@ -185,9 +256,10 @@ function ProfilePage() {
                   {user.first_name?.[0] || ''}{user.last_name?.[0] || ''}
                 </AvatarFallback>
               </Avatar>
-              <button className="absolute bottom-1 right-1 bg-white dark:bg-background p-1 rounded-full border border-border shadow-sm">
+              <input type="file" id="avatar-upload" className="hidden" onChange={handleAvatarUpload} accept="image/*" />
+              <label htmlFor="avatar-upload" className="absolute bottom-1 right-1 bg-white dark:bg-background p-1 rounded-full border border-border shadow-sm cursor-pointer">
                 <CameraIcon className="w-4 h-4 text-muted-foreground" />
-              </button>
+              </label>
             </div>
             <h2 className="text-xl font-semibold mb-1">{user.name}</h2>
             <p className="text-sm text-muted-foreground">{user.email}</p>
@@ -212,6 +284,7 @@ function ProfilePage() {
               <InputField label="Stripe ID" value={user.stripe_id || ""} setValue={() => {}} disabled />
               <InputField label="Payment Method" value={`${user.pm_type} ending in ${user.pm_last_four}`} setValue={() => {}} disabled />
             </div>
+            <Button className="mt-4" onClick={() => setShowUpdatePaymentMethodModal(true)}>Update Payment Method</Button>
           </section>
 
           {/* Account Preferences */}
@@ -345,6 +418,13 @@ function ProfilePage() {
           </section>
 
           {/* Danger Zone */}
+          <section>
+            <h2 className="text-xl font-semibold text-destructive mb-6">Danger Zone</h2>
+            <div className="flex gap-3">
+              <Button variant="destructive" onClick={handleAvatarDelete}>Delete Avatar</Button>
+              <Button variant="destructive">Delete Account</Button>
+            </div>
+          </section>
           {showPlanModal && (
             <ChangePlanModal
               isOpen={showPlanModal}
@@ -368,6 +448,28 @@ function ProfilePage() {
               isOpen={showBuyCreditsModal}
               onClose={(shouldRefresh) => {
                 setShowBuyCreditsModal(false);
+                if (shouldRefresh) {
+                  fetchProfile();
+                }
+              }}
+            />
+          )}
+          {showUpdatePaymentMethodModal && (
+            <UpdatePaymentMethodModal
+              isOpen={showUpdatePaymentMethodModal}
+              onClose={(shouldRefresh) => {
+                setShowUpdatePaymentMethodModal(false);
+                if (shouldRefresh) {
+                  fetchProfile();
+                }
+              }}
+            />
+          )}
+          {showUpdatePaymentMethodModal && (
+            <UpdatePaymentMethodModal
+              isOpen={showUpdatePaymentMethodModal}
+              onClose={(shouldRefresh) => {
+                setShowUpdatePaymentMethodModal(false);
                 if (shouldRefresh) {
                   fetchProfile();
                 }

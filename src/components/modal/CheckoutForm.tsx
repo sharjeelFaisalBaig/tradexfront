@@ -90,45 +90,51 @@ export default function CheckoutForm({
         }
       )
 
-      if (!paymentIntentResponse?.status || !paymentIntentResponse?.data?.client_secret) {
-        throw new Error(paymentIntentResponse?.message || 'Failed to create payment intent.')
+      if (!paymentIntentResponse?.status) {
+        throw new Error(paymentIntentResponse?.message || 'Failed to process subscription change.')
       }
 
-      const clientSecret = paymentIntentResponse.data.client_secret
+      // If there's a client_secret, it means a payment is required.
+      if (paymentIntentResponse.data.client_secret) {
+        const clientSecret = paymentIntentResponse.data.client_secret
 
-      // 2. Confirm the card payment
-      const { error: stripeError, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
-        payment_method: {
-          card: cardElement,
-        },
-      })
+        // 2. Confirm the card payment
+        const { error: stripeError, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
+          payment_method: {
+            card: cardElement,
+          },
+        })
 
-      if (stripeError) {
-        console.error("Stripe confirmation error:", stripeError);
-        throw new Error(stripeError.message || 'Failed to confirm payment with Stripe.')
-      }
-
-      if (!paymentIntent || !paymentIntent.id) {
-        throw new Error('Payment Intent not found after confirmation.');
-      }
-
-      // 3. Confirm the subscription on the server
-      const confirmResponse = await fetchWithAutoRefresh(
-        endpoints.SUBSCRIPTION.CONFIRM_PAYMENT,
-        session,
-        {
-          method: 'POST',
-          body: JSON.stringify({
-            payment_intent_id: paymentIntent.id,
-          }),
+        if (stripeError) {
+          console.error("Stripe confirmation error:", stripeError);
+          throw new Error(stripeError.message || 'Failed to confirm payment with Stripe.')
         }
-      )
 
-      if (!confirmResponse?.status) {
-        throw new Error(confirmResponse?.message || 'Failed to confirm subscription on the server.')
+        if (!paymentIntent || !paymentIntent.id) {
+          throw new Error('Payment Intent not found after confirmation.');
+        }
+
+        // 3. Confirm the subscription on the server
+        const confirmResponse = await fetchWithAutoRefresh(
+          endpoints.SUBSCRIPTION.CONFIRM_PAYMENT,
+          session,
+          {
+            method: 'POST',
+            body: JSON.stringify({
+              payment_intent_id: paymentIntent.id,
+            }),
+          }
+        )
+
+        if (!confirmResponse?.status) {
+          throw new Error(confirmResponse?.message || 'Failed to confirm subscription on the server.')
+        }
+
+        onSuccess(confirmResponse.data)
+      } else {
+        // No payment required, the subscription was updated directly.
+        onSuccess(paymentIntentResponse.data)
       }
-
-      onSuccess(confirmResponse.data)
     } catch (err: any) {
       console.error("Payment processing error:", err);
       setError(err.message || 'An unexpected error occurred.')

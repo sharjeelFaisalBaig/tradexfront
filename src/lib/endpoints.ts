@@ -16,6 +16,9 @@ export const endpoints = {
     },
     USER: {
         PROFILE: `${API_BASE_PATH}/auth/me`,
+        UPDATE_PROFILE: `${API_BASE_PATH}/auth/profile`,
+        UPLOAD_AVATAR: `${API_BASE_PATH}/auth/avatar`,
+        DELETE_AVATAR: `${API_BASE_PATH}/auth/avatar`,
     },
     PLANS: {
         GET_ALL_PLANS: `${API_BASE_PATH}/membership/plans`,
@@ -29,6 +32,8 @@ export const endpoints = {
         CANCEL_SUBSCRIPTION: `${API_BASE_PATH}/subscription/cancel`,
         UPDATE_SUBSCRIPTION: `${API_BASE_PATH}/subscription/update`,
         SUBSCRIPTION_STATUS: `${API_BASE_PATH}/subscription/status`,
+        GET_PAYMENT_METHOD: `${API_BASE_PATH}/subscription/payment-method`,
+        UPDATE_PAYMENT_METHOD: `${API_BASE_PATH}/subscription/payment-method`,
     },
     BILLING: {
         HISTORY: `${API_BASE_PATH}/billing/history`,
