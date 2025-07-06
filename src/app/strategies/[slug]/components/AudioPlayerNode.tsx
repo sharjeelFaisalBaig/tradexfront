@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect, type DragEvent, type ChangeEvent } from "react"
-import { Handle, Position } from "@xyflow/react"
+import { Handle, Position, useReactFlow } from "@xyflow/react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Button } from "@/components/ui/button"
@@ -22,8 +22,11 @@ import {
   Mic,
   Square,
   RotateCcw,
+  Shield,
+  CheckCircle,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import NodeWrapper from "./common/NodeWrapper"
 
 // Types for AI integration
 interface AIProcessingResponse {
@@ -64,6 +67,7 @@ export default function AudioPlayerNode({
   const audioContextRef = useRef<AudioContext | null>(null)
   const analyserRef = useRef<AnalyserNode | null>(null)
   const animationFrameRef = useRef<number | null>(null)
+  const { setEdges } = useReactFlow()
 
   // Audio upload states
   const [uploadedAudio, setUploadedAudio] = useState<string | null>(null)
@@ -189,7 +193,7 @@ export default function AudioPlayerNode({
       setIsLoading(false)
     }
 
-    const handleError = (e) => {
+    const handleError = (e: any) => {
       console.error("Audio error:", e)
       setIsLoading(false)
     }
@@ -229,68 +233,17 @@ export default function AudioPlayerNode({
 
   // AI responses for different audio types
   const processAudio = (filename: string): AIProcessingResponse => {
-    const responses = [
-      {
-        title: "Personal Introduction Recording",
-        peerId: "peer_audio_7x9k2m4n8p",
-        transcription:
-          "Hello, I am Shil. How are you? Is this working properly? I hope you can hear me clearly. This is just a test recording to see if everything is functioning as expected.",
-        summary:
-          "A friendly personal introduction with audio quality testing. The speaker introduces themselves and checks audio functionality.",
-        confidence: 0.94,
-        tags: ["introduction", "personal", "greeting", "audio test"],
-        duration: 15.3,
-        language: "English",
-      },
-      {
-        title: "Business Meeting Discussion",
-        peerId: "peer_audio_3a5b7c9d1e",
-        transcription:
-          "Let's discuss the quarterly results and our strategy moving forward. The numbers look promising, and we should focus on expanding our market reach.",
-        summary:
-          "Professional business discussion covering quarterly performance and strategic planning for market expansion.",
-        confidence: 0.91,
-        tags: ["business", "meeting", "strategy", "quarterly results"],
-        duration: 28.7,
-        language: "English",
-      },
-      {
-        title: "Educational Lecture Content",
-        peerId: "peer_audio_8f2h4j6k9m",
-        transcription:
-          "Today we'll be covering the fundamentals of machine learning and how artificial intelligence is transforming various industries.",
-        summary:
-          "Educational content focusing on machine learning fundamentals and AI applications across different sectors.",
-        confidence: 0.89,
-        tags: ["education", "machine learning", "AI", "lecture"],
-        duration: 45.2,
-        language: "English",
-      },
-      {
-        title: "Voice Recording Session",
-        peerId: "peer_audio_rec_001",
-        transcription:
-          "This is a live recording session. I'm testing the audio quality and making sure everything sounds clear and professional.",
-        summary: "Live voice recording with focus on audio quality testing and professional sound capture.",
-        confidence: 0.96,
-        tags: ["recording", "voice", "live", "quality test"],
-        duration: recordingState.duration,
-        language: "English",
-      },
-    ]
-
-    // For recorded audio, use the recording-specific response
-    if (filename.includes("recording")) {
-      return responses[3]
-    }
-
-    // Select response based on filename hash for consistency
-    const hash = filename.split("").reduce((a, b) => {
-      a = (a << 5) - a + b.charCodeAt(0)
-      return a & a
-    }, 0)
-
-    return responses[Math.abs(hash) % responses.length]
+    return {
+      title: "Voice Recording Session",
+      peerId: "peer_audio_rec_001",
+      transcription:
+        "This is a live recording session. I'm testing the audio quality and making sure everything sounds clear and professional.",
+      summary: "Live voice recording with focus on audio quality testing and professional sound capture.",
+      confidence: 0.96,
+      tags: ["recording", "voice", "live", "quality test"],
+      duration: recordingState.duration,
+      language: "English",
+    };
   }
 
   // AI Processing Function
@@ -308,9 +261,7 @@ export default function AudioPlayerNode({
       await new Promise((resolve) => setTimeout(resolve, processingTime))
 
       // Simulate occasional API errors (10% chance)
-      if (Math.random() < 0.1) {
-        throw new Error("Audio transcription service temporarily unavailable")
-      }
+      // throw new Error("Audio transcription service temporarily unavailable")
 
       // Get AI response
       const result = processAudio(filename)
@@ -606,427 +557,464 @@ export default function AudioPlayerNode({
 
   const progressValue = duration > 0 ? (currentTime / duration) * 100 : 0
 
+  // Determine if connection should be allowed
+  const canConnect: any = processingState.isComplete && aiResponse && !processingState.error;
+
+  // Remove connections when node becomes not connectable
+  useEffect(() => {
+    if (!canConnect) {
+      setEdges((edges) =>
+        edges.filter((edge) => edge.source !== id && edge.target !== id)
+      )
+    }
+  }, [canConnect, id, setEdges])
+
   return (
-    <TooltipProvider>
+    <NodeWrapper
+      id={id}
+      className="bg-white"
+    >
       <div className="react-flow__node">
         <div ref={nodeControlRef} className={`nodrag`} />
+        <TooltipProvider>
+          <div className="w-[1000px] max-w-md mx-auto bg-white rounded-lg shadow-sm border overflow-hidden">
+            {!uploadedAudio && !showRecordingInterface ? (
+              // Upload/Record Interface
+              <div
+                className={cn(
+                  "relative bg-white rounded-2xl p-12 transition-all duration-200 border-2 border-dashed",
+                  isDragOver ? "border-purple-400 bg-purple-50" : "border-gray-300",
+                  "cursor-pointer",
+                )}
+                onDragEnter={handleDragEnter}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                onClick={handleSelectFile}
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="audio/*"
+                  onChange={handleFileInputChange}
+                  className="hidden"
+                />
 
-        <div className="w-[1000px] max-w-md mx-auto bg-white rounded-lg shadow-sm border overflow-hidden">
-          {!uploadedAudio && !showRecordingInterface ? (
-            // Upload/Record Interface
-            <div
-              className={cn(
-                "relative bg-white rounded-2xl p-12 transition-all duration-200 border-2 border-dashed",
-                isDragOver ? "border-purple-400 bg-purple-50" : "border-gray-300",
-                "cursor-pointer",
-              )}
-              onDragEnter={handleDragEnter}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-              onClick={handleSelectFile}
-            >
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="audio/*"
-                onChange={handleFileInputChange}
-                className="hidden"
-              />
-
-              <div className="text-center">
-                <div className="mb-6 space-y-3">
-                  <Button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleSelectFile()
-                    }}
-                    className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-full text-base font-medium w-full"
-                  >
-                    <Plus className="w-5 h-5 mr-2" />
-                    Select an audio file
-                  </Button>
-
-                  <Button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setShowRecordingInterface(true)
-                    }}
-                    variant="outline"
-                    className="border-purple-600 text-purple-600 hover:bg-purple-50 px-6 py-3 rounded-full text-base font-medium w-full"
-                  >
-                    <Mic className="w-5 h-5 mr-2" />
-                    Record audio
-                  </Button>
-                </div>
-
-                <div className="text-gray-500 mb-4">
-                  <span className="text-lg">or</span>
-                </div>
-
-                <div className="text-gray-600 text-lg">Drag and drop an audio file here</div>
-
-                <div className="text-sm text-gray-500 mt-4">Supports: MP3, WAV, M4A, OGG</div>
-              </div>
-
-              {isDragOver && (
-                <div className="absolute inset-0 bg-purple-100 bg-opacity-70 rounded-2xl flex items-center justify-center z-10">
-                  <div className="bg-white p-6 rounded-xl shadow-lg flex flex-col items-center">
-                    <Upload className="w-12 h-12 text-purple-600 mb-2" />
-                    <div className="text-purple-600 text-xl font-medium">Drop your audio file here</div>
-                  </div>
-                </div>
-              )}
-            </div>
-          ) : showRecordingInterface ? (
-            // Recording Interface
-            <div className="space-y-0">
-              <div className="bg-gradient-to-r from-red-500 to-red-600 px-4 py-3 flex items-center justify-between text-white">
-                <div className="flex items-center gap-2">
-                  <div
-                    className={cn(
-                      "w-3 h-3 rounded-full",
-                      recordingState.isRecording && !recordingState.isPaused ? "bg-white animate-pulse" : "bg-white/50",
-                    )}
-                  />
-                  <span className="text-sm font-medium">
-                    {recordingState.isRecording
-                      ? recordingState.isPaused
-                        ? "Recording Paused"
-                        : "Recording..."
-                      : "Ready to Record"}
-                  </span>
-                </div>
-                <Button
-                  onClick={discardRecording}
-                  size="sm"
-                  variant="ghost"
-                  className="text-white hover:bg-white/20 h-8 w-8 p-0"
-                >
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
-
-              <div className="p-6 text-center space-y-6">
-                {/* Audio Level Visualization */}
-                <div className="space-y-4">
-                  <div className="text-2xl font-bold text-gray-800 tabular-nums">
-                    {formatTime(recordingState.duration)}
-                  </div>
-
-                  {/* Audio Level Bars */}
-                  <div className="flex items-center justify-center gap-1 h-16">
-                    {Array.from({ length: 20 }, (_, i) => (
-                      <div
-                        key={i}
-                        className={cn(
-                          "w-2 rounded-full transition-all duration-100",
-                          recordingState.audioLevel > i / 20 ? "bg-red-500" : "bg-gray-200",
-                        )}
-                        style={{
-                          height: `${Math.max(8, recordingState.audioLevel * 60 + Math.random() * 10)}px`,
-                        }}
-                      />
-                    ))}
-                  </div>
-                </div>
-
-                {/* Recording Controls */}
-                <div className="flex items-center justify-center gap-4">
-                  {!recordingState.isRecording ? (
+                <div className="text-center">
+                  <div className="mb-6 space-y-3">
                     <Button
-                      onClick={startRecording}
-                      size="lg"
-                      className="bg-red-500 hover:bg-red-600 text-white rounded-full h-16 w-16 p-0"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleSelectFile()
+                      }}
+                      className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-full text-base font-medium w-full"
                     >
-                      <Mic className="w-8 h-8" />
+                      <Plus className="w-5 h-5 mr-2" />
+                      Select an audio file
                     </Button>
-                  ) : (
-                    <>
-                      <Button
-                        onClick={pauseRecording}
-                        size="lg"
-                        variant="outline"
-                        className="border-red-500 text-red-500 hover:bg-red-50 rounded-full h-12 w-12 p-0 bg-transparent"
-                      >
-                        {recordingState.isPaused ? <Play className="w-6 h-6" /> : <Pause className="w-6 h-6" />}
-                      </Button>
 
-                      <Button
-                        onClick={stopRecording}
-                        size="lg"
-                        className="bg-red-500 hover:bg-red-600 text-white rounded-full h-16 w-16 p-0"
-                      >
-                        <Square className="w-8 h-8" />
-                      </Button>
-                    </>
-                  )}
-                </div>
-
-                {/* Save/Discard Controls */}
-                {recordedChunks.length > 0 && !recordingState.isRecording && (
-                  <div className="flex gap-3 pt-4">
                     <Button
-                      onClick={discardRecording}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setShowRecordingInterface(true)
+                      }}
                       variant="outline"
-                      className="flex-1 border-gray-300 text-gray-600 hover:bg-gray-50 bg-transparent"
+                      className="border-purple-600 text-purple-600 hover:bg-purple-50 px-6 py-3 rounded-full text-base font-medium w-full"
                     >
-                      <RotateCcw className="w-4 h-4 mr-2" />
-                      Discard
+                      <Mic className="w-5 h-5 mr-2" />
+                      Record audio
                     </Button>
-                    <Button onClick={saveRecording} className="flex-1 bg-purple-600 hover:bg-purple-700 text-white">
-                      <Download className="w-4 h-4 mr-2" />
-                      Save Recording
-                    </Button>
+                  </div>
+
+                  <div className="text-gray-500 mb-4">
+                    <span className="text-lg">or</span>
+                  </div>
+
+                  <div className="text-gray-600 text-lg">Drag and drop an audio file here</div>
+
+                  <div className="text-sm text-gray-500 mt-4">Supports: MP3, WAV, M4A, OGG</div>
+                </div>
+
+                {isDragOver && (
+                  <div className="absolute inset-0 bg-purple-100 bg-opacity-70 rounded-2xl flex items-center justify-center z-10">
+                    <div className="bg-white p-6 rounded-xl shadow-lg flex flex-col items-center">
+                      <Upload className="w-12 h-12 text-purple-600 mb-2" />
+                      <div className="text-purple-600 text-xl font-medium">Drop your audio file here</div>
+                    </div>
                   </div>
                 )}
               </div>
-            </div>
-          ) : (
-            // Audio Player Interface
-            <div className="space-y-0">
-              {/* Hidden Audio Element */}
-              <audio ref={audioRef} src={uploadedAudio} preload="metadata" crossOrigin="anonymous" controls={false} />
-
-              {/* Header with AI Title or Processing State */}
-              <div className="bg-gradient-to-r from-purple-500 to-purple-600 px-4 py-3 flex items-center justify-between text-white">
-                <div className="flex items-center gap-2 flex-1 min-w-0">
-                  {processingState.isProcessing ? (
-                    <div className="flex items-center gap-2">
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span className="text-sm font-medium">AI is processing your audio...</span>
-                    </div>
-                  ) : processingState.error ? (
-                    <div className="flex items-center gap-2">
-                      <X className="w-4 h-4" />
-                      <span className="text-sm font-medium">Processing failed</span>
-                    </div>
-                  ) : aiResponse ? (
-                    <div className="flex items-center gap-2">
-                      <Lightbulb className="w-4 h-4 text-yellow-300" />
-                      <span className="text-sm font-medium truncate">{aiResponse.title}</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <Music className="w-4 h-4" />
-                      <span className="text-sm font-medium truncate">{fileName}</span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-2">
+            ) : showRecordingInterface ? (
+              // Recording Interface
+              <div className="space-y-0">
+                <div className="bg-gradient-to-r from-red-500 to-red-600 px-4 py-3 flex items-center justify-between text-white">
+                  <div className="flex items-center gap-2">
+                    <div
+                      className={cn(
+                        "w-3 h-3 rounded-full",
+                        recordingState.isRecording && !recordingState.isPaused ? "bg-white animate-pulse" : "bg-white/50",
+                      )}
+                    />
+                    <span className="text-sm font-medium">
+                      {recordingState.isRecording
+                        ? recordingState.isPaused
+                          ? "Recording Paused"
+                          : "Recording..."
+                        : "Ready to Record"}
+                    </span>
+                  </div>
                   <Button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleRemoveAudio()
-                    }}
+                    onClick={discardRecording}
                     size="sm"
                     variant="ghost"
                     className="text-white hover:bg-white/20 h-8 w-8 p-0"
-                    disabled={processingState.isProcessing}
                   >
                     <X className="w-4 h-4" />
                   </Button>
+                </div>
 
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 h-8 w-8">
-                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                          <circle cx="12" cy="5" r="2" />
-                          <circle cx="12" cy="12" r="2" />
-                          <circle cx="12" cy="19" r="2" />
-                        </svg>
+                <div className="p-6 text-center space-y-6">
+                  {/* Audio Level Visualization */}
+                  <div className="space-y-4">
+                    <div className="text-2xl font-bold text-gray-800 tabular-nums">
+                      {formatTime(recordingState.duration)}
+                    </div>
+
+                    {/* Audio Level Bars */}
+                    <div className="flex items-center justify-center gap-1 h-16">
+                      {Array.from({ length: 20 }, (_, i) => (
+                        <div
+                          key={i}
+                          className={cn(
+                            "w-2 rounded-full transition-all duration-100",
+                            recordingState.audioLevel > i / 20 ? "bg-red-500" : "bg-gray-200",
+                          )}
+                          style={{
+                            height: `${Math.max(8, recordingState.audioLevel * 60 + Math.random() * 10)}px`,
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Recording Controls */}
+                  <div className="flex items-center justify-center gap-4">
+                    {!recordingState.isRecording ? (
+                      <Button
+                        onClick={startRecording}
+                        size="lg"
+                        className="bg-red-500 hover:bg-red-600 text-white rounded-full h-16 w-16 p-0"
+                      >
+                        <Mic className="w-8 h-8" />
                       </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48">
-                      <DropdownMenuItem onClick={handleDownload} className="cursor-pointer">
+                    ) : (
+                      <>
+                        <Button
+                          onClick={pauseRecording}
+                          size="lg"
+                          variant="outline"
+                          className="border-red-500 text-red-500 hover:bg-red-50 rounded-full h-12 w-12 p-0 bg-transparent"
+                        >
+                          {recordingState.isPaused ? <Play className="w-6 h-6" /> : <Pause className="w-6 h-6" />}
+                        </Button>
+
+                        <Button
+                          onClick={stopRecording}
+                          size="lg"
+                          className="bg-red-500 hover:bg-red-600 text-white rounded-full h-16 w-16 p-0"
+                        >
+                          <Square className="w-8 h-8" />
+                        </Button>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Save/Discard Controls */}
+                  {recordedChunks.length > 0 && !recordingState.isRecording && (
+                    <div className="flex gap-3 pt-4">
+                      <Button
+                        onClick={discardRecording}
+                        variant="outline"
+                        className="flex-1 border-gray-300 text-gray-600 hover:bg-gray-50 bg-transparent"
+                      >
+                        <RotateCcw className="w-4 h-4 mr-2" />
+                        Discard
+                      </Button>
+                      <Button onClick={saveRecording} className="flex-1 bg-purple-600 hover:bg-purple-700 text-white">
                         <Download className="w-4 h-4 mr-2" />
-                        Download
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={handleCopyTranscription} className="cursor-pointer">
-                        <Copy className="w-4 h-4 mr-2" />
-                        Copy transcription
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                        Save Recording
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </div>
+            ) : (
+              // Audio Player Interface
+              <div className="space-y-0">
+                {/* Hidden Audio Element */}
+                <audio ref={audioRef} src={uploadedAudio || undefined} preload="metadata" crossOrigin="anonymous" controls={false} />
 
-              {/* Processing Overlay */}
-              {processingState.isProcessing && (
-                <div className="bg-purple-50 p-4 flex items-center justify-center">
-                  <div className="flex items-center gap-3">
-                    <Loader2 className="w-6 h-6 animate-spin text-purple-600" />
-                    <span className="text-sm font-medium text-purple-700">Transcribing and analyzing audio...</span>
+                {/* Header with AI Title or Processing State */}
+                <div className="bg-gradient-to-r from-purple-500 to-purple-600 px-4 py-3 flex items-center justify-between text-white">
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    {processingState.isProcessing ? (
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span className="text-sm font-medium">AI is processing your audio...</span>
+                      </div>
+                    ) : processingState.error ? (
+                      <div className="flex items-center gap-2">
+                        <X className="w-4 h-4" />
+                        <span className="text-sm font-medium">Processing failed</span>
+                      </div>
+                    ) : aiResponse ? (
+                      <div className="flex items-center gap-2">
+                        <Lightbulb className="w-4 h-4 text-yellow-300" />
+                        <span className="text-sm font-medium truncate">{aiResponse.title}</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <Music className="w-4 h-4" />
+                        <span className="text-sm font-medium truncate">{fileName}</span>
+                      </div>
+                    )}
                   </div>
-                </div>
-              )}
 
-              {/* Player Controls - Different UI for Recorded vs Uploaded */}
-              <div className="p-4">
-                {fileName.includes("recording") ? (
-                  // Recorded Audio - Cool Alternative UI without progress bar
-                  <div className="space-y-4">
-                    {/* Waveform-style Visualization */}
-                    <div className="bg-gradient-to-r from-purple-100 to-purple-200 p-4 rounded-lg">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-3">
-                          <Button
-                            size="icon"
-                            className="rounded-full bg-purple-500 hover:bg-purple-600 text-white h-12 w-12 disabled:opacity-50"
-                            onClick={togglePlayPause}
-                            disabled={isLoading || processingState.isProcessing}
-                          >
-                            {isLoading ? (
-                              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                            ) : isPlaying ? (
-                              <Pause className="w-6 h-6 fill-white" />
-                            ) : (
-                              <Play className="w-6 h-6 fill-white" />
-                            )}
-                          </Button>
-                          <div className="text-left">
-                            <div className="text-sm font-medium text-purple-700">Live Recording</div>
-                            <div className="text-xs text-purple-600">{isPlaying ? "Playing..." : "Ready to play"}</div>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-lg font-bold text-purple-700 tabular-nums">
-                            {formatTime(currentTime)}
-                          </div>
-                          <div className="text-xs text-purple-600">{isLoading ? "Loading..." : "Elapsed"}</div>
-                        </div>
-                      </div>
+                  <div className="flex items-center gap-2">
+                    {canConnect && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <CheckCircle className="w-4 h-4 text-green-300" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="text-sm">Ready to connect to other nodes</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
 
-                      {/* Cool Waveform-style Animation */}
-                      <div className="flex items-center justify-center gap-1 h-12 bg-white/50 rounded-lg p-2">
-                        {Array.from({ length: 40 }, (_, i) => (
-                          <div
-                            key={i}
-                            className={cn(
-                              "w-1 rounded-full transition-all duration-150",
-                              isPlaying ? "bg-purple-500 animate-pulse" : "bg-purple-300",
-                            )}
-                            style={{
-                              height: `${Math.max(4, Math.random() * 32 + (isPlaying ? Math.sin(Date.now() / 100 + i) * 8 : 0))}px`,
-                              animationDelay: `${i * 50}ms`,
-                            }}
-                          />
-                        ))}
-                      </div>
+                    {!canConnect && !processingState.isProcessing && uploadedAudio && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Shield className="w-4 h-4 text-yellow-300" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="text-sm">Complete analysis to enable connections</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
 
-                      {/* Recording Info */}
-                      <div className="flex items-center justify-between mt-3 text-xs text-purple-600">
-                        <span>🎙️ Recorded Audio</span>
-                        <div className="flex items-center gap-4">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-xs px-2 py-1 h-6 min-w-[30px] border-purple-300 bg-transparent hover:bg-purple-50 text-purple-600"
-                            onClick={cycleSpeed}
-                            disabled={processingState.isProcessing}
-                          >
-                            {playbackSpeed}x
-                          </Button>
-                          <span>Duration: {formatTime(recordingState.duration)}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  // Uploaded Audio - Normal Progress Bar UI
-                  <div className="flex items-center gap-3 mb-4">
                     <Button
-                      size="icon"
-                      className="rounded-full bg-purple-500 hover:bg-purple-600 text-white h-10 w-10 disabled:opacity-50"
-                      onClick={togglePlayPause}
-                      disabled={isLoading || processingState.isProcessing}
-                    >
-                      {isLoading ? (
-                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      ) : isPlaying ? (
-                        <Pause className="w-5 h-5 fill-white" />
-                      ) : (
-                        <Play className="w-5 h-5 fill-white" />
-                      )}
-                    </Button>
-                    <div className="flex-1 mt-4">
-                      <Slider
-                        value={[progressValue]}
-                        max={100}
-                        step={0.1}
-                        onValueChange={handleSeek}
-                        className="w-full [&>span:first-child]:h-2 [&>span:first-child]:bg-purple-200 [&_[role=slider]]:bg-purple-500 [&_[role=slider]]:w-4 [&_[role=slider]]:h-4 [&_[role=slider]]:border-0 [&>span:first-child_span]:bg-purple-500"
-                        disabled={processingState.isProcessing}
-                      />
-                      <div className="flex justify-between text-xs text-gray-500 mt-2">
-                        <span className="tabular-nums">{formatTime(currentTime)}</span>
-                        <span className="tabular-nums">{formatTime(duration)}</span>
-                      </div>
-                    </div>
-                    <Button
-                      variant="outline"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleRemoveAudio()
+                      }}
                       size="sm"
-                      className="text-xs px-2 py-1 h-6 min-w-[30px] border-gray-300 bg-transparent hover:bg-gray-50"
-                      onClick={cycleSpeed}
+                      variant="ghost"
+                      className="text-white hover:bg-white/20 h-8 w-8 p-0"
                       disabled={processingState.isProcessing}
                     >
-                      {playbackSpeed}x
+                      <X className="w-4 h-4" />
                     </Button>
-                  </div>
-                )}
 
-                {/* Error State */}
-                {processingState.error && (
-                  <div className="mb-4">
-                    <div className="bg-red-50 p-3 rounded-lg">
-                      <div className="text-xs text-red-600 font-medium mb-1">Processing Error</div>
-                      <div className="text-sm text-red-700 mb-2">{processingState.error}</div>
-                      <Button
-                        onClick={handleReprocess}
-                        size="sm"
-                        variant="outline"
-                        className="text-red-600 border-red-200 hover:bg-red-50 bg-transparent"
-                      >
-                        Retry Processing
-                      </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 h-8 w-8">
+                          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                            <circle cx="12" cy="5" r="2" />
+                            <circle cx="12" cy="12" r="2" />
+                            <circle cx="12" cy="19" r="2" />
+                          </svg>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-48">
+                        <DropdownMenuItem onClick={handleDownload} className="cursor-pointer">
+                          <Download className="w-4 h-4 mr-2" />
+                          Download
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={handleCopyTranscription} className="cursor-pointer">
+                          <Copy className="w-4 h-4 mr-2" />
+                          Copy transcription
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
+
+                {/* Processing Overlay */}
+                {processingState.isProcessing && (
+                  <div className="bg-purple-50 p-4 flex items-center justify-center">
+                    <div className="flex items-center gap-3">
+                      <Loader2 className="w-6 h-6 animate-spin text-purple-600" />
+                      <span className="text-sm font-medium text-purple-700">Transcribing and analyzing audio...</span>
                     </div>
                   </div>
                 )}
 
-                {/* Notes Input */}
-                <div className="relative">
-                  <Input
-                    placeholder="Add notes for AI to use..."
-                    value={userNotes}
-                    onChange={handleNotesChange}
-                    className="pr-8 border-gray-200 focus:border-purple-500 focus:ring-purple-500"
-                    disabled={processingState.isProcessing}
-                  />
-                  <Tooltip>
-                    <TooltipTrigger asChild>
+                {/* Player Controls - Different UI for Recorded vs Uploaded */}
+                <div className="p-4">
+                  {fileName.includes("recording") ? (
+                    // Recorded Audio - Cool Alternative UI without progress bar
+                    <div className="space-y-4">
+                      {/* Waveform-style Visualization */}
+                      <div className="bg-gradient-to-r from-purple-100 to-purple-200 p-4 rounded-lg">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-3">
+                            <Button
+                              size="icon"
+                              className="rounded-full bg-purple-500 hover:bg-purple-600 text-white h-12 w-12 disabled:opacity-50"
+                              onClick={togglePlayPause}
+                              disabled={isLoading || processingState.isProcessing}
+                            >
+                              {isLoading ? (
+                                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                              ) : isPlaying ? (
+                                <Pause className="w-6 h-6 fill-white" />
+                              ) : (
+                                <Play className="w-6 h-6 fill-white" />
+                              )}
+                            </Button>
+                            <div className="text-left">
+                              <div className="text-sm font-medium text-purple-700">Live Recording</div>
+                              <div className="text-xs text-purple-600">{isPlaying ? "Playing..." : "Ready to play"}</div>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-lg font-bold text-purple-700 tabular-nums">
+                              {formatTime(currentTime)}
+                            </div>
+                            <div className="text-xs text-purple-600">{isLoading ? "Loading..." : "Elapsed"}</div>
+                          </div>
+                        </div>
+
+                        {/* Cool Waveform-style Animation */}
+                        <div className="flex items-center justify-center gap-1 h-12 bg-white/50 rounded-lg p-2">
+                          {Array.from({ length: 40 }, (_, i) => (
+                            <div
+                              key={i}
+                              className={cn(
+                                "w-1 rounded-full transition-all duration-150",
+                                isPlaying ? "bg-purple-500 animate-pulse" : "bg-purple-300",
+                              )}
+                              style={{
+                                height: `${Math.max(4, Math.random() * 32 + (isPlaying ? Math.sin(Date.now() / 100 + i) * 8 : 0))}px`,
+                                animationDelay: `${i * 50}ms`,
+                              }}
+                            />
+                          ))}
+                        </div>
+
+                        {/* Recording Info */}
+                        <div className="flex items-center justify-between mt-3 text-xs text-purple-600">
+                          <span>🎙️ Recorded Audio</span>
+                          <div className="flex items-center gap-4">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-xs px-2 py-1 h-6 min-w-[30px] border-purple-300 bg-transparent hover:bg-purple-50 text-purple-600"
+                              onClick={cycleSpeed}
+                              disabled={processingState.isProcessing}
+                            >
+                              {playbackSpeed}x
+                            </Button>
+                            <span>Duration: {formatTime(recordingState.duration)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    // Uploaded Audio - Normal Progress Bar UI
+                    <div className="flex items-center gap-3 mb-4">
                       <Button
-                        variant="ghost"
                         size="icon"
-                        className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 text-gray-400 hover:text-gray-600"
+                        className="rounded-full bg-purple-500 hover:bg-purple-600 text-white h-10 w-10 disabled:opacity-50"
+                        onClick={togglePlayPause}
+                        disabled={isLoading || processingState.isProcessing}
                       >
-                        <HelpCircle className="w-4 h-4" />
+                        {isLoading ? (
+                          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        ) : isPlaying ? (
+                          <Pause className="w-5 h-5 fill-white" />
+                        ) : (
+                          <Play className="w-5 h-5 fill-white" />
+                        )}
                       </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="text-sm">
-                        Add notes that will be used by AI to provide better context and insights
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
+                      <div className="flex-1">
+                        <Slider
+                          value={[progressValue]}
+                          max={100}
+                          step={0.1}
+                          onValueChange={handleSeek}
+                          className="w-full [&>span:first-child]:h-2 [&>span:first-child]:bg-purple-200 [&_[role=slider]]:bg-purple-500 [&_[role=slider]]:w-4 [&_[role=slider]]:h-4 [&_[role=slider]]:border-0 [&>span:first-child_span]:bg-purple-500"
+                          disabled={processingState.isProcessing}
+                        />
+                        <div className="flex justify-between text-xs text-gray-500 mt-1">
+                          <span className="tabular-nums">{formatTime(currentTime)}</span>
+                          <span className="tabular-nums">{formatTime(duration)}</span>
+                        </div>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-xs px-2 py-1 h-6 min-w-[30px] border-gray-300 bg-transparent hover:bg-gray-50"
+                        onClick={cycleSpeed}
+                        disabled={processingState.isProcessing}
+                      >
+                        {playbackSpeed}x
+                      </Button>
+                    </div>
+                  )}
+
+                  {/* Error State */}
+                  {processingState.error && (
+                    <div className="mb-4">
+                      <div className="bg-red-50 p-3 rounded-lg">
+                        <div className="text-xs text-red-600 font-medium mb-1">Processing Error</div>
+                        <div className="text-sm text-red-700 mb-2">{processingState.error}</div>
+                        <Button
+                          onClick={handleReprocess}
+                          size="sm"
+                          variant="outline"
+                          className="text-red-600 border-red-200 hover:bg-red-50 bg-transparent"
+                        >
+                          Retry Processing
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Notes Input */}
+                  <div className="relative">
+                    <Input
+                      placeholder="Add notes for AI to use..."
+                      value={userNotes}
+                      onChange={handleNotesChange}
+                      className="pr-8 border-gray-200 focus:border-purple-500 focus:ring-purple-500"
+                      disabled={processingState.isProcessing}
+                    />
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 text-gray-400 hover:text-gray-600"
+                        >
+                          <HelpCircle className="w-4 h-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="text-sm">
+                          Add notes that will be used by AI to provide better context and insights
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
-        </div>
-
-        <Handle position={sourcePosition} type="source" style={{ width: "30px", height: "30px" }} />
+            )}
+          </div>
+          <Handle position={sourcePosition} type="source" isConnectableEnd={canConnect} isConnectable={canConnect} isConnectableStart={canConnect} style={{ width: "30px", height: "30px" }} />
+        </TooltipProvider>
       </div>
-    </TooltipProvider>
+    </NodeWrapper>
   )
 }

@@ -21,6 +21,10 @@ import ImageUploadNode from "./components/ImageUploadNode"
 import AudioPlayerNode from "./components/AudioPlayerNode"
 import StyledEdge from "./components/elements/StyledEdge"
 import RemoteNode from "./components/RemoteNode"
+import DocumentUploadNode from "./components/DocumentUploadNode"
+import SocialMediaNode from "./components/SocialMediaNode"
+import VideoUploadNode from "./components/VideoUploadNode"
+import AnnotationNode from "./components/AnnotationNode"
 
 const nodeDefaults = {
   sourcePosition: Position.Right,
@@ -63,7 +67,44 @@ const initialNodes = [
     },
     type: "remoteNode",
     ...nodeDefaults,
-  },
+  }, {
+    id: "5",
+    position: { x: 300, y: 950 },
+    data: {
+      label: "Document Upload",
+    },
+    type: "documentUploadNode",
+    ...nodeDefaults,
+  }, {
+    id: "6",
+    position: { x: 300, y: 1150 },
+    data: {
+      label: "Social Media",
+    },
+    type: "socialMediaNode",
+    ...nodeDefaults,
+  }, {
+    id: "7",
+    position: { x: 300, y: 1350 },
+    data: {
+      label: "Video Upload",
+    },
+    type: "videoUploadNode",
+    ...nodeDefaults,
+  }, {
+    id: "8",
+    position: { x: 700, y: 350 },
+    data: {
+      annotation: {
+        content: "This is a sample annotation for collaborative notes!",
+        author: "Demo User",
+        createdAt: new Date().toISOString(),
+        theme: "yellow"
+      }
+    },
+    type: "annotationNode",
+    // Note: AnnotationNode has no handles, so no sourcePosition/targetPosition
+  }
 ]
 
 const initialEdges: any = []
@@ -72,7 +113,11 @@ const nodeTypes = {
   chatbox: ChatBoxNode,
   imageUploadNode: ImageUploadNode,
   audioPlayerNode: AudioPlayerNode,
-  remoteNode: RemoteNode
+  remoteNode: RemoteNode,
+  documentUploadNode: DocumentUploadNode,
+  socialMediaNode: SocialMediaNode,
+  videoUploadNode: VideoUploadNode,
+  annotationNode: AnnotationNode
 }
 
 const edgeTypes = {
