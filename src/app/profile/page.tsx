@@ -24,7 +24,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { endpoints } from '@/lib/endpoints'
+import { endpoints, DOMAIN_ROOT } from '@/lib/endpoints'
 import { fetchWithAutoRefresh } from "@/lib/fetchWithAutoRefresh";
 import Loader from '@/components/common/Loader'
 import { toast } from '@/hooks/use-toast'
@@ -181,7 +181,6 @@ function ProfilePage() {
       const data = await fetchWithAutoRefresh(endpoints.USER.UPLOAD_AVATAR, session, {
         method: 'POST',
         body: formData,
-        headers: {}, // Let the browser set the Content-Type for FormData
       });
 
       if (data?.status) {
@@ -241,17 +240,10 @@ function ProfilePage() {
       <div className="flex flex-1">
         {/* Sidebar */}
         <aside className="relative w-64 border-r border-border p-8 bg-background overflow-hidden flex flex-col items-center">
-          <Image
-            src="/profilesidenav.png"
-            alt="Sidebar Illustration"
-            width={256}
-            height={256}
-            className="absolute bottom-0 left-0 w-[85%] h-auto z-10 pointer-events-none ml-auto"
-          />
           <div className="relative z-20 flex flex-col items-center">
             <div className="relative mb-4">
               <Avatar className="w-28 h-28">
-                <AvatarImage src={user.avatar || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=120&h=120&fit=crop&crop=face"} />
+                <AvatarImage src={user.avatar ? `${DOMAIN_ROOT}${user.avatar}` : "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=120&h=120&fit=crop&crop=face"} />
                 <AvatarFallback>
                   {user.first_name?.[0] || ''}{user.last_name?.[0] || ''}
                 </AvatarFallback>

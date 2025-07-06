@@ -38,13 +38,18 @@ export async function fetchWithAutoRefresh(
   session: any,
   options: RequestInit = {}
 ) {
+  const headers: any = {
+    ...(options.headers || {}),
+    Authorization: `Bearer ${session?.accessToken}`,
+  };
+
+  if (!(options.body instanceof FormData)) {
+    headers["Content-Type"] = "application/json";
+  }
+
   let res = await fetch(url, {
     ...options,
-    headers: {
-      ...(options.headers || {}),
-      Authorization: `Bearer ${session?.accessToken}`,
-      "Content-Type": "application/json",
-    },
+    headers,
   });
 
   let data = await res.json();
@@ -53,13 +58,18 @@ export async function fetchWithAutoRefresh(
     const newAccessToken = await refreshToken(session);
 
     // Retry the request with the new token
+    const newHeaders: any = {
+      ...(options.headers || {}),
+      Authorization: `Bearer ${newAccessToken}`,
+    };
+
+    if (!(options.body instanceof FormData)) {
+      newHeaders["Content-Type"] = "application/json";
+    }
+
     res = await fetch(url, {
       ...options,
-      headers: {
-        ...(options.headers || {}),
-        Authorization: `Bearer ${newAccessToken}`,
-        "Content-Type": "application/json",
-      },
+      headers: newHeaders,
     });
     data = await res.json();
   }

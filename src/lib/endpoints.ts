@@ -1,5 +1,5 @@
 const API_BASE_PATH = process.env.NEXT_PUBLIC_API_URL || "https://tradexfront.isoft-digital.net/api";
-const DOMAIN_ROOT = API_BASE_PATH.replace("/api", "");
+export const DOMAIN_ROOT = API_BASE_PATH.replace("/api", "");
 
 export const endpoints = {
     AUTH: {
@@ -49,5 +49,14 @@ export const endpoints = {
         GET_ACTIVITY_BY_ID: (id: string) => `${API_BASE_PATH}/credits/activities/${id}`,
         ACTIVITIES_SUMMARY: `${API_BASE_PATH}/credits/activities-summary`,
         ACTIVITIES_FILTER_OPTIONS: `${API_BASE_PATH}/credits/activities-filter-options`,
+    },
+    STRATEGY: {
+        LIST: `${API_BASE_PATH}/strategies`,
+        GET: (id: string) => `${API_BASE_PATH}/strategies/${id}`,
+        CREATE: `${API_BASE_PATH}/strategies`,
+        COPY: (id: string) => `${API_BASE_PATH}/strategies/${id}/copy`,
+        TOGGLE: (id: string) => `${API_BASE_PATH}/strategies/${id}/toggle`,
+        FAVOURITE: (id: string) => `${API_BASE_PATH}/strategies/${id}/favourite`,
+        UPDATE: (id: string) => `${API_BASE_PATH}/strategies/${id}`,
     }
 }

@@ -20,3 +20,16 @@ declare module "next-auth" {
     accessToken?: string;
   }
 }
+
+export interface IStrategy {
+    id: string;
+    name: string;
+    description: string;
+    tags: string[] | null;
+    is_template: boolean;
+    copied_from_strategy_id: string | null;
+    created_at: string;
+    updated_at: string;
+    is_active: boolean;
+    is_favourite?: boolean;
+}
