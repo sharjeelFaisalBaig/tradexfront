@@ -1,11 +1,9 @@
 "use client"
 
-import React, { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { X } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { useNodeOperations } from '../../hooks/useNodeOperations'
+import type React from "react"
+import { X } from "lucide-react"
+import { cn } from "@/lib/utils"
+import { useNodeOperations } from "../../hooks/useNodeOperations"
 
 interface NodeWrapperProps {
   id: string
@@ -20,13 +18,14 @@ export default function NodeWrapper({
   children,
   className = "",
   showDeleteButton = true,
-  onDelete
+  onDelete,
 }: NodeWrapperProps) {
   const { deleteNode } = useNodeOperations()
-  const [isHovered, setIsHovered] = useState(false)
 
   // Handle delete
-  const handleDelete = () => {
+  const handleDelete = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
     if (onDelete) {
       onDelete()
     } else {
@@ -34,45 +33,24 @@ export default function NodeWrapper({
     }
   }
 
-  return (
-    <TooltipProvider>
-      <div
-        className={cn(
-          "relative bg-white rounded-lg shadow-sm border transition-all duration-200",
-          isHovered && "shadow-md ring-2 ring-blue-200",
-          className
-        )}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-        onWheel={(e) => e.stopPropagation()}
-        onMouseDown={(e) => e.stopPropagation()}
-      >
-        {/* Delete Button */}
-        {showDeleteButton && isHovered && (
-          <div className="absolute top-2 right-2 z-50">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  onClick={handleDelete}
-                  size="icon"
-                  variant="destructive"
-                  className="h-6 w-6 rounded-full shadow-md hover:shadow-lg transition-all duration-200"
-                >
-                  <X className="w-3 h-3" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p className="text-sm">Delete node</p>
-              </TooltipContent>
-            </Tooltip>
-          </div>
-        )}
+  // If delete button is disabled, return children without delete button
+  if (!showDeleteButton) {
+    return children
+  }
 
-        {/* Content */}
-        <div className="w-full h-full">
-          {children}
-        </div>
-      </div>
-    </TooltipProvider>
+  return (
+    <div className={cn("relative group", className)}>
+      {children}
+
+      {/* Delete button in top-left corner */}
+      <button
+        onClick={handleDelete}
+        className="absolute -top-3.5 -left-3.5 w-6 h-6 bg-red-600 text-white rounded-full flex items-center justify-center opacity-100 z-10 shadow-md"
+        title="Delete Node"
+        type="button"
+      >
+        <X className="w-4 h-4" />
+      </button>
+    </div>
   )
 }
