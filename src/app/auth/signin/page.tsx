@@ -58,7 +58,16 @@ export default function LoginPage() {
             variant: "default",
           });
         }
-        else if (res.error === "Verification") {
+        else if (res.error.startsWith("2faEnabled:")) {
+          // This is the custom error we threw in the authorize function
+          const emailFromError = res.error.split(":")[1];
+          router.replace(`/auth/otp?email=${encodeURIComponent(emailFromError)}&2fa=true`);
+          toast({
+            title: "2FA Required",
+            description: "Please enter the OTP from your authenticator app.",
+            variant: "default",
+          });
+        } else if (res.error === "Verification") {
           // This is the custom error we threw in the authorize function
           router.replace(`/auth/otp?email=${encodeURIComponent(email)}&2fa=true`);
           toast({
@@ -66,7 +75,8 @@ export default function LoginPage() {
             description: "Please verify your email with the OTP.",
             variant: "default",
           });
-        } else {
+        }
+        else {
           toast({
             title: "Login Failed",
             description: "Please check your credentials and try again.",

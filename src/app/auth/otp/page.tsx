@@ -185,9 +185,13 @@ const OtpVerificationPage = () => {
     const enteredOtp = otp.join("");
     if (enteredOtp.length === 6 && !verifyOtpMutation.isPending && !verify2faMutation.isPending) {
       if (twoFactorEnabled === "true") {
-        verify2faMutation.mutate(enteredOtp);
+        if (!verify2faMutation.isSuccess) {
+          verify2faMutation.mutate(enteredOtp);
+        }
       } else {
-        verifyOtpMutation.mutate(enteredOtp);
+        if (!verifyOtpMutation.isSuccess) {
+          verifyOtpMutation.mutate(enteredOtp);
+        }
       }
     }
   }, [otp, twoFactorEnabled, verify2faMutation, verifyOtpMutation]);
