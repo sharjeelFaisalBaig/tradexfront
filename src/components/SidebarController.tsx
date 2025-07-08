@@ -1,3 +1,4 @@
+// SidebarController.tsx
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { useSidebar } from "@/context/SidebarContext";
@@ -15,13 +16,18 @@ const SidebarController: React.FC<SidebarControllerProps> = ({ config }) => {
   const { setSidebarType } = useSidebar();
 
   useEffect(() => {
-    const matchedKey = Object.keys(config).find((key) =>
-      pathname.startsWith(key)
-    );
+    let matched = false;
 
-    if (matchedKey) {
-      setSidebarType(config[matchedKey]);
-    } else {
+    for (const pattern of Object.keys(config)) {
+      const regex = new RegExp(pattern);
+      if (regex.test(pathname)) {
+        setSidebarType(config[pattern]);
+        matched = true;
+        break;
+      }
+    }
+
+    if (!matched) {
       setSidebarType("dashboard");
     }
   }, [pathname, config, setSidebarType]);
