@@ -48,7 +48,9 @@ const Strategies = () => {
           setLoading(true);
           const res = await getStrategies(session);
           setStrategies(res.data.strategies);
-          setStarredItems(res.data.strategies.map((s: IStrategy) => s.is_favourite));
+          setStarredItems(
+            res.data.strategies.map((s: IStrategy) => s.is_favourite)
+          );
         } catch (error: any) {
           setError(error.message);
         } finally {
@@ -117,7 +119,9 @@ const Strategies = () => {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="modified">Sort by: Last Modified</SelectItem>
+                      <SelectItem value="modified">
+                        Sort by: Last Modified
+                      </SelectItem>
                       <SelectItem value="name">Sort by: Name</SelectItem>
                       <SelectItem value="created">Sort by: Created</SelectItem>
                     </SelectContent>
@@ -138,14 +142,22 @@ const Strategies = () => {
                           <h3 className="font-semibold text-gray-900 dark:text-white group-hover:text-blue-600 transition-colors">
                             {strategy.name}
                           </h3>
-                          <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0"
+                          >
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </div>
 
                         <div className="px-5 pt-1 pb-2">
                           {strategy.tags?.map((tag) => (
-                            <Badge key={tag} variant="secondary" className="text-xs mr-1">
+                            <Badge
+                              key={tag}
+                              variant="secondary"
+                              className="text-xs mr-1"
+                            >
                               {tag}
                             </Badge>
                           ))}
@@ -153,7 +165,9 @@ const Strategies = () => {
 
                         <div className="aspect-video px-5 mb-4">
                           <Image
-                            src={"https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?w=400&h=200&fit=crop"}
+                            src={
+                              "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?w=400&h=200&fit=crop"
+                            }
                             alt={strategy.name}
                             width={400}
                             height={200}
@@ -164,7 +178,12 @@ const Strategies = () => {
 
                         <div className="px-5 pb-4">
                           <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
-                            <span>Last edited {new Date(strategy.updated_at).toLocaleDateString()}</span>
+                            <span>
+                              Last edited{" "}
+                              {new Date(
+                                strategy.updated_at
+                              ).toLocaleDateString()}
+                            </span>
                             <div className="flex items-center space-x-2">
                               <button
                                 className="h-6 w-5"
@@ -177,7 +196,9 @@ const Strategies = () => {
                                   xmlns="http://www.w3.org/2000/svg"
                                   width="22"
                                   height="22"
-                                  fill={starredItems[index] ? "#00AA67" : "none"}
+                                  fill={
+                                    starredItems[index] ? "#00AA67" : "none"
+                                  }
                                   className="h-6 w-5"
                                   style={{
                                     stroke: "#00AA67",

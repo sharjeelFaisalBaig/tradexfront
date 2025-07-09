@@ -91,8 +91,7 @@ const DashboardSidebar = () => {
                         variant="ghost"
                         size="sm"
                         className="h-6 w-6 p-0"
-                      >
-                      </Button>
+                      ></Button>
                     </Link>
                   </div>
                 )}
@@ -102,6 +101,6 @@ const DashboardSidebar = () => {
         </nav>
       </div>
     </div>
-    )
+  );
 };
 export default DashboardSidebar;

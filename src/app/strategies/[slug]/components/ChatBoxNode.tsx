@@ -1,47 +1,59 @@
-"use client"
-import type React from "react"
-import { useEffect, useState, useRef, useCallback } from "react"
-import { Handle, Position, useReactFlow } from "@xyflow/react"
-import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { ChevronDown, Plus, MessageSquare, Copy, ArrowUp, Trash2 } from "lucide-react"
-import AIResponseLoader from "@/components/common/ai-response-loader"
-import NodeWrapper from "./common/NodeWrapper"
+"use client";
+import type React from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
+import { Handle, Position, useReactFlow } from "@xyflow/react";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  ChevronDown,
+  Plus,
+  MessageSquare,
+  Copy,
+  ArrowUp,
+  Trash2,
+} from "lucide-react";
+import AIResponseLoader from "@/components/common/ai-response-loader";
+import NodeWrapper from "./common/NodeWrapper";
 
 // Message type definition
 type Message = {
-  id: string
-  content: string
-  sender: "user" | "ai"
-  timestamp: Date
-}
+  id: string;
+  content: string;
+  sender: "user" | "ai";
+  timestamp: Date;
+};
 
 // Model type definition
 type AIModel = {
-  id: string
-  name: string
-  color: string
-}
+  id: string;
+  name: string;
+  color: string;
+};
 
 // Conversation type definition - Extended with draft message and selected model
 type Conversation = {
-  id: string
-  title: string
-  messages: Message[]
-  createdAt: Date
-  updatedAt: Date
-  isLoading?: boolean
-  draftMessage?: string // Store unsent message for this conversation
-  selectedModel?: AIModel // Store selected model for this conversation
-}
+  id: string;
+  title: string;
+  messages: Message[];
+  createdAt: Date;
+  updatedAt: Date;
+  isLoading?: boolean;
+  draftMessage?: string; // Store unsent message for this conversation
+  selectedModel?: AIModel; // Store selected model for this conversation
+};
 
 // Predefined prompt type definition
 type PredefinedPrompt = {
-  id: string
-  label: string
-  prompt: string
-}
+  id: string;
+  label: string;
+  prompt: string;
+};
 
 export default function ChatBoxNode({
   id,
@@ -49,13 +61,15 @@ export default function ChatBoxNode({
   targetPosition = Position.Right,
   data,
 }: any) {
-  const nodeControlRef = useRef(null)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const { setEdges } = useReactFlow()
-  const [message, setMessage] = useState("")
-  const [conversations, setConversations] = useState<Conversation[]>([])
-  const [activeConversationId, setActiveConversationId] = useState<string | null>(null)
+  const nodeControlRef = useRef(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const { setEdges } = useReactFlow();
+  const [message, setMessage] = useState("");
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [activeConversationId, setActiveConversationId] = useState<
+    string | null
+  >(null);
 
   // Dynamic AI Models State
   const [availableModels] = useState<AIModel[]>([
@@ -63,47 +77,54 @@ export default function ChatBoxNode({
     { id: "claude-3-sonnet", name: "Claude 3 Sonnet", color: "bg-purple-500" },
     { id: "gemini-pro", name: "Gemini Pro", color: "bg-blue-500" },
     { id: "llama-2", name: "Llama 2", color: "bg-green-500" },
-  ])
+  ]);
 
   // Dynamic Predefined Prompts State
   const [predefinedPrompts] = useState<PredefinedPrompt[]>([
     {
       id: "summarize",
       label: "Summarize",
-      prompt: "Please summarize the attached content, focusing on the main points and key takeaways.",
+      prompt:
+        "Please summarize the attached content, focusing on the main points and key takeaways.",
     },
     {
       id: "key-insights",
       label: "Get Key Insights",
-      prompt: "Extract the key insights and important findings from the provided content.",
+      prompt:
+        "Extract the key insights and important findings from the provided content.",
     },
     {
       id: "write-email",
       label: "Write Email",
-      prompt: "Help me write a professional email based on the following context:",
+      prompt:
+        "Help me write a professional email based on the following context:",
     },
     {
       id: "explain",
       label: "Explain",
-      prompt: "Please explain this content in simple terms that anyone can understand.",
+      prompt:
+        "Please explain this content in simple terms that anyone can understand.",
     },
     {
       id: "action-items",
       label: "Action Items",
-      prompt: "Identify actionable items and next steps from the provided information.",
+      prompt:
+        "Identify actionable items and next steps from the provided information.",
     },
-  ])
+  ]);
 
   // Get active conversation
-  const activeConversation = conversations.find((conv) => conv.id === activeConversationId)
-  const messages = activeConversation?.messages || []
-  const isLoading = activeConversation?.isLoading || false
+  const activeConversation = conversations.find(
+    (conv) => conv.id === activeConversationId
+  );
+  const messages = activeConversation?.messages || [];
+  const isLoading = activeConversation?.isLoading || false;
 
   // Get current selected model (conversation-specific or default)
-  const selectedModel = activeConversation?.selectedModel || availableModels[0]
+  const selectedModel = activeConversation?.selectedModel || availableModels[0];
 
   // Check if any conversation is loading (to disable switching)
-  const isAnyConversationLoading = conversations.some((conv) => conv.isLoading)
+  const isAnyConversationLoading = conversations.some((conv) => conv.isLoading);
 
   // Determine if connection should be allowed
   const canConnect: any = true;
@@ -113,38 +134,50 @@ export default function ChatBoxNode({
     if (!canConnect) {
       setEdges((edges) =>
         edges.filter((edge) => edge.source !== id && edge.target !== id)
-      )
+      );
     }
-  }, [canConnect, id, setEdges])
+  }, [canConnect, id, setEdges]);
 
   // Create memoized functions to prevent re-renders
-  const saveDraftMessage = useCallback((conversationId: string, draftMessage: string) => {
-    setConversations((prev) =>
-      prev.map((conv) => (conv.id === conversationId ? { ...conv, draftMessage, updatedAt: new Date() } : conv)),
-    )
-  }, [])
+  const saveDraftMessage = useCallback(
+    (conversationId: string, draftMessage: string) => {
+      setConversations((prev) =>
+        prev.map((conv) =>
+          conv.id === conversationId
+            ? { ...conv, draftMessage, updatedAt: new Date() }
+            : conv
+        )
+      );
+    },
+    []
+  );
 
-  const saveSelectedModel = useCallback((conversationId: string, model: AIModel) => {
-    setConversations((prev) =>
-      prev.map((conv) =>
-        conv.id === conversationId ? { ...conv, selectedModel: model, updatedAt: new Date() } : conv,
-      ),
-    )
-  }, [])
+  const saveSelectedModel = useCallback(
+    (conversationId: string, model: AIModel) => {
+      setConversations((prev) =>
+        prev.map((conv) =>
+          conv.id === conversationId
+            ? { ...conv, selectedModel: model, updatedAt: new Date() }
+            : conv
+        )
+      );
+    },
+    []
+  );
 
   // Update the message change handler to save draft directly
   const handleMessageChange = useCallback(
     (newMessage: string) => {
-      setMessage(newMessage)
+      setMessage(newMessage);
       if (activeConversationId) {
-        saveDraftMessage(activeConversationId, newMessage)
+        saveDraftMessage(activeConversationId, newMessage);
       }
     },
-    [activeConversationId, saveDraftMessage],
-  )
+    [activeConversationId, saveDraftMessage]
+  );
 
   const createNewConversation = useCallback(() => {
-    if (isAnyConversationLoading) return
+    if (isAnyConversationLoading) return;
 
     const newConversation: Conversation = {
       id: `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // More unique ID
@@ -155,44 +188,52 @@ export default function ChatBoxNode({
       isLoading: false,
       draftMessage: "",
       selectedModel: availableModels[0],
-    }
+    };
 
     setConversations((prev) => {
       // Check if conversation already exists to prevent duplicates
-      const exists = prev.some((conv) => conv.id === newConversation.id)
-      if (exists) return prev
-      return [newConversation, ...prev]
-    })
-    setActiveConversationId(newConversation.id)
-  }, [isAnyConversationLoading, availableModels])
+      const exists = prev.some((conv) => conv.id === newConversation.id);
+      if (exists) return prev;
+      return [newConversation, ...prev];
+    });
+    setActiveConversationId(newConversation.id);
+  }, [isAnyConversationLoading, availableModels]);
 
   // Delete conversation
   const deleteConversation = useCallback(
     (conversationId: string) => {
-      if (isAnyConversationLoading) return
+      if (isAnyConversationLoading) return;
 
       // Find the conversation to delete
-      const conversationToDelete = conversations.find((conv) => conv.id === conversationId)
-      const conversationIndex = conversations.findIndex((conv) => conv.id === conversationId)
+      const conversationToDelete = conversations.find(
+        (conv) => conv.id === conversationId
+      );
+      const conversationIndex = conversations.findIndex(
+        (conv) => conv.id === conversationId
+      );
 
       // Prevent deletion of the first conversation
       if (conversationIndex === 0) {
-        console.log("Cannot delete the first conversation")
-        return
+        console.log("Cannot delete the first conversation");
+        return;
       }
 
-      setConversations((prev) => prev.filter((conv) => conv.id !== conversationId))
+      setConversations((prev) =>
+        prev.filter((conv) => conv.id !== conversationId)
+      );
 
       // If deleted conversation was active, switch to first available
       if (activeConversationId === conversationId) {
-        const remainingConversations = conversations.filter((conv) => conv.id !== conversationId)
+        const remainingConversations = conversations.filter(
+          (conv) => conv.id !== conversationId
+        );
         if (remainingConversations.length > 0) {
-          setActiveConversationId(remainingConversations[0].id)
+          setActiveConversationId(remainingConversations[0].id);
         }
       }
     },
-    [isAnyConversationLoading, activeConversationId, conversations],
-  )
+    [isAnyConversationLoading, activeConversationId, conversations]
+  );
 
   // Initialize with first conversation - fix to prevent multiple calls
   useEffect(() => {
@@ -206,122 +247,143 @@ export default function ChatBoxNode({
         isLoading: false,
         draftMessage: "",
         selectedModel: availableModels[0],
-      }
+      };
 
-      setConversations([initialConversation])
-      setActiveConversationId(initialConversation.id)
+      setConversations([initialConversation]);
+      setActiveConversationId(initialConversation.id);
     }
-  }, []) // Empty dependency array - only run once
+  }, []); // Empty dependency array - only run once
 
   // Scroll to bottom when messages change
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages])
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   // Auto-resize textarea
   useEffect(() => {
     if (textareaRef.current) {
-      textareaRef.current.style.height = "auto"
-      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`
+      textareaRef.current.style.height = "auto";
+      textareaRef.current.style.height = `${Math.min(
+        textareaRef.current.scrollHeight,
+        120
+      )}px`;
     }
-  }, [message])
+  }, [message]);
 
   // Load conversation-specific draft message and model when switching conversations
   useEffect(() => {
     if (activeConversation) {
       // Only update if the message is different to prevent loops
-      const draftMessage = activeConversation.draftMessage || ""
+      const draftMessage = activeConversation.draftMessage || "";
       if (message !== draftMessage) {
-        setMessage(draftMessage)
+        setMessage(draftMessage);
       }
     }
-  }, [activeConversationId]) // Remove activeConversation and message from dependencies
+  }, [activeConversationId]); // Remove activeConversation and message from dependencies
 
   // Switch to conversation
   const switchToConversation = (conversationId: string) => {
-    if (isAnyConversationLoading) return
-    setActiveConversationId(conversationId)
-  }
+    if (isAnyConversationLoading) return;
+    setActiveConversationId(conversationId);
+  };
 
   // Update conversation title based on first user message
-  const updateConversationTitle = (conversationId: string, firstMessage: string) => {
+  const updateConversationTitle = (
+    conversationId: string,
+    firstMessage: string
+  ) => {
     setConversations((prev) =>
       prev.map((conv) =>
         conv.id === conversationId
           ? {
-            ...conv,
-            title: firstMessage.slice(0, 30) + (firstMessage.length > 30 ? "..." : ""),
-            updatedAt: new Date(),
-          }
-          : conv,
-      ),
-    )
-  }
+              ...conv,
+              title:
+                firstMessage.slice(0, 30) +
+                (firstMessage.length > 30 ? "..." : ""),
+              updatedAt: new Date(),
+            }
+          : conv
+      )
+    );
+  };
 
   // Add message to specific conversation
-  const addMessageToConversation = (conversationId: string, newMessage: Message) => {
+  const addMessageToConversation = (
+    conversationId: string,
+    newMessage: Message
+  ) => {
     setConversations((prev) =>
       prev.map((conv) =>
         conv.id === conversationId
-          ? { ...conv, messages: [...conv.messages, newMessage], updatedAt: new Date() }
-          : conv,
-      ),
-    )
-  }
+          ? {
+              ...conv,
+              messages: [...conv.messages, newMessage],
+              updatedAt: new Date(),
+            }
+          : conv
+      )
+    );
+  };
 
   // Set loading state for specific conversation
   const setConversationLoading = (conversationId: string, loading: boolean) => {
     setConversations((prev) =>
-      prev.map((conv) => (conv.id === conversationId ? { ...conv, isLoading: loading } : conv)),
-    )
-  }
+      prev.map((conv) =>
+        conv.id === conversationId ? { ...conv, isLoading: loading } : conv
+      )
+    );
+  };
 
   // Handle predefined prompt click
   const handlePredefinedPromptClick = (prompt: PredefinedPrompt) => {
-    if (isLoading) return
+    if (isLoading) return;
 
-    const newMessage = message ? `${message}\n\n${prompt.prompt}` : prompt.prompt
-    setMessage(newMessage)
+    const newMessage = message
+      ? `${message}\n\n${prompt.prompt}`
+      : prompt.prompt;
+    setMessage(newMessage);
 
     // Focus textarea after adding prompt
     setTimeout(() => {
-      textareaRef.current?.focus()
-    }, 0)
-  }
+      textareaRef.current?.focus();
+    }, 0);
+  };
 
   // Handle model selection - Save to current conversation
   const handleModelSelect = (model: AIModel) => {
     if (activeConversationId) {
-      saveSelectedModel(activeConversationId, model)
+      saveSelectedModel(activeConversationId, model);
     }
-  }
+  };
 
   const handleSendMessage = async () => {
-    if (!message.trim() || !activeConversationId || isLoading) return
+    if (!message.trim() || !activeConversationId || isLoading) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
       content: message.trim(),
       sender: "user",
       timestamp: new Date(),
-    }
+    };
 
     // Add user message to active conversation
-    addMessageToConversation(activeConversationId, userMessage)
+    addMessageToConversation(activeConversationId, userMessage);
 
     // Update conversation title if it's the first message
-    const currentConversation = conversations.find((conv) => conv.id === activeConversationId)
+    const currentConversation = conversations.find(
+      (conv) => conv.id === activeConversationId
+    );
     if (currentConversation && currentConversation.messages.length === 0) {
-      updateConversationTitle(activeConversationId, message.trim())
+      updateConversationTitle(activeConversationId, message.trim());
     }
 
-    const currentConversationId = activeConversationId
-    const currentSelectedModel = selectedModel
+    const currentConversationId = activeConversationId;
+    const currentSelectedModel = selectedModel;
 
     // Clear message and draft
-    setMessage("")
-    saveDraftMessage(currentConversationId, "")
-    setConversationLoading(currentConversationId, true)
+    setMessage("");
+    saveDraftMessage(currentConversationId, "");
+    setConversationLoading(currentConversationId, true);
 
     try {
       // TODO: Replace with actual AI API call using selectedModel
@@ -335,30 +397,27 @@ export default function ChatBoxNode({
           </div>`,
           sender: "ai",
           timestamp: new Date(),
-        }
+        };
 
-        addMessageToConversation(currentConversationId, aiMessage)
-        setConversationLoading(currentConversationId, false)
-      }, 2000)
+        addMessageToConversation(currentConversationId, aiMessage);
+        setConversationLoading(currentConversationId, false);
+      }, 2000);
     } catch (error) {
-      console.error("Error sending message:", error)
-      setConversationLoading(currentConversationId, false)
+      console.error("Error sending message:", error);
+      setConversationLoading(currentConversationId, false);
     }
-  }
+  };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault()
-      handleSendMessage()
+      e.preventDefault();
+      handleSendMessage();
     }
-  }
+  };
 
   return (
     <>
-      <NodeWrapper
-        id={id}
-        className="bg-white"
-      >
+      <NodeWrapper id={id} className="bg-white">
         <div className="react-flow__node nowheel">
           <div ref={nodeControlRef} className={`nodrag`} />
 
@@ -370,7 +429,9 @@ export default function ChatBoxNode({
                 <span className="text-white font-semibold">AI Chat</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className={`w-2 h-2 ${selectedModel.color} rounded-full`}></div>
+                <div
+                  className={`w-2 h-2 ${selectedModel.color} rounded-full`}
+                ></div>
                 <span className="text-white text-sm">{selectedModel.name}</span>
               </div>
             </div>
@@ -388,29 +449,40 @@ export default function ChatBoxNode({
                 </Button>
 
                 <div>
-                  <h3 className="text-sm font-medium text-gray-500 mb-3">Conversations</h3>
+                  <h3 className="text-sm font-medium text-gray-500 mb-3">
+                    Conversations
+                  </h3>
                   <div className="space-y-2">
                     {conversations.length === 0 ? (
-                      <div className="text-sm text-gray-400 text-center py-4">No conversations yet</div>
+                      <div className="text-sm text-gray-400 text-center py-4">
+                        No conversations yet
+                      </div>
                     ) : (
                       conversations.map((conversation) => (
                         <div
                           key={conversation.id}
-                          className={`group flex items-center justify-between p-3 rounded-lg text-sm font-medium transition-colors ${activeConversationId === conversation.id
+                          className={`group flex items-center justify-between p-3 rounded-lg text-sm font-medium transition-colors ${
+                            activeConversationId === conversation.id
                               ? "bg-blue-100 text-blue-700"
                               : "hover:bg-gray-100 text-gray-700"
-                            } ${isAnyConversationLoading ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
+                          } ${
+                            isAnyConversationLoading
+                              ? "cursor-not-allowed opacity-50"
+                              : "cursor-pointer"
+                          }`}
                           onClick={() => switchToConversation(conversation.id)}
                         >
                           <div className="flex-1 truncate flex items-center gap-2">
                             <div className="flex flex-col">
                               <span>{conversation.title}</span>
                               {/* Show draft indicator if conversation has unsent message */}
-                              {conversation.draftMessage && conversation.draftMessage.trim() && (
-                                <span className="text-xs text-gray-500 italic">
-                                  Draft: {conversation.draftMessage.slice(0, 20)}...
-                                </span>
-                              )}
+                              {conversation.draftMessage &&
+                                conversation.draftMessage.trim() && (
+                                  <span className="text-xs text-gray-500 italic">
+                                    Draft:{" "}
+                                    {conversation.draftMessage.slice(0, 20)}...
+                                  </span>
+                                )}
                             </div>
                             {conversation.isLoading && (
                               <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
@@ -419,24 +491,27 @@ export default function ChatBoxNode({
                           <div className="flex items-center gap-1">
                             {/* Show model indicator for each conversation */}
                             {conversation.selectedModel && (
-                              <div className={`w-2 h-2 ${conversation.selectedModel.color} rounded-full`}></div>
+                              <div
+                                className={`w-2 h-2 ${conversation.selectedModel.color} rounded-full`}
+                              ></div>
                             )}
 
                             {/* Only show delete button if this is not the first conversation */}
-                            {conversations.length > 1 && conversations.indexOf(conversation) !== 0 && (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                disabled={isAnyConversationLoading}
-                                className="opacity-0 group-hover:opacity-100 h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 disabled:opacity-0"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  deleteConversation(conversation.id)
-                                }}
-                              >
-                                <Trash2 className="w-3 h-3" />
-                              </Button>
-                            )}
+                            {conversations.length > 1 &&
+                              conversations.indexOf(conversation) !== 0 && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  disabled={isAnyConversationLoading}
+                                  className="opacity-0 group-hover:opacity-100 h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 disabled:opacity-0"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    deleteConversation(conversation.id);
+                                  }}
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </Button>
+                              )}
                           </div>
                         </div>
                       ))
@@ -451,12 +526,20 @@ export default function ChatBoxNode({
                 <div className="p-6 border-b border-gray-200 text-left">
                   <h1 className="text-xl font-semibold text-gray-800">
                     {activeConversation?.title || "New Conversation"}
-                    {isLoading && <span className="ml-2 text-sm text-blue-500 font-normal">AI is thinking...</span>}
+                    {isLoading && (
+                      <span className="ml-2 text-sm text-blue-500 font-normal">
+                        AI is thinking...
+                      </span>
+                    )}
                   </h1>
                   {/* Show current model for active conversation */}
                   <div className="flex items-center gap-2 mt-1">
-                    <div className={`w-2 h-2 ${selectedModel.color} rounded-full`}></div>
-                    <span className="text-sm text-gray-500">Using {selectedModel.name}</span>
+                    <div
+                      className={`w-2 h-2 ${selectedModel.color} rounded-full`}
+                    ></div>
+                    <span className="text-sm text-gray-500">
+                      Using {selectedModel.name}
+                    </span>
                   </div>
                 </div>
 
@@ -472,22 +555,34 @@ export default function ChatBoxNode({
                   ) : (
                     messages.map((msg) =>
                       msg.sender === "user" ? (
-                        <div key={msg.id} className="flex items-start gap-3 mb-4 text-left">
+                        <div
+                          key={msg.id}
+                          className="flex items-start gap-3 mb-4 text-left"
+                        >
                           <div className="w-7 h-7 bg-green-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
                             U
                           </div>
                           <div className="flex-1">
-                            <div className="text-sm font-semibold text-green-600 mb-1">You</div>
-                            <div className="text-gray-800 text-sm whitespace-pre-wrap">{msg.content}</div>
+                            <div className="text-sm font-semibold text-green-600 mb-1">
+                              You
+                            </div>
+                            <div className="text-gray-800 text-sm whitespace-pre-wrap">
+                              {msg.content}
+                            </div>
                           </div>
                         </div>
                       ) : (
-                        <div key={msg.id} className="flex items-start gap-3 mb-6">
+                        <div
+                          key={msg.id}
+                          className="flex items-start gap-3 mb-6"
+                        >
                           <div className="w-7 h-7 bg-gradient-to-r from-blue-500 to-pink-500 rounded-full flex items-center justify-center text-white text-xs">
                             🤖
                           </div>
                           <div className="flex-1 text-left">
-                            <div className="text-sm font-semibold text-blue-600 mb-2">AI</div>
+                            <div className="text-sm font-semibold text-blue-600 mb-2">
+                              AI
+                            </div>
                             <div
                               className="ai-message-content text-gray-700 text-sm leading-relaxed"
                               dangerouslySetInnerHTML={{ __html: msg.content }}
@@ -500,7 +595,7 @@ export default function ChatBoxNode({
                             </div>
                           </div>
                         </div>
-                      ),
+                      )
                     )
                   )}
 
@@ -510,7 +605,9 @@ export default function ChatBoxNode({
                         🤖
                       </div>
                       <div className="flex-1 text-left">
-                        <div className="text-sm font-semibold text-blue-600 mb-2">AI</div>
+                        <div className="text-sm font-semibold text-blue-600 mb-2">
+                          AI
+                        </div>
                         <AIResponseLoader />
                       </div>
                     </div>
@@ -557,19 +654,32 @@ export default function ChatBoxNode({
                     {/* Model Selector */}
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" className="flex items-center gap-1 text-xs h-7">
-                          <div className={`w-2 h-2 ${selectedModel.color} rounded-full`}></div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="flex items-center gap-1 text-xs h-7"
+                        >
+                          <div
+                            className={`w-2 h-2 ${selectedModel.color} rounded-full`}
+                          ></div>
                           {selectedModel.name}
                           <ChevronDown className="w-3 h-3" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent>
                         {availableModels.map((model) => (
-                          <DropdownMenuItem key={model.id} onClick={() => handleModelSelect(model)}>
+                          <DropdownMenuItem
+                            key={model.id}
+                            onClick={() => handleModelSelect(model)}
+                          >
                             <div className="flex items-center gap-2">
-                              <div className={`w-2 h-2 ${model.color} rounded-full`}></div>
+                              <div
+                                className={`w-2 h-2 ${model.color} rounded-full`}
+                              ></div>
                               {model.name}
-                              {selectedModel.id === model.id && <span className="ml-auto">✓</span>}
+                              {selectedModel.id === model.id && (
+                                <span className="ml-auto">✓</span>
+                              )}
                             </div>
                           </DropdownMenuItem>
                         ))}
@@ -595,9 +705,16 @@ export default function ChatBoxNode({
             </div>
           </div>
 
-          <Handle position={targetPosition} type="target" isConnectableEnd={canConnect} isConnectable={canConnect} isConnectableStart={canConnect} style={{ width: "30px", height: "30px" }} />
+          <Handle
+            position={targetPosition}
+            type="target"
+            isConnectableEnd={canConnect}
+            isConnectable={canConnect}
+            isConnectableStart={canConnect}
+            style={{ width: "30px", height: "30px" }}
+          />
         </div>
       </NodeWrapper>
     </>
-  )
+  );
 }

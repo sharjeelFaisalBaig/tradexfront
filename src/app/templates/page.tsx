@@ -8,14 +8,16 @@ import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
 import Image from "next/image";
 import SearchIcon from "@/icons/search.svg";
-import TemplateFolderIcon from "@/icons/templatefolder.svg"
+import TemplateFolderIcon from "@/icons/templatefolder.svg";
 
 const templates = Array(6).fill({
   title: "YT Content System",
-  description: "Lorem Ipsum is simply dummy text of the printing and typesetting industry.",
+  description:
+    "Lorem Ipsum is simply dummy text of the printing and typesetting industry.",
   author: "John Smith",
   updated: "Updated 1 month ago",
-  image: "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=400&h=200&fit=crop",
+  image:
+    "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=400&h=200&fit=crop",
 });
 
 export default function TemplatesPage() {
@@ -70,9 +72,6 @@ export default function TemplatesPage() {
                       <TemplateFolderIcon className="w-3.5 h-3.5" />
                       <span className="leading-none">Template</span>
                     </div>
-
-
-
                   </div>
                   <CardContent className="p-4">
                     <h3 className="text-base font-semibold text-gray-900 dark:text-white">
@@ -93,10 +92,11 @@ export default function TemplatesPage() {
                       />
                       <div>
                         <p className="text-sm font-medium">{template.author}</p>
-                        <p className="text-xs text-gray-400">{template.updated}</p>
+                        <p className="text-xs text-gray-400">
+                          {template.updated}
+                        </p>
                       </div>
                     </div>
-
                   </CardContent>
                 </Card>
               ))}

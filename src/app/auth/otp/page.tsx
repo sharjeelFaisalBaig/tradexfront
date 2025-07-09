@@ -77,8 +77,7 @@ const OtpVerificationPage = () => {
         error?.errors && Object.values(error.errors).flat().join(", ");
       toast({
         title: error?.message || "Error",
-        description:
-          message || "Invalid or expired OTP. Please try again.",
+        description: message || "Invalid or expired OTP. Please try again.",
         variant: "destructive",
       });
     },
@@ -110,8 +109,7 @@ const OtpVerificationPage = () => {
         error?.errors && Object.values(error.errors).flat().join(", ");
       toast({
         title: error?.message || "Error",
-        description:
-          message || "Invalid or expired OTP. Please try again.",
+        description: message || "Invalid or expired OTP. Please try again.",
         variant: "destructive",
       });
     },
@@ -142,8 +140,7 @@ const OtpVerificationPage = () => {
         error?.errors && Object.values(error.errors).flat().join(", ");
       toast({
         title: error?.message || "Error",
-        description:
-          message || "Failed to resend OTP. Please try again later.",
+        description: message || "Failed to resend OTP. Please try again later.",
         variant: "destructive",
       });
     },
@@ -174,8 +171,7 @@ const OtpVerificationPage = () => {
         error?.errors && Object.values(error.errors).flat().join(", ");
       toast({
         title: error?.message || "Error",
-        description:
-          message || "Failed to resend OTP. Please try again later.",
+        description: message || "Failed to resend OTP. Please try again later.",
         variant: "destructive",
       });
     },
@@ -183,7 +179,11 @@ const OtpVerificationPage = () => {
 
   useEffect(() => {
     const enteredOtp = otp.join("");
-    if (enteredOtp.length === 6 && !verifyOtpMutation.isPending && !verify2faMutation.isPending) {
+    if (
+      enteredOtp.length === 6 &&
+      !verifyOtpMutation.isPending &&
+      !verify2faMutation.isPending
+    ) {
       if (twoFactorEnabled === "true") {
         if (!verify2faMutation.isSuccess) {
           verify2faMutation.mutate(enteredOtp);
@@ -335,10 +335,14 @@ const OtpVerificationPage = () => {
 
               <Button
                 type="submit"
-                disabled={verifyOtpMutation.isPending || verify2faMutation.isPending}
+                disabled={
+                  verifyOtpMutation.isPending || verify2faMutation.isPending
+                }
                 className="w-full mt-8 py-3 h-12 rounded-full bg-cyan-600 text-white text-lg font-semibold transition-colors hover:bg-cyan-700 disabled:bg-gray-400"
               >
-                {verifyOtpMutation.isPending || verify2faMutation.isPending ? "Verifying..." : "Verify"}
+                {verifyOtpMutation.isPending || verify2faMutation.isPending
+                  ? "Verifying..."
+                  : "Verify"}
               </Button>
             </form>
 
@@ -354,17 +358,20 @@ const OtpVerificationPage = () => {
                       : resendOtpMutation.isPending)
                   }
                   className={`font-semibold underline transition-colors
-                    ${timer > 0 ||
+                    ${
+                      timer > 0 ||
                       (twoFactorEnabled === "true"
                         ? resend2faMutation.isPending
                         : resendOtpMutation.isPending)
-                      ? "text-gray-400 cursor-not-allowed"
-                      : "text-cyan-600 hover:text-cyan-700"
+                        ? "text-gray-400 cursor-not-allowed"
+                        : "text-cyan-600 hover:text-cyan-700"
                     }`}
                 >
-                  {(twoFactorEnabled === "true"
-                    ? resend2faMutation.isPending
-                    : resendOtpMutation.isPending)
+                  {(
+                    twoFactorEnabled === "true"
+                      ? resend2faMutation.isPending
+                      : resendOtpMutation.isPending
+                  )
                     ? "Sending..."
                     : "Resend"}
                 </button>

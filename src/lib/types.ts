@@ -1,7 +1,6 @@
 import { DefaultJWT } from "@auth/core/jwt";
 import { DefaultSession } from "next-auth";
 
-
 declare module "next-auth" {
   interface Session {
     accessToken?: string;
@@ -22,14 +21,14 @@ declare module "next-auth" {
 }
 
 export interface IStrategy {
-    id: string;
-    name: string;
-    description: string;
-    tags: string[] | null;
-    is_template: boolean;
-    copied_from_strategy_id: string | null;
-    created_at: string;
-    updated_at: string;
-    is_active: boolean;
-    is_favourite?: boolean;
+  id: string;
+  name: string;
+  description: string;
+  tags: string[] | null;
+  is_template: boolean;
+  copied_from_strategy_id: string | null;
+  created_at: string;
+  updated_at: string;
+  is_active: boolean;
+  is_favourite?: boolean;
 }
