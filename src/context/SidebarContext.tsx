@@ -16,7 +16,9 @@ export const SidebarProvider = ({ children }: { children: ReactNode }) => {
   const [sidebarType, setSidebarType] = useState("dashboard"); // can be "dashboard" or "strategy"
 
   return (
-    <SidebarContext.Provider value={{ collapsed, setCollapsed, sidebarType, setSidebarType }}>
+    <SidebarContext.Provider
+      value={{ collapsed, setCollapsed, sidebarType, setSidebarType }}
+    >
       {children}
     </SidebarContext.Provider>
   );

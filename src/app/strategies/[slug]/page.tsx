@@ -141,8 +141,6 @@ const Strategy = () => {
     const handlePaste = async (e: ClipboardEvent) => {
       const items = e.clipboardData?.items;
 
-      console.log({ items });
-
       if (!items) return;
 
       for (let i = 0; i < items.length; i++) {
