@@ -19,15 +19,17 @@ const MAX_TAGS = 4; // maximum allowed tags
 function NewStrategyForm({
   onSuccess,
   onClose,
+  strategy,
 }: {
   onSuccess: (data: IStrategy) => void;
   onClose: () => void;
+  strategy?: IStrategy | null;
 }) {
   const { data: session } = useSession();
-  const [name, setName] = useState("");
-  const [desc, setDesc] = useState("");
+  const [name, setName] = useState(strategy?.name ?? "");
+  const [desc, setDesc] = useState(strategy?.description ?? "");
   const [tagInput, setTagInput] = useState("");
-  const [tags, setTags] = useState<string[]>([]);
+  const [tags, setTags] = useState<string[]>(strategy?.tags ?? []);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{
     name?: string;
@@ -76,7 +78,7 @@ function NewStrategyForm({
         session,
         {
           method: "POST",
-          body: JSON.stringify({ name, desc, tags }),
+          body: JSON.stringify({ name, description: desc, tags }),
         }
       );
 
@@ -188,7 +190,13 @@ function NewStrategyForm({
         disabled={loading}
         className="w-full h-11 text-base"
       >
-        {loading ? "Creating..." : "Create Strategy"}
+        {strategy
+          ? loading
+            ? "Updating..."
+            : "Update Strategy"
+          : loading
+          ? "Creating..."
+          : "Create Strategy"}
       </Button>
     </form>
   );
@@ -197,9 +205,11 @@ function NewStrategyForm({
 export default function NewStrategyModal({
   isOpen,
   onClose,
+  strategy,
 }: {
   isOpen: boolean;
   onClose: () => void;
+  strategy?: IStrategy | null;
 }) {
   const router = useRouter();
 
@@ -222,10 +232,14 @@ export default function NewStrategyModal({
           </button>
 
           <Dialog.Title className="text-xl font-semibold text-center mb-4">
-            Create New Strategy
+            {strategy ? "Update Strategy" : "Create New Strategy"}
           </Dialog.Title>
 
-          <NewStrategyForm onSuccess={onSuccess} onClose={onClose} />
+          <NewStrategyForm
+            strategy={strategy}
+            onSuccess={onSuccess}
+            onClose={onClose}
+          />
         </Dialog.Panel>
       </div>
     </Dialog>

@@ -26,7 +26,7 @@ import { useSession } from "next-auth/react";
 import { getStrategy } from "@/services/strategy/strategy_API";
 import { IStrategy } from "@/lib/types";
 import { toast } from "@/hooks/use-toast";
-import TagSelector from "./TagSelector";
+import NewStrategyModal from "@/components/modal/NewStrategyModal";
 
 const nodeDefaults = {
   sourcePosition: Position.Right,
@@ -145,10 +145,15 @@ const Strategy = (props: StrategyProps) => {
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const { getInternalNode, getViewport } = useReactFlow();
 
-  const [tags, setTags] = useState<string[]>([]);
   const [strategy, setStrategy] = useState<IStrategy | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showNewStrategyModal, setShowNewStrategyModal] =
+    useState<boolean>(false);
+
+  const toggleNewStrategyModal = () => {
+    setShowNewStrategyModal((prev) => !prev);
+  };
 
   useEffect(() => {
     const fetchStrategies = async () => {
@@ -157,7 +162,6 @@ const Strategy = (props: StrategyProps) => {
           setLoading(true);
           const res = await getStrategy(slug, session);
           setStrategy(res.data);
-          setTags(res?.data?.tags);
         } catch (error: any) {
           console.log({ error, typeOfError: typeof error.message });
 
@@ -362,6 +366,14 @@ const Strategy = (props: StrategyProps) => {
 
   return (
     <div className="flex flex-col !min-h-screen bg-gray-50 dark:bg-gray-900">
+      {showNewStrategyModal && (
+        <NewStrategyModal
+          strategy={strategy}
+          isOpen={showNewStrategyModal}
+          onClose={toggleNewStrategyModal}
+        />
+      )}
+
       {loading ? (
         <div className="flex items-center justify-center w-full h-screen">
           <p>Loading...</p>
@@ -372,17 +384,10 @@ const Strategy = (props: StrategyProps) => {
         </div>
       ) : (
         <>
-          <Header strategy={strategy} />
+          <Header strategy={strategy} onEditStrategy={toggleNewStrategyModal} />
           <div className="flex flex-1 overflow-hidden">
             <StrategySidebar />
             <main className="relative flex-1 overflow-y-auto p-6">
-              <div className="absolute top-0 left-0 w-full z-50 p-4">
-                <TagSelector
-                  allTags={tags}
-                  value={tags}
-                  onChange={(tags) => setTags(tags)}
-                />
-              </div>
               <ReactFlow
                 nodes={nodes}
                 edges={edges}

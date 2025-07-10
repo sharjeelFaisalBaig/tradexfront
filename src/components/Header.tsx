@@ -8,7 +8,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ArrowRight, ChevronDown, Loader2, Tag } from "lucide-react";
+import { ChevronDown, PencilLine } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -20,22 +20,20 @@ import { useToast } from "@/hooks/use-toast";
 import { fetchWithAutoRefresh } from "@/lib/fetchWithAutoRefresh";
 import { endpoints } from "@/lib/endpoints";
 import { useSidebar } from "@/context/SidebarContext";
-import { Input } from "@/components/ui/input";
 import { IStrategy } from "@/lib/types";
 
 interface HeaderInterface {
   strategy?: IStrategy | null;
+  onEditStrategy?: (data?: IStrategy | null) => void;
 }
 
-const Header = ({ strategy }: HeaderInterface) => {
+const Header = ({ strategy, onEditStrategy }: HeaderInterface) => {
   const { sidebarType } = useSidebar();
   const router = useRouter();
   const { data: session } = useSession();
   const { toast } = useToast();
   const [showNotifications, setShowNotifications] = useState(false);
   const [profile, setProfile] = useState<any>(null);
-  const [inputVal, setInputVal] = useState<string>(strategy?.name ?? "");
-  const [tagVal, setTagVal] = useState<string>("");
 
   useEffect(() => {
     async function fetchProfile() {
@@ -59,7 +57,7 @@ const Header = ({ strategy }: HeaderInterface) => {
   return (
     <header className="flex items-center justify-between bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-6 py-4">
       {/* Left Section */}
-      <div className="flex items-center lg:space-x-20">
+      <div className="flex items-center space-x-20">
         <Image
           src="/logo.png"
           alt="Logo"
@@ -71,34 +69,15 @@ const Header = ({ strategy }: HeaderInterface) => {
         <div className="flex items-center space-x-2 mr-4">
           {sidebarType === "strategy" ? (
             <div className="flex gap-2 items-center w-full">
-              {/* Main input */}
-              <Input
-                placeholder="Search..."
-                value={inputVal}
-                onChange={(e) => setInputVal(e.target.value)}
-                className="xl:w-80 lg:w-72 text-base border-gray-200 focus:border-cyan-500 focus:ring-cyan-500"
-              />
-
-              {/* Tag input */}
-              <div className="relative">
-                <div className="absolute left-2 top-0 flex items-center justify-center h-full">
-                  <Tag className="w-5 h-5" color="#0088cc" />
-                </div>
-                <Input
-                  placeholder="Tag"
-                  value={tagVal}
-                  onChange={(e) => setTagVal(e.target.value)}
-                  className="w-32 pl-8 text-base border-gray-200 focus:border-cyan-500 focus:ring-cyan-500"
-                />
-              </div>
-
-              {/* <TagSelector
-                allTags={strategy?.tags ?? []}
-                value={strategy?.tags ?? []}
-                onChange={(tags) => {
-                  console.log({ tags });
-                }}
-              /> */}
+              <h3 className="text-xl font-medium">{strategy?.name ?? ""}</h3>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="flex items-center rounded-10p"
+                onClick={() => onEditStrategy?.(strategy)}
+              >
+                <PencilLine />
+              </Button>
             </div>
           ) : (
             <>
