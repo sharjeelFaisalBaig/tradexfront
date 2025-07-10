@@ -1,7 +1,7 @@
 "use client";
 
 import { Dialog } from "@headlessui/react";
-import { useState, FormEvent } from "react";
+import { useState, FormEvent, KeyboardEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
 import { useSession } from "next-auth/react";
@@ -24,15 +24,41 @@ function NewStrategyForm({
   const { data: session } = useSession();
   const [name, setName] = useState("");
   const [desc, setDesc] = useState("");
+  const [tagInput, setTagInput] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<{ name?: string; desc?: string }>({});
+  const [errors, setErrors] = useState<{
+    name?: string;
+    desc?: string;
+    tags?: string;
+  }>({});
+
+  const handleAddTag = () => {
+    const newTag = tagInput.trim();
+    if (newTag && !tags.includes(newTag)) {
+      setTags([...tags, newTag]);
+      setTagInput("");
+    }
+  };
+
+  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" || e.key === ",") {
+      e.preventDefault();
+      handleAddTag();
+    }
+  };
+
+  const handleRemoveTag = (tagToRemove: string) => {
+    setTags(tags.filter((tag) => tag !== tagToRemove));
+  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    const newErrors: { name?: string; desc?: string } = {};
 
+    const newErrors: { name?: string; desc?: string; tags?: string } = {};
     if (!name.trim()) newErrors.name = "Strategy name is required.";
     if (!desc.trim()) newErrors.desc = "Description is required.";
+    // if (tags.length === 0) newErrors.tags = "Please add at least one tag.";
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -48,7 +74,7 @@ function NewStrategyForm({
         session,
         {
           method: "POST",
-          body: JSON.stringify({ name, desc }),
+          body: JSON.stringify({ name, desc, tags }),
         }
       );
 
@@ -111,6 +137,45 @@ function NewStrategyForm({
         />
         {errors.desc && (
           <p className="mt-1 text-sm text-red-500">{errors.desc}</p>
+        )}
+      </div>
+
+      {/* Tags */}
+      <div>
+        <label className="block text-sm font-medium mb-1 text-muted-foreground">
+          Tags
+        </label>
+        <Input
+          value={tagInput}
+          onChange={(e) => setTagInput(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="Type a tag and press enter or comma"
+          className={cn(
+            errors.tags && "border-red-500 focus-visible:ring-red-500"
+          )}
+        />
+        {errors.tags && (
+          <p className="mt-1 text-sm text-red-500">{errors.tags}</p>
+        )}
+
+        {tags.length > 0 && (
+          <div className="flex flex-wrap gap-2 mt-2">
+            {tags.map((tag) => (
+              <div
+                key={tag}
+                className="flex items-center px-3 py-1 text-sm bg-muted rounded-full text-muted-foreground"
+              >
+                {tag}
+                <button
+                  type="button"
+                  onClick={() => handleRemoveTag(tag)}
+                  className="ml-2 text-red-500 hover:text-red-600"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            ))}
+          </div>
         )}
       </div>
 
