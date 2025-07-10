@@ -13,8 +13,7 @@ const Sidebar = () => {
   return (
     <>
       {sidebarType === "dashboard" && <DashboardSidebar />}
-
-      {sidebarType === "strategy" && <StrategySidebar />}
+      {/* {sidebarType === "strategy" && <StrategySidebar />} */}
     </>
   );
 };

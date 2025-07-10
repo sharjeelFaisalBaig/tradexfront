@@ -1,6 +1,5 @@
 "use client";
 import { useCallback, useEffect } from "react";
-import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
 import {
   ReactFlow,
@@ -16,7 +15,6 @@ import "@xyflow/react/dist/style.css";
 import "../../reactflow.css";
 import { Position } from "@xyflow/react";
 import ChatBoxNode from "./components/ChatBoxNode";
-import { useSidebar } from "@/context/SidebarContext";
 import ImageUploadNode from "./components/ImageUploadNode";
 import AudioPlayerNode from "./components/AudioPlayerNode";
 import StyledEdge from "./components/elements/StyledEdge";
@@ -25,6 +23,7 @@ import DocumentUploadNode from "./components/DocumentUploadNode";
 import SocialMediaNode from "./components/SocialMediaNode";
 import VideoUploadNode from "./components/VideoUploadNode";
 import AnnotationNode from "./components/AnnotationNode";
+import StrategySidebar from "@/components/StrategySidebar";
 
 const nodeDefaults = {
   sourcePosition: Position.Right,
@@ -321,7 +320,7 @@ const Strategy = () => {
     <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900">
       <Header />
       <div className="flex flex-1 overflow-hidden">
-        <Sidebar />
+        <StrategySidebar />
 
         <main className="flex-1 overflow-y-auto p-6">
           <ReactFlow
