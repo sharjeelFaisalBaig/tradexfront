@@ -461,6 +461,7 @@ export default function ImageUploadNode({
             isConnectable={canConnect}
             isConnectableStart={canConnect}
             style={{
+              top: "42%",
               width: "30px",
               height: "30px",
             }}
