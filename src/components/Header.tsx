@@ -21,15 +21,20 @@ import { fetchWithAutoRefresh } from "@/lib/fetchWithAutoRefresh";
 import { endpoints } from "@/lib/endpoints";
 import { useSidebar } from "@/context/SidebarContext";
 import { Input } from "@/components/ui/input";
+import { IStrategy } from "@/lib/types";
 
-const Header = () => {
+interface HeaderInterface {
+  strategy?: IStrategy | null;
+}
+
+const Header = ({ strategy }: HeaderInterface) => {
   const { sidebarType } = useSidebar();
   const router = useRouter();
   const { data: session } = useSession();
   const { toast } = useToast();
   const [showNotifications, setShowNotifications] = useState(false);
   const [profile, setProfile] = useState<any>(null);
-  const [inputVal, setInputVal] = useState<string>("");
+  const [inputVal, setInputVal] = useState<string>(strategy?.name ?? "");
   const [tagVal, setTagVal] = useState<string>("");
 
   useEffect(() => {
@@ -86,6 +91,14 @@ const Header = () => {
                   className="w-32 pl-8 text-base border-gray-200 focus:border-cyan-500 focus:ring-cyan-500"
                 />
               </div>
+
+              {/* <TagSelector
+                allTags={strategy?.tags ?? []}
+                value={strategy?.tags ?? []}
+                onChange={(tags) => {
+                  console.log({ tags });
+                }}
+              /> */}
             </div>
           ) : (
             <>

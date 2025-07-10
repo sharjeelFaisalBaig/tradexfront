@@ -14,6 +14,8 @@ import { IStrategy } from "@/lib/types";
 import { Textarea } from "../ui/textarea";
 import { cn } from "@/lib/utils";
 
+const MAX_TAGS = 4; // maximum allowed tags
+
 function NewStrategyForm({
   onSuccess,
   onClose,
@@ -35,7 +37,7 @@ function NewStrategyForm({
 
   const handleAddTag = () => {
     const newTag = tagInput.trim();
-    if (newTag && !tags.includes(newTag)) {
+    if (newTag && !tags.includes(newTag) && tags.length < MAX_TAGS) {
       setTags([...tags, newTag]);
       setTagInput("");
     }
@@ -150,8 +152,10 @@ function NewStrategyForm({
           onChange={(e) => setTagInput(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Type a tag and press enter or comma"
+          disabled={tags.length >= MAX_TAGS} // disable input if limit reached
           className={cn(
-            errors.tags && "border-red-500 focus-visible:ring-red-500"
+            errors.tags && "border-red-500 focus-visible:ring-red-500",
+            tags.length >= MAX_TAGS && "opacity-50 cursor-not-allowed"
           )}
         />
         {errors.tags && (
