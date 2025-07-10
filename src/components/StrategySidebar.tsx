@@ -16,6 +16,7 @@ import {
   Settings,
   Type,
 } from "lucide-react";
+import { useNodeOperations } from "@/app/strategies/[slug]/hooks/useNodeOperations";
 
 const strategyTools = [
   { id: "image", icon: ImageIcon, label: "Images" },
@@ -29,7 +30,10 @@ const strategyTools = [
     color: "#0088cc",
   },
 ];
+
 const StrategySidebar = () => {
+  const { addToolNode } = useNodeOperations();
+
   return (
     <div
       className={
@@ -45,7 +49,7 @@ const StrategySidebar = () => {
         >
           <LayoutDashboard className="w-5 h-5" />
         </Link>
-        {strategyTools.map((item) => {
+        {strategyTools?.map((item) => {
           const Icon = item.icon;
           return (
             <Button
@@ -56,6 +60,11 @@ const StrategySidebar = () => {
                 "w-10 h-10 p-0 rounded-lg transition-all duration-200 text-gray-600 hover:text-gray-900 hover:bg-gray-100"
               }
               title={item.label}
+              onClick={
+                item.id === "Save Progress"
+                  ? () => {}
+                  : () => addToolNode(item.id)
+              }
             >
               <Icon
                 color={item?.color ?? "rgb(75 85 99)"}

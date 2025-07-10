@@ -32,3 +32,5 @@ export interface IStrategy {
   is_active: boolean;
   is_favourite?: boolean;
 }
+
+export type Tool = "image" | "video" | "document" | "AI Assistant" | string;
