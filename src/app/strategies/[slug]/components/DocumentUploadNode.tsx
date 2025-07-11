@@ -412,7 +412,11 @@ export default function DocumentUploadNode({
 
   return (
     <>
-      <NodeWrapper id={id} className="bg-white">
+      <NodeWrapper
+        id={id}
+        // className="bg-white"
+        className={cn("bg-white", uploadedDocument ? "h-[1px]" : "h-[2px]")}
+      >
         <div className="react-flow__node">
           <div ref={nodeControlRef} className={`nodrag`} />
 

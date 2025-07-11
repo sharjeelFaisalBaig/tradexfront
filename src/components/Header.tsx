@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -15,12 +15,11 @@ import { useRouter } from "next/navigation";
 import BellIcon from "../icons/bell.svg";
 import Affiliate from "../icons/affiliate.svg";
 import UnlockIcon from "../icons/unlock.svg";
-import { signOut, useSession } from "next-auth/react";
+import { signOut } from "next-auth/react";
 import { useToast } from "@/hooks/use-toast";
-import { fetchWithAutoRefresh } from "@/lib/fetchWithAutoRefresh";
-import { endpoints } from "@/lib/endpoints";
 import { useSidebar } from "@/context/SidebarContext";
 import { IStrategy } from "@/lib/types";
+import { useGetUser } from "@/hooks/auth/useAuth";
 
 interface HeaderInterface {
   strategy?: IStrategy | null;
@@ -30,29 +29,11 @@ interface HeaderInterface {
 const Header = ({ strategy, onEditStrategy }: HeaderInterface) => {
   const { sidebarType } = useSidebar();
   const router = useRouter();
-  const { data: session } = useSession();
   const { toast } = useToast();
   const [showNotifications, setShowNotifications] = useState(false);
-  const [profile, setProfile] = useState<any>(null);
 
-  useEffect(() => {
-    async function fetchProfile() {
-      try {
-        const data = await fetchWithAutoRefresh(
-          endpoints.USER.PROFILE,
-          session
-        );
-        if (data?.status) {
-          setProfile(data.data);
-        }
-      } catch (error) {
-        console.error("Failed to fetch profile", error);
-      }
-    }
-    if (session) {
-      fetchProfile();
-    }
-  }, [session]);
+  const { data } = useGetUser();
+  const profile = useMemo(() => data?.data, [data]);
 
   return (
     <header className="flex items-center justify-between bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-6 py-4">
