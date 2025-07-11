@@ -10,6 +10,7 @@ import {
   Background,
   useStoreApi,
   useReactFlow,
+  Connection,
 } from "@xyflow/react";
 import { Position } from "@xyflow/react";
 import ChatBoxNode from "./ChatBoxNode";
@@ -244,16 +245,25 @@ const Strategy = (props: StrategyProps) => {
   }, [setNodes, getViewport]);
 
   const onConnect = useCallback(
-    (params: any) => {
-      const newEdge = {
-        ...params,
-        type: "styledEdge",
-        animated: true,
-        id: `edge-${params.source}-${params.target}-${Date.now()}`,
-      };
-      setEdges((eds) => addEdge(newEdge, eds));
+    (params: Connection) => {
+      const sourceNode = nodes.find((n) => n.id === params.source);
+      const targetNode = nodes.find((n) => n.id === params.target);
+
+      if (!sourceNode || !targetNode) return;
+
+      setEdges((eds) =>
+        addEdge(
+          {
+            ...params,
+            type: "styledEdge",
+            animated: true,
+            id: `edge-${params.source}-${params.target}-${Date.now()}`,
+          },
+          eds
+        )
+      );
     },
-    [setEdges]
+    [setEdges, nodes]
   );
 
   const getClosestEdge = useCallback((node: any) => {
@@ -374,45 +384,47 @@ const Strategy = (props: StrategyProps) => {
         />
       )}
 
-      {loading ? (
-        <div className="flex items-center justify-center w-full h-screen">
-          <p>Loading...</p>
-        </div>
-      ) : error ? (
-        <div className="flex items-center justify-center w-full h-screen">
-          <p className="text-red-500">{error}</p>
-        </div>
-      ) : (
-        <>
-          <Header strategy={strategy} onEditStrategy={toggleNewStrategyModal} />
-          <div className="flex flex-1 overflow-hidden">
-            <StrategySidebar />
-            <main className="relative flex-1 overflow-y-auto p-6">
-              <ReactFlow
-                nodes={nodes}
-                edges={edges}
-                nodeTypes={nodeTypes}
-                edgeTypes={edgeTypes}
-                onNodesChange={onNodesChange}
-                onEdgesChange={onEdgesChange}
-                onNodeDrag={onNodeDrag}
-                onNodeDragStop={onNodeDragStop}
-                onConnect={onConnect}
-                defaultViewport={{ x: 0, y: 0, zoom: 0.7578582832551992 }}
-                zoomOnScroll={true}
-                zoomOnPinch={true}
-                zoomOnDoubleClick={false}
-                panOnScroll={true}
-                panOnScrollSpeed={0.5}
-                defaultEdgeOptions={defaultEdgeOptions}
-                elementsSelectable={true}
-              >
-                <Background />
-              </ReactFlow>
-            </main>
-          </div>
-        </>
-      )}
+      <Header strategy={strategy} onEditStrategy={toggleNewStrategyModal} />
+      <div className="flex flex-1 overflow-hidden">
+        <StrategySidebar />
+        <main className="relative flex-1 overflow-y-auto p-6">
+          {loading && <p className="absolute top-4 left-4">Loading...</p>}
+          {error && (
+            <p className="text-red-500 absolute top-4 left-4">{error}</p>
+          )}
+
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            nodeTypes={nodeTypes}
+            edgeTypes={edgeTypes}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onNodeDrag={onNodeDrag}
+            onNodeDragStop={onNodeDragStop}
+            onConnect={onConnect}
+            defaultViewport={{ x: 0, y: 0, zoom: 0.7578582832551992 }}
+            zoomOnScroll={true}
+            zoomOnPinch={true}
+            zoomOnDoubleClick={false}
+            panOnScroll={true}
+            panOnScrollSpeed={0.5}
+            defaultEdgeOptions={defaultEdgeOptions}
+            elementsSelectable={true}
+            // new props
+            fitView
+            fitViewOptions={{
+              padding: 0.5,
+              includeHiddenNodes: false,
+              duration: 300,
+            }}
+            minZoom={0.1}
+            maxZoom={2}
+          >
+            <Background />
+          </ReactFlow>
+        </main>
+      </div>
     </div>
   );
 };

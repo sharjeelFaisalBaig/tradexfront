@@ -75,6 +75,7 @@
 }
 
 .react-flow__handle {
+  /* all: unset; Reset any inherited styles */
   background-color: var(--xy-handle-background-color-default);
 }
 

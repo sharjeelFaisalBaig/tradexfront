@@ -228,7 +228,10 @@ export default function ImageUploadNode({
 
   return (
     <>
-      <NodeWrapper id={id} className="bg-white">
+      <NodeWrapper
+        id={id}
+        className={cn("bg-white", uploadedImage ? "h-[1px]" : "h-[2px]")}
+      >
         <div className="relative react-flow__node">
           <div ref={nodeControlRef} className={`nodrag`} />
 
@@ -467,7 +470,16 @@ export default function ImageUploadNode({
             type="source"
             position={sourcePosition}
             isConnectable={canConnect}
-            style={{ width: 30, height: 30 }}
+            style={{
+              width: 30,
+              height: 30,
+              // Remove any custom positioning
+              position: "absolute", // Ensure absolute positioning
+              [sourcePosition === Position.Right ? "right" : "left"]: -6, // Adjust for handle size
+              top: "50%",
+              transform: "translateY(-50%)",
+              zIndex: 1000,
+            }}
           />
         </div>
       </NodeWrapper>

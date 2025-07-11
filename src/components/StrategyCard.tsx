@@ -65,11 +65,17 @@ const StrategyCard = (props: StrategyCardProps) => {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem onClick={() => {}} className="cursor-pointer">
+              <DropdownMenuItem
+                onClick={() => onEdit?.(strategy)}
+                className="cursor-pointer"
+              >
                 <PencilLine className="w-4 h-4 mr-2" />
                 Edit
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => {}} className="cursor-pointer">
+              <DropdownMenuItem
+                onClick={() => onDelete?.(strategy)}
+                className="cursor-pointer"
+              >
                 <Trash2 color="red" className="w-4 h-4 mr-2" />
                 Delete
               </DropdownMenuItem>
@@ -111,22 +117,27 @@ const StrategyCard = (props: StrategyCardProps) => {
                   toggleStar(strategy);
                 }}
               >
-                {/* <Star /> */}
-                <svg
+                <Star
+                  className="h-6 w-5 transition-all duration-200"
+                  style={{
+                    fill: isFavorite ? "#00AA67" : "none",
+                    stroke: "#00AA67",
+                  }}
+                  strokeWidth={1.7}
+                />
+                {/* <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="22"
                   height="22"
                   fill={isFavorite ? "#00AA67" : "none"}
                   className="h-6 w-5"
-                  style={{
-                    stroke: "#00AA67",
-                  }}
+                  style={{stroke: "#00AA67",}}
                 >
                   <path
                     strokeWidth="1.7"
                     d="M8.39 4.958C9.553 2.875 10.133 1.833 11 1.833s1.449 1.042 2.61 3.125l.3.539c.33.591.495.887.752 1.083s.578.267 1.219.412l.583.132c2.255.51 3.382.766 3.65 1.628.268.863-.5 1.761-2.037 3.559l-.398.465c-.437.51-.655.766-.753 1.082-.099.316-.066.657 0 1.338l.06.62c.233 2.399.35 3.598-.353 4.13-.702.534-1.758.048-3.869-.924l-.546-.252c-.6-.276-.9-.414-1.218-.414s-.618.138-1.218.414l-.546.252c-2.11.972-3.166 1.458-3.869.925-.702-.533-.586-1.732-.353-4.13l.06-.62c.066-.682.099-1.023 0-1.34-.098-.315-.316-.57-.753-1.081l-.397-.465c-1.538-1.798-2.306-2.696-2.038-3.559.268-.862 1.396-1.118 3.65-1.628l.584-.132c.64-.145.96-.217 1.218-.412.257-.196.422-.492.752-1.083z"
                   />
-                </svg>
+                </svg> */}
               </button>
 
               <Clipboard
@@ -134,6 +145,7 @@ const StrategyCard = (props: StrategyCardProps) => {
                 onClick={(e: MouseEvent<SVGSVGElement, MouseEvent>) => {
                   e.stopPropagation();
                   // Do copy or whatever
+                  onCopy?.(strategy);
                 }}
               />
               <Link2
@@ -141,6 +153,7 @@ const StrategyCard = (props: StrategyCardProps) => {
                 onClick={(e: MouseEvent<SVGSVGElement, MouseEvent>) => {
                   e.stopPropagation();
                   // Do Like or whatever
+                  onShare?.(strategy);
                 }}
               />
             </div>

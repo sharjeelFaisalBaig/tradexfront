@@ -68,22 +68,22 @@ const Strategies = () => {
     } catch (error) {
       console.error("Failed to update favourite status", error);
     }
-  };
 
-  // const toggleStar = async (id: string) => {
-  //   const strategyIndex = strategies.findIndex((s) => s.id === id);
-  //   if (strategyIndex === -1) return; // safety check
-  //   const strategy = strategies[strategyIndex];
-  //   const newIsFavourite = !starredItems[strategyIndex];
-  //   try {
-  //     await favouriteStrategy(strategy.id, newIsFavourite, session);
-  //     const updated = [...starredItems];
-  //     updated[strategyIndex] = newIsFavourite;
-  //     setStarredItems(updated);
-  //   } catch (error) {
-  //     console.error("Failed to update favourite status", error);
-  //   }
-  // };
+    // new method by id
+
+    // const strategyIndex = strategies.findIndex((s) => s.id === id);
+    // if (strategyIndex === -1) return; // safety check
+    // const strategy = strategies[strategyIndex];
+    // const newIsFavourite = !starredItems[strategyIndex];
+    // try {
+    //   await favouriteStrategy(strategy.id, newIsFavourite, session);
+    //   const updated = [...starredItems];
+    //   updated[strategyIndex] = newIsFavourite;
+    //   setStarredItems(updated);
+    // } catch (error) {
+    //   console.error("Failed to update favourite status", error);
+    // }
+  };
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900">
