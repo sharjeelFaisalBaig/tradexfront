@@ -26,7 +26,7 @@ import StrategySidebar from "@/components/StrategySidebar";
 import { IStrategy } from "@/lib/types";
 import { toast } from "@/hooks/use-toast";
 import NewStrategyModal from "@/components/modal/NewStrategyModal";
-import { useGetStrategyById } from "@/hooks/strategy/useGetStrategyById";
+import { useGetStrategyById } from "@/hooks/strategy/useStrategyQueries";
 
 const nodeDefaults = {
   sourcePosition: Position.Right,

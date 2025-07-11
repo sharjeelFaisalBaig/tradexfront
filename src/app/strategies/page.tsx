@@ -23,9 +23,9 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import SearchIcon from "@/icons/search.svg";
 import StrategyCard from "@/components/StrategyCard";
 import { favouriteStrategy } from "@/services/strategy/strategy_Mutation";
-import { useGetStrategies } from "@/hooks/strategy/useGetStrategies";
 import { IStrategy } from "@/lib/types";
 import { toast } from "@/hooks/use-toast";
+import { useGetStrategies } from "@/hooks/strategy/useStrategyQueries";
 
 const Strategies = () => {
   const router = useRouter();
@@ -72,7 +72,7 @@ const Strategies = () => {
     const newIsFavourite = !starredItems[actualIndex];
 
     try {
-      await favouriteStrategy(strategy.id, newIsFavourite, session);
+      await favouriteStrategy(strategy.id, newIsFavourite);
       const updated = [...starredItems];
       updated[actualIndex] = newIsFavourite;
       setStarredItems(updated);

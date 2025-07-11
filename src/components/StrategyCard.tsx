@@ -140,22 +140,26 @@ const StrategyCard = (props: StrategyCardProps) => {
                 </svg> */}
               </button>
 
-              <Clipboard
+              <button
                 className="h-6 w-5"
-                onClick={(e: MouseEvent<SVGSVGElement, MouseEvent>) => {
+                onClick={(e) => {
                   e.stopPropagation();
                   // Do copy or whatever
                   onCopy?.(strategy);
                 }}
-              />
-              <Link2
+              >
+                <Clipboard className="h-6 w-5" />
+              </button>
+              <button
                 className="h-6 w-5"
-                onClick={(e: MouseEvent<SVGSVGElement, MouseEvent>) => {
+                onClick={(e) => {
                   e.stopPropagation();
                   // Do Like or whatever
                   onShare?.(strategy);
                 }}
-              />
+              >
+                <Link2 className="h-6 w-5" />
+              </button>
             </div>
           </div>
         </div>

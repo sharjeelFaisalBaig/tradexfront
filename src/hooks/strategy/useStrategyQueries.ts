@@ -1,6 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
-import { getStrategyById } from "@/services/strategy/strategy_API";
 import { QUERY_KEYS } from "@/lib/queryKeys";
+import {
+  getStrategyById,
+  getStrategies,
+} from "@/services/strategy/strategy_API";
+
+export const useGetStrategies = () => {
+  return useQuery({
+    queryKey: [QUERY_KEYS.STRATEGIES],
+    queryFn: getStrategies,
+  });
+};
 
 export const useGetStrategyById = (id?: string) => {
   return useQuery({

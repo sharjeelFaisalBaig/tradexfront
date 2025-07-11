@@ -6,13 +6,15 @@ import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { Input } from "@/components/ui/input";
-import { fetchWithAutoRefresh } from "@/lib/fetchWithAutoRefresh";
-import { endpoints } from "@/lib/endpoints";
 import { toast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { IStrategy } from "@/lib/types";
 import { Textarea } from "../ui/textarea";
 import { cn } from "@/lib/utils";
+import {
+  useCreateStrategy,
+  useUpdateStrategy,
+} from "@/hooks/strategy/useStrategyMutations";
 
 const MAX_TAGS = 4; // maximum allowed tags
 
@@ -25,7 +27,9 @@ function NewStrategyForm({
   onClose: () => void;
   strategy?: IStrategy | null;
 }) {
-  const { data: session } = useSession();
+  const createMutation = useCreateStrategy();
+  const updateMutation = useUpdateStrategy();
+
   const [name, setName] = useState(strategy?.name ?? "");
   const [desc, setDesc] = useState(strategy?.description ?? "");
   const [tagInput, setTagInput] = useState("");
@@ -72,33 +76,46 @@ function NewStrategyForm({
     setLoading(true);
     setErrors({});
 
-    try {
-      const response = await fetchWithAutoRefresh(
-        endpoints.STRATEGY.CREATE,
-        session,
-        {
-          method: "POST",
-          body: JSON.stringify({ name, description: desc, tags }),
-        }
-      );
+    const payload = {
+      name,
+      description: desc,
+      tags,
+    };
 
-      if (!response?.status) {
-        throw new Error(response?.message || "Failed to create strategy.");
-      }
-
+    const onMutationSuccess = (data: any) => {
       toast({
-        title: "Strategy Created",
-        description: `Strategy "${name}" was created successfully.`,
+        title: strategy ? "Strategy Updated" : "Strategy Created",
+        description: `Strategy "${name}" ${
+          strategy ? "updated" : "created"
+        } successfully.`,
       });
-
-      onSuccess(response.data);
+      onSuccess(data?.data); // assuming response has `data`
       onClose();
-    } catch (err: any) {
+    };
+
+    const onMutationError = (err: any) => {
       toast({
         variant: "destructive",
         title: "Error",
-        description: err.message || "Unexpected error occurred.",
+        description:
+          err?.response?.data?.message ||
+          err.message ||
+          "Unexpected error occurred.",
       });
+    };
+
+    try {
+      if (strategy) {
+        updateMutation.mutate(
+          { id: strategy.id, data: payload },
+          { onSuccess: onMutationSuccess, onError: onMutationError }
+        );
+      } else {
+        createMutation.mutate(payload, {
+          onSuccess: onMutationSuccess,
+          onError: onMutationError,
+        });
+      }
     } finally {
       setLoading(false);
     }

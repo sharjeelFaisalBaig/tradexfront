@@ -70,7 +70,8 @@ const Strategies = () => {
     const newIsFavourite = !starredItems[index];
 
     try {
-      await favouriteStrategy(strategy.id, newIsFavourite, session);
+      await favouriteStrategy(strategy.id, newIsFavourite);
+      // await favouriteStrategy(strategy.id, newIsFavourite, session);
       const updated = [...starredItems];
       updated[index] = newIsFavourite;
       setStarredItems(updated);
