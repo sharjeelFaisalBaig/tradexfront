@@ -1,7 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+} from "@/components/ui/pagination";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -12,77 +19,66 @@ import {
 } from "@/components/ui/select";
 import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-} from "@/components/ui/pagination";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { getStrategies } from "@/services/strategy/strategy_API";
-import { favouriteStrategy } from "@/services/strategy/strategy_Mutation";
-import { IStrategy } from "@/lib/types";
 import SearchIcon from "@/icons/search.svg";
-import { useRouter } from "next/navigation";
 import StrategyCard from "@/components/StrategyCard";
+import { favouriteStrategy } from "@/services/strategy/strategy_Mutation";
+import { useGetStrategies } from "@/hooks/strategy/useGetStrategies";
+import { IStrategy } from "@/lib/types";
+import { toast } from "@/hooks/use-toast";
 
 const Strategies = () => {
   const router = useRouter();
   const { data: session } = useSession();
-  const [strategies, setStrategies] = useState<IStrategy[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+
   const [searchTerm, setSearchTerm] = useState("");
   const [starredItems, setStarredItems] = useState<boolean[]>([]);
 
-  useEffect(() => {
-    const fetchStrategies = async () => {
-      if (session) {
-        try {
-          setLoading(true);
-          const res = await getStrategies(session);
-          setStrategies(res.data.strategies);
-          setStarredItems(
-            res.data.strategies.map((s: IStrategy) => s.is_favourite)
-          );
-        } catch (error: any) {
-          setError(error.message);
-        } finally {
-          setLoading(false);
-        }
-      }
-    };
+  const { data, isLoading, isError, error } = useGetStrategies();
+  const strategies: IStrategy[] = useMemo(
+    () => data?.data?.strategies || [],
+    [data]
+  );
 
-    fetchStrategies();
-  }, [session]);
+  useEffect(() => {
+    if (error) {
+      toast({
+        title: error?.message || "Error",
+        // @ts-ignore
+        description: error?.response?.data?.message || "Failed to send OTP.",
+        variant: "destructive",
+      });
+    }
+  }, [error]);
+
+  // Sync starredItems once data is fetched
+  useEffect(() => {
+    if (strategies.length) {
+      // @ts-ignore
+      setStarredItems(strategies?.map((s) => s.is_favourite));
+    }
+  }, [strategies]);
+
+  // Filter based on search
+  const filteredStrategies = useMemo(() => {
+    return strategies.filter((strategy) =>
+      strategy.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [strategies, searchTerm]);
 
   const toggleStar = async (index: number) => {
-    const strategy = strategies[index];
-    const newIsFavourite = !starredItems[index];
+    const strategy = filteredStrategies[index]; // filtered index
+    const actualIndex = strategies.findIndex((s) => s.id === strategy.id); // for starredItems
+    const newIsFavourite = !starredItems[actualIndex];
 
     try {
       await favouriteStrategy(strategy.id, newIsFavourite, session);
       const updated = [...starredItems];
-      updated[index] = newIsFavourite;
+      updated[actualIndex] = newIsFavourite;
       setStarredItems(updated);
     } catch (error) {
       console.error("Failed to update favourite status", error);
     }
-
-    // new method by id
-
-    // const strategyIndex = strategies.findIndex((s) => s.id === id);
-    // if (strategyIndex === -1) return; // safety check
-    // const strategy = strategies[strategyIndex];
-    // const newIsFavourite = !starredItems[strategyIndex];
-    // try {
-    //   await favouriteStrategy(strategy.id, newIsFavourite, session);
-    //   const updated = [...starredItems];
-    //   updated[strategyIndex] = newIsFavourite;
-    //   setStarredItems(updated);
-    // } catch (error) {
-    //   console.error("Failed to update favourite status", error);
-    // }
   };
 
   return (
@@ -92,9 +88,12 @@ const Strategies = () => {
         <Sidebar />
 
         <main className="flex-1 overflow-y-auto p-6">
-          {loading && <p>Loading...</p>}
-          {error && <p className="text-red-500">{error}</p>}
-          {!loading && !error && (
+          {isLoading && <p>Loading...</p>}
+          {isError && (
+            <p className="text-red-500">Failed to load strategies.</p>
+          )}
+
+          {!isLoading && !isError && (
             <>
               {/* Header Controls */}
               <div className="flex items-center justify-between mb-6">
@@ -140,11 +139,16 @@ const Strategies = () => {
 
               {/* Strategy Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                {strategies.map((strategy, index) => (
+                {filteredStrategies.map((strategy, index) => (
                   <StrategyCard
-                    key={strategy?.id}
+                    key={strategy.id}
                     strategy={strategy}
-                    isFavorite={starredItems[index]}
+                    //  isFavorite={starredItems[index]}
+                    isFavorite={
+                      starredItems[
+                        strategies.findIndex((s) => s.id === strategy.id)
+                      ]
+                    }
                     onClick={() => router.push(`/strategies/${strategy.id}`)}
                     toggleStar={() => toggleStar(index)}
                   />
@@ -153,7 +157,7 @@ const Strategies = () => {
             </>
           )}
 
-          {/* Pagination */}
+          {/* Pagination (static example) */}
           <Pagination>
             <PaginationContent>
               {/* Previous Button */}
@@ -166,7 +170,6 @@ const Strategies = () => {
                   <ChevronLeft className="w-4 h-4" />
                 </PaginationLink>
               </PaginationItem>
-
               {/* Page Numbers */}
               <PaginationItem>
                 <PaginationLink
@@ -188,7 +191,6 @@ const Strategies = () => {
                   2
                 </PaginationLink>
               </PaginationItem>
-
               {/* Dots without border */}
               <PaginationItem>
                 <PaginationLink
@@ -209,7 +211,6 @@ const Strategies = () => {
                   10
                 </PaginationLink>
               </PaginationItem>
-
               {/* Next Button */}
               <PaginationItem>
                 <PaginationLink

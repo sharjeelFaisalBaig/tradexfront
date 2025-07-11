@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Header from "@/components/Header";
 import {
   ReactFlow,
@@ -23,11 +23,10 @@ import SocialMediaNode from "./SocialMediaNode";
 import VideoUploadNode from "./VideoUploadNode";
 import AnnotationNode from "./AnnotationNode";
 import StrategySidebar from "@/components/StrategySidebar";
-import { useSession } from "next-auth/react";
-import { getStrategy } from "@/services/strategy/strategy_API";
 import { IStrategy } from "@/lib/types";
 import { toast } from "@/hooks/use-toast";
 import NewStrategyModal from "@/components/modal/NewStrategyModal";
+import { useGetStrategyById } from "@/hooks/strategy/useGetStrategyById";
 
 const nodeDefaults = {
   sourcePosition: Position.Right,
@@ -141,48 +140,30 @@ const Strategy = (props: StrategyProps) => {
   const { slug } = props;
 
   const store = useStoreApi();
-  const { data: session } = useSession();
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const { getInternalNode, getViewport } = useReactFlow();
 
-  const [strategy, setStrategy] = useState<IStrategy | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
   const [showNewStrategyModal, setShowNewStrategyModal] =
     useState<boolean>(false);
+
+  const { data, isLoading, isError, error } = useGetStrategyById(slug);
+  const strategy: IStrategy = useMemo(() => data?.data, [data]);
+
+  useEffect(() => {
+    if (error) {
+      toast({
+        title: error?.message || "Error",
+        // @ts-ignore
+        description: error?.response?.data?.message || "Failed to send OTP.",
+        variant: "destructive",
+      });
+    }
+  }, [error]);
 
   const toggleNewStrategyModal = () => {
     setShowNewStrategyModal((prev) => !prev);
   };
-
-  useEffect(() => {
-    const fetchStrategies = async () => {
-      if (session) {
-        try {
-          setLoading(true);
-          const res = await getStrategy(slug, session);
-          setStrategy(res.data);
-        } catch (error: any) {
-          console.log({ error, typeOfError: typeof error.message });
-
-          setError("Strategy not found");
-          // setError(error.message);
-
-          toast({
-            title: "Error",
-            description: "Strategy not found",
-            // description: "Something went wrong...",
-            variant: "destructive",
-          });
-        } finally {
-          setLoading(false);
-        }
-      }
-    };
-
-    fetchStrategies();
-  }, [session]);
 
   // Add paste event handler for images
   useEffect(() => {
@@ -388,9 +369,12 @@ const Strategy = (props: StrategyProps) => {
       <div className="flex flex-1 overflow-hidden">
         <StrategySidebar />
         <main className="relative flex-1 overflow-y-auto p-6">
-          {loading && <p className="absolute top-4 left-4">Loading...</p>}
-          {error && (
-            <p className="text-red-500 absolute top-4 left-4">{error}</p>
+          {isLoading && <p className="absolute top-4 left-4">Loading...</p>}
+
+          {isError && (
+            <p className="text-red-500 absolute top-4 left-4">
+              Failed to load strategy.
+            </p>
           )}
 
           <ReactFlow

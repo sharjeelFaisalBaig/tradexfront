@@ -48,7 +48,8 @@ const Strategies = () => {
       if (session) {
         try {
           setLoading(true);
-          const res = await getStrategies(session);
+          const res = await getStrategies();
+          // const res = await getStrategies(session);
           setStrategies(res.data.strategies);
           setStarredItems(
             res.data.strategies.map((s: IStrategy) => s.is_favourite)
