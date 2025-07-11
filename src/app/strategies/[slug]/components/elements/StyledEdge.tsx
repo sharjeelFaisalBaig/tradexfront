@@ -1,9 +1,14 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { BaseEdge, EdgeLabelRenderer, getStraightPath, useReactFlow } from "@xyflow/react"
-import { X } from "lucide-react"
+import {
+  BaseEdge,
+  EdgeLabelRenderer,
+  getStraightPath,
+  useReactFlow,
+} from "@xyflow/react";
+import { X } from "lucide-react";
 
 export default function StyledEdge({
   id,
@@ -17,19 +22,19 @@ export default function StyledEdge({
   markerEnd,
   selected,
 }: any) {
-  const { setEdges } = useReactFlow()
+  const { setEdges } = useReactFlow();
 
   const [edgePath, labelX, labelY] = getStraightPath({
     sourceX,
     sourceY,
     targetX,
     targetY,
-  })
+  });
 
   const onDeleteClick = (event: React.MouseEvent) => {
-    event.stopPropagation()
-    setEdges((edges) => edges.filter((edge) => edge.id !== id))
-  }
+    event.stopPropagation();
+    setEdges((edges) => edges.filter((edge) => edge.id !== id));
+  };
 
   return (
     <>
@@ -64,5 +69,5 @@ export default function StyledEdge({
         </EdgeLabelRenderer>
       )}
     </>
-  )
+  );
 }

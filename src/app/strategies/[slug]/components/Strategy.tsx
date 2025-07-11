@@ -147,7 +147,7 @@ const Strategy = (props: StrategyProps) => {
 
   const [strategy, setStrategy] = useState<IStrategy | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [showNewStrategyModal, setShowNewStrategyModal] =
     useState<boolean>(false);
 

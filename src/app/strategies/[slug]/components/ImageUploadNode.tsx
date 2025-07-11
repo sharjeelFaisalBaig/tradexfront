@@ -454,17 +454,20 @@ export default function ImageUploadNode({
             </div>
           </TooltipProvider>
 
-          <Handle
-            position={sourcePosition}
+          {/* <Handle
             type="source"
+            position={sourcePosition}
             isConnectableEnd={canConnect}
             isConnectable={canConnect}
             isConnectableStart={canConnect}
-            style={{
-              top: "42%",
-              width: "30px",
-              height: "30px",
-            }}
+            style={{ width: "30px", height: "30px" }}
+          /> */}
+
+          <Handle
+            type="source"
+            position={sourcePosition}
+            isConnectable={canConnect}
+            style={{ width: 30, height: 30 }}
           />
         </div>
       </NodeWrapper>
