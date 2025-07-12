@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+
 import { useForm } from "react-hook-form";
-import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import { Input } from "@/components/ui/input";
@@ -18,95 +18,76 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { useSignup } from "@/services/auth/auth_Mutation";
 import { getCsrfToken } from "@/services/auth/csrf";
 import Loader from "@/components/common/Loader";
-import { PASSWORD_REGEX } from "@/lib/constants";
 
-const labelClass = "text-gray-700 dark:text-gray-300 mb-1 block";
-const checkboxLabelClass = "text-sm text-[#7A869A]";
-const linkClass = "text-cyan-600 underline hover:underline";
+import { z } from "zod";
 
-// Zod validation schema
 const signupSchema = z
   .object({
     firstName: z.string().min(1, "First name is required"),
     lastName: z.string().min(1, "Last name is required"),
-    email: z
-      .string()
-      .min(1, "Email is required")
-      .email("Invalid email address"),
-    password: z
-      .string()
-      .min(8, "Password must be at least 8 characters")
-      .regex(
-        PASSWORD_REGEX,
-        "Password must include uppercase, lowercase, number, and special character"
-      ),
-    confirmPassword: z.string().min(1, "Please confirm your password"),
+    email: z.string().email("Invalid email"),
+    password: z.string().min(8, "Password must be at least 8 characters"),
+    confirmPassword: z.string().min(1, "Confirm Password is required"),
+    agreeTerms: z.literal(true, {
+      errorMap: () => ({ message: "You must agree to the terms" }),
+    }),
   })
   .refine((data) => data.password === data.confirmPassword, {
     path: ["confirmPassword"],
     message: "Passwords do not match",
   });
 
-type SignupData = z.infer<typeof signupSchema>;
+type SignupSchema = z.infer<typeof signupSchema>;
+
+const labelClass = "text-gray-700 dark:text-gray-300 block mb-1";
+const checkboxLabelClass = "text-sm text-[#7A869A]";
+const linkClass = "text-cyan-600 underline hover:underline";
 
 const Signup = () => {
   const router = useRouter();
-  const [agreeTerms, setAgreeTerms] = useState(false);
   const { mutate, isPending } = useSignup();
 
   const {
     register,
     handleSubmit,
+    watch,
+    setValue,
     formState: { errors },
-  } = useForm<SignupData>({
+  } = useForm<SignupSchema>({
     resolver: zodResolver(signupSchema),
   });
 
-  const onSubmit = async (data: SignupData) => {
-    if (!agreeTerms) {
-      toast({
-        title: "Error",
-        description: "You must agree to the terms.",
-        variant: "destructive",
-      });
-      return;
-    }
+  const onSubmit = async (values: SignupSchema) => {
+    const { confirmPassword, ...formData } = values;
 
     await getCsrfToken();
 
-    mutate(
-      {
-        first_name: data.firstName,
-        last_name: data.lastName,
-        email: data.email,
-        password: data.password,
-      },
-      {
-        onSuccess: (data) => {
-          if (data?.data) {
-            const { user, otp_expires_in } = data.data;
-            router.replace(
-              `/auth/otp?email=${user.email}&expires_in=${otp_expires_in}`
-            );
-            toast({
-              title: "Account Created",
-              description: "Please check your email for the OTP.",
-            });
-          }
-        },
-        onError: (error: any) => {
-          const message =
-            error?.errors && Object.values(error.errors).flat().join(", ");
+    // @ts-ignore
+    mutate(formData, {
+      onSuccess: (data) => {
+        if (data && data.data) {
+          const { user, otp_expires_in } = data.data;
+          router.replace(
+            `/auth/otp?email=${user.email}&expires_in=${otp_expires_in}`
+          );
           toast({
-            title: error?.message || "Error",
-            description:
-              message ||
-              "There was an issue creating your account. Please try again.",
-            variant: "destructive",
+            title: "Account Created",
+            description: "Please check your email for the OTP.",
           });
-        },
-      }
-    );
+        }
+      },
+      onError: (error: any) => {
+        const message =
+          error?.errors && Object.values(error.errors).flat().join(", ");
+        toast({
+          title: error?.message || "Error",
+          description:
+            message ||
+            "There was an issue creating your account. Please try again.",
+          variant: "destructive",
+        });
+      },
+    });
   };
 
   const handleGoogleLogin = () => {
@@ -180,11 +161,12 @@ const Signup = () => {
                     className="h-12"
                   />
                   {errors.firstName && (
-                    <p className="text-red-500 text-sm mt-1">
+                    <p className="text-sm text-red-500 mt-1">
                       {errors.firstName.message}
                     </p>
                   )}
                 </div>
+
                 <div className="w-1/2">
                   <Label htmlFor="last-name" className={labelClass}>
                     Last Name
@@ -195,7 +177,7 @@ const Signup = () => {
                     className="h-12"
                   />
                   {errors.lastName && (
-                    <p className="text-red-500 text-sm mt-1">
+                    <p className="text-sm text-red-500 mt-1">
                       {errors.lastName.message}
                     </p>
                   )}
@@ -206,9 +188,14 @@ const Signup = () => {
                 <Label htmlFor="email" className={labelClass}>
                   Email address
                 </Label>
-                <Input id="email" {...register("email")} className="h-12" />
+                <Input
+                  id="email"
+                  type="email"
+                  {...register("email")}
+                  className="h-12"
+                />
                 {errors.email && (
-                  <p className="text-red-500 text-sm mt-1">
+                  <p className="text-sm text-red-500 mt-1">
                     {errors.email.message}
                   </p>
                 )}
@@ -225,7 +212,7 @@ const Signup = () => {
                   className="h-12"
                 />
                 {errors.password && (
-                  <p className="text-red-500 text-sm mt-1">
+                  <p className="text-sm text-red-500 mt-1">
                     {errors.password.message}
                   </p>
                 )}
@@ -242,18 +229,21 @@ const Signup = () => {
                   className="h-12"
                 />
                 {errors.confirmPassword && (
-                  <p className="text-red-500 text-sm mt-1">
+                  <p className="text-sm text-red-500 mt-1">
                     {errors.confirmPassword.message}
                   </p>
                 )}
               </div>
 
-              <div className="flex items-center justify-between mb-6">
+              <div className="mb-6">
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     id="agree"
-                    checked={agreeTerms}
-                    onCheckedChange={(checked) => setAgreeTerms(!!checked)}
+                    checked={watch("agreeTerms")}
+                    onCheckedChange={(checked) =>
+                      // @ts-ignore
+                      setValue("agreeTerms", !!checked)
+                    }
                   />
                   <Label htmlFor="agree" className={checkboxLabelClass}>
                     I agree to the{" "}
@@ -270,6 +260,11 @@ const Signup = () => {
                     </a>
                   </Label>
                 </div>
+                {errors.agreeTerms && (
+                  <p className="text-sm text-red-500 mt-1">
+                    {errors.agreeTerms.message}
+                  </p>
+                )}
               </div>
 
               <Button
@@ -277,8 +272,7 @@ const Signup = () => {
                 type="submit"
                 className="h-12 w-full mb-9 bg-cyan-600 hover:bg-cyan-700"
               >
-                {/* {isPending ? <Loader text="Creating..." /> : "Create Account"} */}
-                {isPending ? "Creating..." : "Create Account"}
+                {isPending ? <Loader text="Creating..." /> : "Create Account"}
               </Button>
             </form>
 

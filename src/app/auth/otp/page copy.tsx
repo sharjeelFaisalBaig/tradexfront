@@ -15,18 +15,14 @@ import { signIn } from "next-auth/react";
 const OtpVerificationPage = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
-
-  // Get query params from URL
   const email = searchParams.get("email");
   const twoFactorEnabled = searchParams.get("2fa");
   const expiresIn = searchParams.get("expires_in");
+  const [verifying, setVerifying] = useState(false);
+  const [otp, setOtp] = useState(Array(6).fill(""));
+  const [timer, setTimer] = useState(expiresIn ? parseInt(expiresIn, 10) : 600); // fallback to 600 if not found
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  const [verifying, setVerifying] = useState(false); // Tracks verification status
-  const [otp, setOtp] = useState(Array(6).fill("")); // Stores 6-digit OTP
-  const [timer, setTimer] = useState(expiresIn ? parseInt(expiresIn, 10) : 600); // Countdown timer
-  const inputRefs = useRef<(HTMLInputElement | null)[]>([]); // Refs for OTP input fields
-
-  // Redirect to signup if no email found in query
   useEffect(() => {
     if (!email) {
       toast({
@@ -35,18 +31,17 @@ const OtpVerificationPage = () => {
         variant: "destructive",
       });
       router.replace("/auth/signup");
+      return;
     }
 
-    // Countdown logic for OTP expiry
     if (timer > 0) {
       const interval = setInterval(() => {
-        setTimer((prevTimer) => Math.max(prevTimer - 1, 0));
+        setTimer((prevTimer) => (prevTimer > 0 ? prevTimer - 1 : 0));
       }, 1000);
       return () => clearInterval(interval);
     }
   }, [timer, email, router]);
 
-  // Handle OTP Verification (2FA)
   const verify2faMutation = useMutation({
     mutationFn: (otp: string) =>
       fetch(endpoints.AUTH.VERIFY_2FA, {
@@ -60,15 +55,21 @@ const OtpVerificationPage = () => {
       }),
     onSuccess: (data) => {
       setVerifying(true);
-      toast({ title: "Success", description: "2FA verified successfully." });
-
-      // Sign in using NextAuth custom provider (2fa)
+      toast({
+        title: "Success",
+        description: "2FA verified successfully.",
+      });
+      console.log("2FA data:", JSON.stringify(data));
+      // localStorage.setItem("access_token", data.data.access_token);
+      // Call NextAuth signIn with the 2fa provider
       signIn("2fa", {
         email,
         access_token: data.data.access_token,
         redirect: false,
       }).then(() => {
-        setTimeout(() => router.replace("/dashboard"), 1200);
+        setTimeout(() => {
+          router.replace("/dashboard");
+        }, 1200); // Optional: short delay for loader
       });
     },
     onError: (error: any) => {
@@ -76,13 +77,12 @@ const OtpVerificationPage = () => {
         error?.errors && Object.values(error.errors).flat().join(", ");
       toast({
         title: error?.message || "Error",
-        description: message || "Invalid or expired OTP.",
+        description: message || "Invalid or expired OTP. Please try again.",
         variant: "destructive",
       });
     },
   });
 
-  // Handle OTP Verification (Signup flow)
   const verifyOtpMutation = useMutation({
     mutationFn: (otp: string) =>
       fetch(endpoints.AUTH.VERIFY_OTP, {
@@ -100,20 +100,21 @@ const OtpVerificationPage = () => {
         title: "Success",
         description: "OTP verified successfully. Please log in.",
       });
-      setTimeout(() => router.replace("/auth/signin"), 1200);
+      setTimeout(() => {
+        router.replace("/auth/signin");
+      }, 1200); // Optional: short delay for loader
     },
     onError: (error: any) => {
       const message =
         error?.errors && Object.values(error.errors).flat().join(", ");
       toast({
         title: error?.message || "Error",
-        description: message || "Invalid or expired OTP.",
+        description: message || "Invalid or expired OTP. Please try again.",
         variant: "destructive",
       });
     },
   });
 
-  // Resend OTP (signup flow)
   const resendOtpMutation = useMutation({
     mutationFn: () =>
       fetch(endpoints.AUTH.RESEND_OTP, {
@@ -126,24 +127,25 @@ const OtpVerificationPage = () => {
         return data;
       }),
     onSuccess: (data) => {
-      setTimer(data.data.otp_expires_in);
-      toast({
-        title: "Success",
-        description: "A new OTP has been sent to your email.",
-      });
+      if (data && data.data) {
+        setTimer(data.data.otp_expires_in);
+        toast({
+          title: "Success",
+          description: "A new OTP has been sent to your email.",
+        });
+      }
     },
     onError: (error: any) => {
       const message =
         error?.errors && Object.values(error.errors).flat().join(", ");
       toast({
         title: error?.message || "Error",
-        description: message || "Failed to resend OTP.",
+        description: message || "Failed to resend OTP. Please try again later.",
         variant: "destructive",
       });
     },
   });
 
-  // Resend OTP (2fa flow)
   const resend2faMutation = useMutation({
     mutationFn: () =>
       fetch(endpoints.AUTH.RESEND_OTP, {
@@ -156,36 +158,44 @@ const OtpVerificationPage = () => {
         return data;
       }),
     onSuccess: (data) => {
-      setTimer(data.data.otp_expires_in);
-      toast({
-        title: "Success",
-        description: "A new OTP has been sent to your email.",
-      });
+      if (data && data.data) {
+        setTimer(data.data.otp_expires_in);
+        toast({
+          title: "Success",
+          description: "A new OTP has been sent to your email.",
+        });
+      }
     },
     onError: (error: any) => {
       const message =
         error?.errors && Object.values(error.errors).flat().join(", ");
       toast({
         title: error?.message || "Error",
-        description: message || "Failed to resend OTP.",
+        description: message || "Failed to resend OTP. Please try again later.",
         variant: "destructive",
       });
     },
   });
 
-  // Auto-submit OTP when all digits are filled
   useEffect(() => {
     const enteredOtp = otp.join("");
-    if (enteredOtp.length === 6) {
+    if (
+      enteredOtp.length === 6 &&
+      !verifyOtpMutation.isPending &&
+      !verify2faMutation.isPending
+    ) {
       if (twoFactorEnabled === "true") {
-        if (!verify2faMutation.isSuccess) verify2faMutation.mutate(enteredOtp);
+        if (!verify2faMutation.isSuccess) {
+          verify2faMutation.mutate(enteredOtp);
+        }
       } else {
-        if (!verifyOtpMutation.isSuccess) verifyOtpMutation.mutate(enteredOtp);
+        if (!verifyOtpMutation.isSuccess) {
+          verifyOtpMutation.mutate(enteredOtp);
+        }
       }
     }
-  }, [otp]);
+  }, [otp, twoFactorEnabled, verify2faMutation, verifyOtpMutation]);
 
-  // Handle OTP digit change
   const handleChange = (index: number, value: string) => {
     if (!/^\d*$/.test(value)) return;
 
@@ -198,7 +208,6 @@ const OtpVerificationPage = () => {
     }
   };
 
-  // Handle backspace key
   const handleKeyDown = (
     index: number,
     e: React.KeyboardEvent<HTMLInputElement>
@@ -208,14 +217,17 @@ const OtpVerificationPage = () => {
     }
   };
 
-  // Handle form submit manually
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    // console.log("2fa  enabled: " + twoFactorEnabled);
     const enteredOtp = otp.join("");
     if (enteredOtp.length === 6) {
-      twoFactorEnabled === "true"
-        ? verify2faMutation.mutate(enteredOtp)
-        : verifyOtpMutation.mutate(enteredOtp);
+      if (twoFactorEnabled === "true") {
+        verify2faMutation.mutate(enteredOtp);
+      } else {
+        verifyOtpMutation.mutate(enteredOtp);
+      }
+      // verifyOtpMutation.mutate(enteredOtp);
     } else {
       toast({
         title: "Error",
@@ -225,16 +237,16 @@ const OtpVerificationPage = () => {
     }
   };
 
-  // Handle resend click
   const handleResend = () => {
     if (timer === 0) {
-      twoFactorEnabled === "true"
-        ? resend2faMutation.mutate()
-        : resendOtpMutation.mutate();
+      if (twoFactorEnabled === "true") {
+        resend2faMutation.mutate();
+      } else {
+        resendOtpMutation.mutate();
+      }
     }
   };
 
-  // Show loader while verifying
   if (verifying) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#f6f8fb] dark:bg-gray-900">
@@ -271,14 +283,12 @@ const OtpVerificationPage = () => {
       <div className="absolute top-4 right-4">
         <ThemeToggle />
       </div>
-
       <div className="w-full max-w-lg">
         <div className="rounded-t-[20px] border border-[#0088CC1C] bg-[#0088CC1C] py-2 px-3 text-left dark:border-[#0088CC1C] dark:bg-cyan-900/20">
           <p className="flex items-center gap-2 text-base font-medium text-cyan-600 dark:text-cyan-300">
             OTP Verification
           </p>
         </div>
-
         <Card className="rounded-b-[20px] rounded-t-none border-0 shadow-lg">
           <CardHeader className="flex flex-col items-center gap-2 pb-4 pt-8 text-center">
             <Image
@@ -293,32 +303,31 @@ const OtpVerificationPage = () => {
               Please check your email
             </CardTitle>
           </CardHeader>
-
           <CardContent className="px-8 sm:px-12">
             <p className="text-gray-500 text-center mb-6">
               An OTP has been sent to <strong>{email}</strong>. Please enter it
               below.
             </p>
-
-            {/* OTP Input Form */}
             <form onSubmit={handleSubmit}>
               <div className="flex justify-center gap-2">
                 {otp.map((digit, i) => (
                   <input
                     key={i}
-                    // @ts-ignore
-                    ref={(el) => (inputRefs.current[i] = el)}
+                    ref={(el) => {
+                      if (el) inputRefs.current[i] = el;
+                    }}
                     id={`otp-${i}`}
                     type="tel"
                     maxLength={1}
                     value={digit}
                     onChange={(e) => handleChange(i, e.target.value)}
                     onKeyDown={(e) => handleKeyDown(i, e)}
+                    // className="w-12 h-12 rounded-lg border border-gray-300 text-center text-2xl outline-none focus:ring-2 focus:ring-cyan-500"
                     className="w-12 h-12 rounded-lg border border-gray-300 text-center text-2xl outline-none
-                      focus:ring-2 focus:ring-cyan-500
-                      bg-white dark:bg-gray-800
-                      text-gray-900 dark:text-gray-100
-                      placeholder-gray-400"
+                                focus:ring-2 focus:ring-cyan-500
+                                bg-white dark:bg-gray-800
+                                text-gray-900 dark:text-gray-100
+                                placeholder-gray-400"
                     style={{ caretColor: "#06b6d4" }}
                   />
                 ))}
@@ -337,10 +346,9 @@ const OtpVerificationPage = () => {
               </Button>
             </form>
 
-            {/* Resend and Timer */}
             <div className="mt-6 text-sm text-gray-500 flex justify-between items-center">
               <div>
-                Didn’t get the code?{" "}
+                Didn't get the code?{" "}
                 <button
                   onClick={handleResend}
                   disabled={
@@ -349,14 +357,15 @@ const OtpVerificationPage = () => {
                       ? resend2faMutation.isPending
                       : resendOtpMutation.isPending)
                   }
-                  className={`font-semibold underline transition-colors ${
-                    timer > 0 ||
-                    (twoFactorEnabled === "true"
-                      ? resend2faMutation.isPending
-                      : resendOtpMutation.isPending)
-                      ? "text-gray-400 cursor-not-allowed"
-                      : "text-cyan-600 hover:text-cyan-700"
-                  }`}
+                  className={`font-semibold underline transition-colors
+                    ${
+                      timer > 0 ||
+                      (twoFactorEnabled === "true"
+                        ? resend2faMutation.isPending
+                        : resendOtpMutation.isPending)
+                        ? "text-gray-400 cursor-not-allowed"
+                        : "text-cyan-600 hover:text-cyan-700"
+                    }`}
                 >
                   {(
                     twoFactorEnabled === "true"
@@ -381,7 +390,6 @@ const OtpVerificationPage = () => {
   );
 };
 
-// Wrap in suspense for hydration safety
 const SuspendedOtpPage = () => (
   <Suspense fallback={<div>Loading...</div>}>
     <ClientWrapper>

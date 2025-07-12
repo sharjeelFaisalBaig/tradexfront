@@ -4,9 +4,8 @@ import React from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { useFormik } from "formik";
+import * as Yup from "yup";
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,25 +18,19 @@ import { useSignup } from "@/services/auth/auth_Mutation";
 import { getCsrfToken } from "@/services/auth/csrf";
 import Loader from "@/components/common/Loader";
 
-import { z } from "zod";
-
-const signupSchema = z
-  .object({
-    firstName: z.string().min(1, "First name is required"),
-    lastName: z.string().min(1, "Last name is required"),
-    email: z.string().email("Invalid email"),
-    password: z.string().min(8, "Password must be at least 8 characters"),
-    confirmPassword: z.string().min(1, "Confirm Password is required"),
-    agreeTerms: z.literal(true, {
-      errorMap: () => ({ message: "You must agree to the terms" }),
-    }),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    path: ["confirmPassword"],
-    message: "Passwords do not match",
-  });
-
-type SignupSchema = z.infer<typeof signupSchema>;
+// Yup validation schema
+const validationSchema = Yup.object().shape({
+  firstName: Yup.string().required("First name is required"),
+  lastName: Yup.string().required("Last name is required"),
+  email: Yup.string().email("Invalid email").required("Email is required"),
+  password: Yup.string()
+    .min(8, "Password must be at least 8 characters")
+    .required("Password is required"),
+  confirmPassword: Yup.string()
+    .required("Confirm Password is required")
+    .oneOf([Yup.ref("password")], "Passwords do not match"),
+  agreeTerms: Yup.bool().oneOf([true], "You must agree to the terms"),
+});
 
 const labelClass = "text-gray-700 dark:text-gray-300 block mb-1";
 const checkboxLabelClass = "text-sm text-[#7A869A]";
@@ -47,48 +40,58 @@ const Signup = () => {
   const router = useRouter();
   const { mutate, isPending } = useSignup();
 
-  const {
-    register,
-    handleSubmit,
-    watch,
-    setValue,
-    formState: { errors },
-  } = useForm<SignupSchema>({
-    resolver: zodResolver(signupSchema),
-  });
+  // Formik setup
+  const formik = useFormik({
+    initialValues: {
+      firstName: "",
+      lastName: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+      agreeTerms: false,
+    },
+    validationSchema,
+    onSubmit: async (values, { setSubmitting }) => {
+      const { confirmPassword, ...formData } = values;
 
-  const onSubmit = async (values: SignupSchema) => {
-    const { confirmPassword, ...formData } = values;
+      await getCsrfToken();
 
-    await getCsrfToken();
+      const payload = {
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        email: formData?.email,
+        password: formData?.password,
+      };
 
-    // @ts-ignore
-    mutate(formData, {
-      onSuccess: (data) => {
-        if (data && data.data) {
-          const { user, otp_expires_in } = data.data;
-          router.replace(
-            `/auth/otp?email=${user.email}&expires_in=${otp_expires_in}`
-          );
+      mutate(payload, {
+        onSuccess: (data) => {
+          if (data && data.data) {
+            const { user, otp_expires_in } = data.data;
+            router.replace(
+              `/auth/otp?email=${user.email}&expires_in=${otp_expires_in}`
+            );
+            toast({
+              title: "Account Created",
+              description: "Please check your email for the OTP.",
+            });
+          }
+        },
+        onError: (error: any) => {
+          const message =
+            error?.errors && Object.values(error.errors).flat().join(", ");
           toast({
-            title: "Account Created",
-            description: "Please check your email for the OTP.",
+            title: error?.message || "Error",
+            description:
+              message ||
+              "There was an issue creating your account. Please try again.",
+            variant: "destructive",
           });
-        }
-      },
-      onError: (error: any) => {
-        const message =
-          error?.errors && Object.values(error.errors).flat().join(", ");
-        toast({
-          title: error?.message || "Error",
-          description:
-            message ||
-            "There was an issue creating your account. Please try again.",
-          variant: "destructive",
-        });
-      },
-    });
-  };
+        },
+      });
+
+      setSubmitting(false);
+    },
+  });
 
   const handleGoogleLogin = () => {
     // Implement Google OAuth logic here
@@ -100,7 +103,8 @@ const Signup = () => {
         <ThemeToggle />
       </div>
 
-      <div className="w-full max-w-2xl">
+      <div className="w-full max-w-xl">
+        {/* Top Bar */}
         <div className="rounded-t-[20px] border border-[#0088CC1C] bg-[#0088CC1C] py-2 px-3 text-left dark:border-[#0088CC1C] dark:bg-cyan-900/20">
           <p className="flex items-center gap-2 text-base font-medium text-cyan-600 dark:text-cyan-300">
             Sign Up with Tradex AI
@@ -123,6 +127,7 @@ const Signup = () => {
           </CardHeader>
 
           <CardContent className="px-10 sm:px-14">
+            {/* Google OAuth Button */}
             <Button
               variant="outline"
               className="mb-6 flex h-12 w-full items-center justify-center bg-teal-900 text-sm text-white"
@@ -135,6 +140,7 @@ const Signup = () => {
                 fill="currentColor"
                 aria-hidden="true"
               >
+                {/* Google Icon */}
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
                 <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
                 <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
@@ -149,41 +155,44 @@ const Signup = () => {
               <hr className="flex-grow border-t border-gray-300" />
             </div>
 
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            {/* Signup Form */}
+            <form onSubmit={formik.handleSubmit} className="space-y-6">
+              {/* First & Last Name */}
               <div className="flex gap-6">
                 <div className="w-1/2">
-                  <Label htmlFor="first-name" className={labelClass}>
+                  <Label htmlFor="firstName" className={labelClass}>
                     First Name
                   </Label>
                   <Input
-                    id="first-name"
-                    {...register("firstName")}
+                    id="firstName"
+                    {...formik.getFieldProps("firstName")}
                     className="h-12"
                   />
-                  {errors.firstName && (
+                  {formik.touched.firstName && formik.errors.firstName && (
                     <p className="text-sm text-red-500 mt-1">
-                      {errors.firstName.message}
+                      {formik.errors.firstName}
                     </p>
                   )}
                 </div>
 
                 <div className="w-1/2">
-                  <Label htmlFor="last-name" className={labelClass}>
+                  <Label htmlFor="lastName" className={labelClass}>
                     Last Name
                   </Label>
                   <Input
-                    id="last-name"
-                    {...register("lastName")}
+                    id="lastName"
+                    {...formik.getFieldProps("lastName")}
                     className="h-12"
                   />
-                  {errors.lastName && (
+                  {formik.touched.lastName && formik.errors.lastName && (
                     <p className="text-sm text-red-500 mt-1">
-                      {errors.lastName.message}
+                      {formik.errors.lastName}
                     </p>
                   )}
                 </div>
               </div>
 
+              {/* Email */}
               <div>
                 <Label htmlFor="email" className={labelClass}>
                   Email address
@@ -191,16 +200,17 @@ const Signup = () => {
                 <Input
                   id="email"
                   type="email"
-                  {...register("email")}
+                  {...formik.getFieldProps("email")}
                   className="h-12"
                 />
-                {errors.email && (
+                {formik.touched.email && formik.errors.email && (
                   <p className="text-sm text-red-500 mt-1">
-                    {errors.email.message}
+                    {formik.errors.email}
                   </p>
                 )}
               </div>
 
+              {/* Password */}
               <div>
                 <Label htmlFor="password" className={labelClass}>
                   Password
@@ -208,44 +218,46 @@ const Signup = () => {
                 <Input
                   id="password"
                   type="password"
-                  {...register("password")}
+                  {...formik.getFieldProps("password")}
                   className="h-12"
                 />
-                {errors.password && (
+                {formik.touched.password && formik.errors.password && (
                   <p className="text-sm text-red-500 mt-1">
-                    {errors.password.message}
+                    {formik.errors.password}
                   </p>
                 )}
               </div>
 
+              {/* Confirm Password */}
               <div>
-                <Label htmlFor="confirm-password" className={labelClass}>
+                <Label htmlFor="confirmPassword" className={labelClass}>
                   Confirm Password
                 </Label>
                 <Input
-                  id="confirm-password"
+                  id="confirmPassword"
                   type="password"
-                  {...register("confirmPassword")}
+                  {...formik.getFieldProps("confirmPassword")}
                   className="h-12"
                 />
-                {errors.confirmPassword && (
-                  <p className="text-sm text-red-500 mt-1">
-                    {errors.confirmPassword.message}
-                  </p>
-                )}
+                {formik.touched.confirmPassword &&
+                  formik.errors.confirmPassword && (
+                    <p className="text-sm text-red-500 mt-1">
+                      {formik.errors.confirmPassword}
+                    </p>
+                  )}
               </div>
 
+              {/* Agree to Terms */}
               <div className="mb-6">
                 <div className="flex items-center space-x-2">
                   <Checkbox
-                    id="agree"
-                    checked={watch("agreeTerms")}
+                    id="agreeTerms"
+                    checked={formik.values.agreeTerms}
                     onCheckedChange={(checked) =>
-                      // @ts-ignore
-                      setValue("agreeTerms", !!checked)
+                      formik.setFieldValue("agreeTerms", !!checked)
                     }
                   />
-                  <Label htmlFor="agree" className={checkboxLabelClass}>
+                  <Label htmlFor="agreeTerms" className={checkboxLabelClass}>
                     I agree to the{" "}
                     <a href="#" className={linkClass}>
                       Terms of Service
@@ -253,29 +265,34 @@ const Signup = () => {
                     ,{" "}
                     <a href="#" className={linkClass}>
                       Privacy
-                    </a>{" "}
-                    and{" "}
+                    </a>
+                    , and{" "}
                     <a href="#" className={linkClass}>
                       Refund Policy
                     </a>
                   </Label>
                 </div>
-                {errors.agreeTerms && (
+                {formik.touched.agreeTerms && formik.errors.agreeTerms && (
                   <p className="text-sm text-red-500 mt-1">
-                    {errors.agreeTerms.message}
+                    {formik.errors.agreeTerms}
                   </p>
                 )}
               </div>
 
+              {/* Submit Button */}
               <Button
-                disabled={isPending}
+                disabled={formik.isSubmitting || isPending}
                 type="submit"
                 className="h-12 w-full mb-9 bg-cyan-600 hover:bg-cyan-700"
               >
-                {isPending ? <Loader text="Creating..." /> : "Create Account"}
+                {/* {formik.isSubmitting || isPending ? (<Loader text="Creating..." />) : ("Create Account")} */}
+                {formik.isSubmitting || isPending
+                  ? "Creating..."
+                  : "Create Account"}
               </Button>
             </form>
 
+            {/* Footer */}
             <div className="mt-6 text-center">
               <span className="text-sm text-gray-600">
                 Already have an account?

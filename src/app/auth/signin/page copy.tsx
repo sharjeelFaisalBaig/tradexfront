@@ -1,15 +1,10 @@
 "use client";
 
-// Core hooks and libraries
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 
-// Formik and Yup for form handling and validation
-import { useFormik } from "formik";
-import * as Yup from "yup";
-
-// UI components
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,123 +12,144 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { toast } from "@/hooks/use-toast";
+// import ExclamationIcon from "../../icons/exclamation.svg";
 import { signIn } from "next-auth/react";
 import Loader from "@/components/common/Loader";
 
 export default function LoginPage() {
   const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
 
-  // Initialize Formik with initial values, validation schema, and submit handler
-  const formik = useFormik({
-    initialValues: {
-      email: "",
-      password: "",
-      rememberMe: false,
-    },
-    validationSchema: Yup.object({
-      email: Yup.string()
-        .email("Invalid email address")
-        .required("Email is required"),
-      password: Yup.string().required("Password is required"),
-    }),
-    onSubmit: async (values, { setSubmitting }) => {
-      setSubmitting(true);
+  // const searchParams = useSearchParams();
+  // const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
 
-      try {
-        // Attempt login using NextAuth credentials provider
-        const res = await signIn("credentials", {
-          email: values.email,
-          password: values.password,
-          redirect: false,
-        });
+  const handleCredentialsSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) {
+      toast({
+        title: "Error",
+        description: "Please enter both email and password.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setLoading(true);
+    setError("");
 
-        // Handle different possible login responses
-        if (res?.error) {
-          if (res.error === "CredentialsSignin") {
-            // Email exists, but password incorrect – prompt for OTP
-            router.replace(
-              `/auth/otp?email=${encodeURIComponent(values.email)}&2fa=false`
-            );
-            toast({
-              title: "Verification Required",
-              description: "Please verify your email with the OTP.",
-              variant: "default",
-            });
-          } else if (res.error.startsWith("2faEnabled:")) {
-            // 2FA is enabled – redirect with correct email
-            const emailFromError = res.error.split(":")[1];
-            router.replace(
-              `/auth/otp?email=${encodeURIComponent(emailFromError)}&2fa=true`
-            );
-            toast({
-              title: "2FA Required",
-              description: "Please enter the OTP from your authenticator app.",
-              variant: "default",
-            });
-          } else if (res.error === "Verification") {
-            // General verification error – fallback for unknown OTP flow
-            router.replace(
-              `/auth/otp?email=${encodeURIComponent(values.email)}&2fa=true`
-            );
-            toast({
-              title: "2FA Required",
-              description: "Please verify your email with the OTP.",
-              variant: "default",
-            });
-          } else {
-            // Invalid credentials
-            toast({
-              title: "Login Failed",
-              description: "Please check your credentials and try again.",
-              variant: "destructive",
-            });
-          }
-        } else {
-          // Successful login – redirect to dashboard
-          router.push("/dashboard");
+    try {
+      const res = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
+      console.log("Login response:", res);
+      if (res?.error) {
+        if (res.error === "CredentialsSignin") {
+          // This is the custom error we threw in the authorize function
+          router.replace(
+            `/auth/otp?email=${encodeURIComponent(email)}&2fa=false`
+          );
           toast({
-            title: "Login Successful",
-            description: "Navigating to dashboard.",
+            title: "Verification Required",
+            description: "Please verify your email with the OTP.",
             variant: "default",
           });
+        } else if (res.error.startsWith("2faEnabled:")) {
+          // This is the custom error we threw in the authorize function
+          const emailFromError = res.error.split(":")[1];
+          router.replace(
+            `/auth/otp?email=${encodeURIComponent(emailFromError)}&2fa=true`
+          );
+          toast({
+            title: "2FA Required",
+            description: "Please enter the OTP from your authenticator app.",
+            variant: "default",
+          });
+        } else if (res.error === "Verification") {
+          // This is the custom error we threw in the authorize function
+          router.replace(
+            `/auth/otp?email=${encodeURIComponent(email)}&2fa=true`
+          );
+          toast({
+            title: "2FA Required",
+            description: "Please verify your email with the OTP.",
+            variant: "default",
+          });
+        } else {
+          toast({
+            title: "Login Failed",
+            description: "Please check your credentials and try again.",
+            variant: "destructive",
+          });
         }
-      } catch (error) {
-        // Fallback error handling
+      } else {
+        router.push("/dashboard");
         toast({
-          title: "Login Failed",
-          description: "An error occurred. Please try again.",
-          variant: "destructive",
+          title: "Login Successful",
+          description: "Navigating to dashboard.",
+          variant: "default",
         });
       }
+    } catch (error) {
+      console.log("Login error:", error);
+      toast({
+        title: "Login Failed",
+        description: "An error occurred. Please try again.",
+        variant: "destructive",
+      });
+    }
+    setLoading(false);
+  };
 
-      setSubmitting(false);
-    },
-  });
+  // const handleGoogleSignIn = () => {
+  //   // signIn("google", { callbackUrl });
+  // };
 
-  // Google OAuth sign-in handler
   const handleGoogleSignIn = () => {
     signIn("google", { callbackUrl: "/dashboard" });
   };
 
+  // const handleLogin = (e: React.FormEvent) => {
+  //   e.preventDefault();
+  //   toast({
+  //     title: "Login Successful",
+  //     description: "Welcome to Tradex AI!",
+  //   });
+  //   router.replace("/dashboard");
+  // };
+
+  // const handleGoogleLogin = () => {
+  //   toast({
+  //     title: "Google Login",
+  //     description: "Google OAuth integration would go here",
+  //   });
+  // };
+  //console.log(error, loading, handleGoogleSignIn, handleCredentialsSignIn);
+
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-[#f6f8fb] p-4 dark:bg-gray-900">
-      {/* Theme Toggle Button */}
       <div className="absolute top-4 right-4">
         <ThemeToggle />
       </div>
 
       <div className="w-full max-w-lg">
-        {/* Header label with border */}
+        {/* Top Label Bar */}
         <div className="rounded-t-[20px] border border-[#0088CC1C] bg-[#0088CC1C] py-2 px-3 text-left dark:border-[#0088CC1C] dark:bg-cyan-900/20">
           <p className="flex items-center gap-2 text-base font-medium text-cyan-600 dark:text-cyan-300">
+            <span className="flex h-6 w-8 items-center justify-center rounded-full pl-2">
+              {/* <ExclamationIcon width={24} height={24} /> */}
+            </span>
             Login with Tradex AI
           </p>
         </div>
 
-        {/* Login card UI */}
+        {/* Login Card */}
         <Card className="rounded-b-[20px] rounded-t-none border-0 shadow-lg">
           <CardHeader className="flex flex-col items-center gap-2 pb-4 pt-8 text-center">
-            {/* Logo */}
             <Image
               src="/logo.png"
               alt="Tradex AI Logo"
@@ -148,13 +164,12 @@ export default function LoginPage() {
           </CardHeader>
 
           <CardContent className="px-8 sm:px-12">
-            {/* Google Login Button */}
+            {/* Google Button */}
             <Button
               variant="outline"
               className="mb-6 flex h-12 w-full items-center justify-center bg-teal-900 text-sm text-white"
               onClick={handleGoogleSignIn}
             >
-              {/* Google Icon */}
               <svg
                 className="mr-1 h-5 w-5"
                 viewBox="0 0 24 24"
@@ -176,8 +191,7 @@ export default function LoginPage() {
             </div>
 
             {/* Login Form */}
-            <form onSubmit={formik.handleSubmit} className="space-y-4">
-              {/* Email Input */}
+            <form onSubmit={handleCredentialsSignIn} className="space-y-4">
               <div className="space-y-2">
                 <Label
                   htmlFor="email"
@@ -188,18 +202,13 @@ export default function LoginPage() {
                 <Input
                   id="email"
                   type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   className="h-12"
-                  {...formik.getFieldProps("email")}
                 />
-                {/* Email Validation Error */}
-                {formik.touched.email && formik.errors.email && (
-                  <div className="text-sm text-red-500">
-                    {formik.errors.email}
-                  </div>
-                )}
               </div>
 
-              {/* Password Input */}
               <div className="space-y-2">
                 <Label
                   htmlFor="password"
@@ -210,26 +219,19 @@ export default function LoginPage() {
                 <Input
                   id="password"
                   type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   className="h-12"
-                  {...formik.getFieldProps("password")}
                 />
-                {/* Password Validation Error */}
-                {formik.touched.password && formik.errors.password && (
-                  <div className="text-sm text-red-500">
-                    {formik.errors.password}
-                  </div>
-                )}
               </div>
 
-              {/* Remember Me + Forgot Password */}
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     id="remember"
-                    checked={formik.values.rememberMe}
-                    onCheckedChange={(checked) =>
-                      formik.setFieldValue("rememberMe", !!checked)
-                    }
+                    checked={rememberMe}
+                    onCheckedChange={(checked) => setRememberMe(!!checked)}
                   />
                   <Label htmlFor="remember" className="text-sm text-[#7A869A]">
                     Remember me
@@ -243,18 +245,17 @@ export default function LoginPage() {
                 </Link>
               </div>
 
-              {/* Submit Button */}
               <Button
+                disabled={loading}
+                onClick={handleCredentialsSignIn}
                 type="submit"
-                disabled={formik.isSubmitting}
                 className="h-12 w-full mb-9 bg-cyan-600 hover:bg-cyan-700"
               >
-                {/* {formik.isSubmitting ? (<Loader text="Signing In..." />) : (  "Sign In")} */}
-                {formik.isSubmitting ? "Signing In..." : "Sign In"}
+                {loading ? <Loader text="Signing In..." /> : "Sign In"}
               </Button>
             </form>
 
-            {/* Signup Link */}
+            {/* Footer Links */}
             <div className="mt-6 text-center">
               <span className="text-sm text-gray-600">
                 Don&apos;t have an account?
@@ -267,9 +268,9 @@ export default function LoginPage() {
               </Link>
             </div>
 
-            {/* Terms & Policies */}
             <div className="mb-8 mt-6 text-center text-xs leading-relaxed text-gray-500">
-              By continuing, you agree to our <br />
+              By continuing, you agree to our
+              <br />
               <a href="#" className="text-cyan-600 hover:underline">
                 Terms of Service
               </a>
