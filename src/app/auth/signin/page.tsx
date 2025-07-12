@@ -27,7 +27,6 @@ export default function LoginPage() {
   // const searchParams = useSearchParams();
   // const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
 
-
   const handleCredentialsSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
@@ -51,17 +50,20 @@ export default function LoginPage() {
       if (res?.error) {
         if (res.error === "CredentialsSignin") {
           // This is the custom error we threw in the authorize function
-          router.replace(`/auth/otp?email=${encodeURIComponent(email)}&2fa=false`);
+          router.replace(
+            `/auth/otp?email=${encodeURIComponent(email)}&2fa=false`
+          );
           toast({
             title: "Verification Required",
             description: "Please verify your email with the OTP.",
             variant: "default",
           });
-        }
-        else if (res.error.startsWith("2faEnabled:")) {
+        } else if (res.error.startsWith("2faEnabled:")) {
           // This is the custom error we threw in the authorize function
           const emailFromError = res.error.split(":")[1];
-          router.replace(`/auth/otp?email=${encodeURIComponent(emailFromError)}&2fa=true`);
+          router.replace(
+            `/auth/otp?email=${encodeURIComponent(emailFromError)}&2fa=true`
+          );
           toast({
             title: "2FA Required",
             description: "Please enter the OTP from your authenticator app.",
@@ -69,14 +71,15 @@ export default function LoginPage() {
           });
         } else if (res.error === "Verification") {
           // This is the custom error we threw in the authorize function
-          router.replace(`/auth/otp?email=${encodeURIComponent(email)}&2fa=true`);
+          router.replace(
+            `/auth/otp?email=${encodeURIComponent(email)}&2fa=true`
+          );
           toast({
             title: "2FA Required",
             description: "Please verify your email with the OTP.",
             variant: "default",
           });
-        }
-        else {
+        } else {
           toast({
             title: "Login Failed",
             description: "Please check your credentials and try again.",
@@ -109,7 +112,6 @@ export default function LoginPage() {
   const handleGoogleSignIn = () => {
     signIn("google", { callbackUrl: "/dashboard" });
   };
-
 
   // const handleLogin = (e: React.FormEvent) => {
   //   e.preventDefault();
@@ -287,4 +289,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
