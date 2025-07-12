@@ -27,6 +27,7 @@ import { IStrategy } from "@/lib/types";
 import { toast } from "@/hooks/use-toast";
 import NewStrategyModal from "@/components/modal/NewStrategyModal";
 import { useGetStrategyById } from "@/hooks/strategy/useStrategyQueries";
+import Loader from "@/components/common/Loader";
 
 const nodeDefaults = {
   sourcePosition: Position.Right,
@@ -355,6 +356,24 @@ const Strategy = (props: StrategyProps) => {
     },
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#f6f8fb] dark:bg-gray-900">
+        <Loader text="Loading strategy..." />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <span className="text-red-600 text-lg font-semibold">
+          Failed to load strategy.
+        </span>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col !min-h-screen bg-gray-50 dark:bg-gray-900">
       {showNewStrategyModal && (
@@ -369,14 +388,6 @@ const Strategy = (props: StrategyProps) => {
       <div className="flex flex-1 overflow-hidden">
         <StrategySidebar />
         <main className="relative flex-1 overflow-y-auto p-6">
-          {isLoading && <p className="absolute top-4 left-4">Loading...</p>}
-
-          {isError && (
-            <p className="text-red-500 absolute top-4 left-4">
-              Failed to load strategy.
-            </p>
-          )}
-
           <ReactFlow
             nodes={nodes}
             edges={edges}

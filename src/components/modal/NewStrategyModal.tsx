@@ -34,7 +34,6 @@ function NewStrategyForm({
   const [desc, setDesc] = useState(strategy?.description ?? "");
   const [tagInput, setTagInput] = useState("");
   const [tags, setTags] = useState<string[]>(strategy?.tags ?? []);
-  const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{
     name?: string;
     desc?: string;
@@ -73,7 +72,6 @@ function NewStrategyForm({
       return;
     }
 
-    setLoading(true);
     setErrors({});
 
     const payload = {
@@ -116,8 +114,8 @@ function NewStrategyForm({
           onError: onMutationError,
         });
       }
-    } finally {
-      setLoading(false);
+    } catch (error) {
+      console.log({ error });
     }
   };
 
@@ -204,14 +202,14 @@ function NewStrategyForm({
 
       <Button
         type="submit"
-        disabled={loading}
+        disabled={createMutation.isPending || updateMutation.isPending}
         className="w-full h-11 text-base"
       >
         {strategy
-          ? loading
+          ? updateMutation.isPending
             ? "Updating..."
             : "Update Strategy"
-          : loading
+          : createMutation.isPending
           ? "Creating..."
           : "Create Strategy"}
       </Button>
