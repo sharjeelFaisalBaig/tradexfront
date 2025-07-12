@@ -1,9 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,60 +19,50 @@ import { useSignup } from "@/services/auth/auth_Mutation";
 import { getCsrfToken } from "@/services/auth/csrf";
 import Loader from "@/components/common/Loader";
 
-const labelClass = "text-gray-700 dark:text-gray-300";
+import { z } from "zod";
+
+const signupSchema = z
+  .object({
+    firstName: z.string().min(1, "First name is required"),
+    lastName: z.string().min(1, "Last name is required"),
+    email: z.string().email("Invalid email"),
+    password: z.string().min(8, "Password must be at least 8 characters"),
+    confirmPassword: z.string().min(1, "Confirm Password is required"),
+    agreeTerms: z.literal(true, {
+      errorMap: () => ({ message: "You must agree to the terms" }),
+    }),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    path: ["confirmPassword"],
+    message: "Passwords do not match",
+  });
+
+type SignupSchema = z.infer<typeof signupSchema>;
+
+const labelClass = "text-gray-700 dark:text-gray-300 block mb-1";
 const checkboxLabelClass = "text-sm text-[#7A869A]";
 const linkClass = "text-cyan-600 underline hover:underline";
 
 const Signup = () => {
   const router = useRouter();
-  const [agreeTerms, setAgreeTerms] = useState(false);
   const { mutate, isPending } = useSignup();
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const {
+    register,
+    handleSubmit,
+    watch,
+    setValue,
+    formState: { errors },
+  } = useForm<SignupSchema>({
+    resolver: zodResolver(signupSchema),
+  });
 
-    const firstName = e.currentTarget.firstName.value;
-    const lastName = e.currentTarget.lastName.value;
-    const email = e.currentTarget.email.value;
-    const password = e.currentTarget.password.value;
-    const confirmPassword = e.currentTarget.confirmPassword.value;
-
-    if (!firstName || !lastName || !email || !password || !confirmPassword) {
-      toast({
-        title: "Error",
-        description: "Please fill in all fields.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      toast({
-        title: "Error",
-        description: "Passwords do not match.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (password.length < 8) {
-      toast({
-        title: "Error",
-        description: "Password must be at least 8 characters long.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const formData = {
-      first_name: firstName,
-      last_name: lastName,
-      email,
-      password,
-    };
+  const onSubmit = async (values: SignupSchema) => {
+    const { confirmPassword, ...formData } = values;
 
     await getCsrfToken();
 
+    // @ts-ignore
     mutate(formData, {
       onSuccess: (data) => {
         if (data && data.data) {
@@ -156,7 +149,7 @@ const Signup = () => {
               <hr className="flex-grow border-t border-gray-300" />
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
               <div className="flex gap-6">
                 <div className="w-1/2">
                   <Label htmlFor="first-name" className={labelClass}>
@@ -164,23 +157,30 @@ const Signup = () => {
                   </Label>
                   <Input
                     id="first-name"
-                    name="firstName"
-                    type="text"
-                    required
+                    {...register("firstName")}
                     className="h-12"
                   />
+                  {errors.firstName && (
+                    <p className="text-sm text-red-500 mt-1">
+                      {errors.firstName.message}
+                    </p>
+                  )}
                 </div>
+
                 <div className="w-1/2">
                   <Label htmlFor="last-name" className={labelClass}>
                     Last Name
                   </Label>
                   <Input
                     id="last-name"
-                    name="lastName"
-                    type="text"
-                    required
+                    {...register("lastName")}
                     className="h-12"
                   />
+                  {errors.lastName && (
+                    <p className="text-sm text-red-500 mt-1">
+                      {errors.lastName.message}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -190,11 +190,15 @@ const Signup = () => {
                 </Label>
                 <Input
                   id="email"
-                  name="email"
                   type="email"
-                  required
+                  {...register("email")}
                   className="h-12"
                 />
+                {errors.email && (
+                  <p className="text-sm text-red-500 mt-1">
+                    {errors.email.message}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -203,11 +207,15 @@ const Signup = () => {
                 </Label>
                 <Input
                   id="password"
-                  name="password"
                   type="password"
-                  required
+                  {...register("password")}
                   className="h-12"
                 />
+                {errors.password && (
+                  <p className="text-sm text-red-500 mt-1">
+                    {errors.password.message}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -216,20 +224,26 @@ const Signup = () => {
                 </Label>
                 <Input
                   id="confirm-password"
-                  name="confirmPassword"
                   type="password"
-                  required
+                  {...register("confirmPassword")}
                   className="h-12"
                 />
+                {errors.confirmPassword && (
+                  <p className="text-sm text-red-500 mt-1">
+                    {errors.confirmPassword.message}
+                  </p>
+                )}
               </div>
 
-              <div className="flex items-center justify-between mb-6">
+              <div className="mb-6">
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     id="agree"
-                    required
-                    checked={agreeTerms}
-                    onCheckedChange={(checked) => setAgreeTerms(!!checked)}
+                    checked={watch("agreeTerms")}
+                    onCheckedChange={(checked) =>
+                      // @ts-ignore
+                      setValue("agreeTerms", !!checked)
+                    }
                   />
                   <Label htmlFor="agree" className={checkboxLabelClass}>
                     I agree to the{" "}
@@ -246,6 +260,11 @@ const Signup = () => {
                     </a>
                   </Label>
                 </div>
+                {errors.agreeTerms && (
+                  <p className="text-sm text-red-500 mt-1">
+                    {errors.agreeTerms.message}
+                  </p>
+                )}
               </div>
 
               <Button
