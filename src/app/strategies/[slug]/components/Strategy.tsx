@@ -28,6 +28,7 @@ import { toast } from "@/hooks/use-toast";
 import NewStrategyModal from "@/components/modal/NewStrategyModal";
 import { useGetStrategyById } from "@/hooks/strategy/useStrategyQueries";
 import Loader from "@/components/common/Loader";
+import ChartNode from "./ChartNode";
 
 const nodeDefaults = {
   sourcePosition: Position.Right,
@@ -112,6 +113,15 @@ const initialNodes = [
     type: "annotationNode",
     // Note: AnnotationNode has no handles, so no sourcePosition/targetPosition
   },
+  {
+    id: "9",
+    position: { x: 300, y: 350 },
+    data: {
+      label: "Chart",
+    },
+    type: "chartNode",
+    ...nodeDefaults,
+  },
 ];
 
 const initialEdges: any = [];
@@ -125,6 +135,7 @@ const nodeTypes = {
   socialMediaNode: SocialMediaNode,
   videoUploadNode: VideoUploadNode,
   annotationNode: AnnotationNode,
+  chartNode: ChartNode,
 };
 
 const edgeTypes = {
