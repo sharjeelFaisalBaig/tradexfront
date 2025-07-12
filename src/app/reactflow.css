@@ -1,5 +1,4 @@
 /* xyflow theme files. Delete these to start from our base */
-
 .react-flow {
   /* Custom Variables */
   --xy-theme-selected: #f57dbd;
@@ -44,7 +43,6 @@
   border: var(--xy-node-border-default);
   color: var(--xy-node-color, var(--xy-node-color-default));
 }
-
 .react-flow__node.selectable:focus {
   box-shadow: 0px 0px 0px 4px var(--xy-theme-color-focus);
   border-color: #d9d9d9;
@@ -58,17 +56,14 @@
 .react-flow__node.draggable:hover {
   border-color: var(--xy-theme-hover);
 }
-
 .react-flow__node.selectable.selected {
   border-color: var(--xy-theme-selected);
   box-shadow: var(--xy-node-boxshadow-default);
 }
-
 .react-flow__node-group {
   background-color: rgba(207, 182, 255, 0.4);
   border-color: #9e86ed;
 }
-
 .react-flow__edge.selectable:hover .react-flow__edge-path,
 .react-flow__edge.selectable.selected .react-flow__edge-path {
   stroke: var(--xy-theme-edge-hover);
@@ -84,18 +79,15 @@
   border-color: var(--xy-theme-edge-hover);
   background-color: white;
 }
-
 .react-flow__handle.connectionindicator:focus,
 .react-flow__handle.connectingfrom,
 .react-flow__handle.connectingto {
   border-color: var(--xy-theme-edge-hover);
 }
-
 .react-flow__node-resizer {
   border-radius: 0;
   border: none;
 }
-
 .react-flow__resize-control.handle {
   background-color: #ffffff;
   border-color: #9e86ed;
@@ -103,7 +95,6 @@
   width: 5px;
   height: 5px;
 }
-
 /* 
   Custom Example CSS  - This CSS is to improve the example experience.
   You can remove it if you want to use the default styles.
@@ -117,14 +108,12 @@
   
   Use these classes to apply consistent theming across your components.
 */
-
 :root {
   --color-primary: #ff0073;
   --color-background: #fefefe;
   --color-hover-bg: #f6f6f6;
   --color-disabled: #76797e;
 }
-
 /* Custom Button Styling */
 .xy-theme__button {
   display: inline-flex;
@@ -163,7 +152,6 @@
 .xy-theme__button + .xy-theme__button {
   margin-left: 0.3rem;
 }
-
 /* Example Input Styling */
 .xy-theme__input {
   padding: 0.5rem 0.75rem;
@@ -180,7 +168,6 @@
   border-color: var(--color-primary);
   box-shadow: 0 0 0 2px rgba(255, 0, 115, 0.3);
 }
-
 /* Specific Checkbox Styling */
 .xy-theme__checkbox {
   appearance: none;
@@ -196,17 +183,14 @@
   vertical-align: middle;
   margin-right: 0.5rem;
 }
-
 .xy-theme__checkbox:checked {
   background-color: var(--color-primary);
   border-color: var(--color-primary);
 }
-
 .xy-theme__checkbox:focus {
   outline: none;
   box-shadow: 0 0 0 2px rgba(255, 0, 115, 0.3);
 }
-
 /* Dropdown Styling */
 .xy-theme__select {
   padding: 0.5rem 0.75rem;
@@ -219,13 +203,11 @@
   margin-right: 0.5rem;
   box-shadow: var(--xy-node-boxshadow-default);
 }
-
 .xy-theme__select:focus {
   outline: none;
   border-color: var(--color-primary);
   box-shadow: 0 0 0 2px rgba(255, 0, 115, 0.3);
 }
-
 .xy-theme__label {
   margin-top: 10px;
   margin-bottom: 3px;
