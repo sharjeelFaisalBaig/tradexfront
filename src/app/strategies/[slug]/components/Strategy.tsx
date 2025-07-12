@@ -37,71 +37,57 @@ const nodeDefaults = {
 
 const initialNodes = [
   {
-    id: "1",
-    position: { x: 1300, y: 350 },
-    data: {
-      label: "Chatbox",
-    },
-    type: "chatbox",
+    id: "4",
+    position: { x: -536.3887162260439, y: -807.6168221531623 },
+    data: { label: "Url Search" },
+    type: "remoteNode",
     ...nodeDefaults,
   },
   {
     id: "2",
-    position: { x: 300, y: 350 },
-    data: {
-      label: "Image Upload",
-    },
+    position: { x: -535.3098126574953, y: -416.71218936766786 },
+    data: { label: "Image Upload" },
     type: "imageUploadNode",
     ...nodeDefaults,
   },
   {
     id: "3",
-    position: { x: 300, y: 750 },
-    data: {
-      label: "Audio Player",
-    },
+    position: { x: -535.2583827124738, y: -47.79763972050168 },
+    data: { label: "Audio Player" },
     type: "audioPlayerNode",
     ...nodeDefaults,
   },
   {
-    id: "4",
-    position: { x: 300, y: 150 },
-    data: {
-      label: "Url Search",
-    },
-    type: "remoteNode",
-    ...nodeDefaults,
-  },
-  {
     id: "5",
-    position: { x: 300, y: 950 },
-    data: {
-      label: "Document Upload",
-    },
+    position: { x: 24.569308041643296, y: -16.381814680330294 },
+    data: { label: "Document Upload" },
     type: "documentUploadNode",
     ...nodeDefaults,
   },
   {
-    id: "6",
-    position: { x: 300, y: 1150 },
-    data: {
-      label: "Social Media",
-    },
-    type: "socialMediaNode",
-    ...nodeDefaults,
-  },
-  {
     id: "7",
-    position: { x: 300, y: 1350 },
-    data: {
-      label: "Video Upload",
-    },
+    position: { x: 576.5473916470279, y: -8.984699488204 },
+    data: { label: "Video Upload" },
     type: "videoUploadNode",
     ...nodeDefaults,
   },
   {
+    id: "6",
+    position: { x: 1197.838085675496, y: -803.2743598026047 },
+    data: { label: "Social Media" },
+    type: "socialMediaNode",
+    ...nodeDefaults,
+  },
+  {
+    id: "1",
+    position: { x: 4.689513204926413, y: -803.7316620685999 },
+    data: { label: "Chatbox" },
+    type: "chatbox",
+    ...nodeDefaults,
+  },
+  {
     id: "8",
-    position: { x: 700, y: 350 },
+    position: { x: 1212.8047809500401, y: -359.45483177740834 },
     data: {
       annotation: {
         content: "This is a sample annotation for collaborative notes!",
@@ -111,17 +97,14 @@ const initialNodes = [
       },
     },
     type: "annotationNode",
-    // Note: AnnotationNode has no handles, so no sourcePosition/targetPosition
   },
-  {
-    id: "9",
-    position: { x: 300, y: 350 },
-    data: {
-      label: "Chart",
-    },
-    type: "chartNode",
-    ...nodeDefaults,
-  },
+  // {
+  //   id: "9",
+  //   position: { x: 0, y: 620 },
+  //   data: { label: "Chart" },
+  //   type: "chartNode",
+  //   ...nodeDefaults,
+  // },
 ];
 
 const initialEdges: any = [];
@@ -335,6 +318,8 @@ const Strategy = (props: StrategyProps) => {
 
   const onNodeDragStop = useCallback(
     (_: any, node: any) => {
+      console.log({ Node_ID: node.id, Node_Position: node.position });
+
       const closeEdge: any = getClosestEdge(node);
 
       setEdges((es) => {
