@@ -76,7 +76,6 @@ export const authConfig: NextAuthConfig = {
             // console.log("OtpVerificationRequired2:" + json?.data?.user?.email);
             // throw new Error("OtpVerificationRequired:" + json?.data?.user?.email);
             throw new CustomAuthError("2faEnabled:" + json?.data?.user?.email);
-            // return { error: "OtpVerificationRequired", email: json?.data?.user?.email };
           }
           // Handle invalid credentials
           if (json?.status === false && json?.message === "Invalid credentials") {
@@ -92,26 +91,13 @@ export const authConfig: NextAuthConfig = {
             name: user.first_name,
             email: user.email,
             accessToken: access_token,
-            // refreshToken: json.data.refresh_token, // If your API returns this
             accessTokenExpires: Date.now() + (expires_in || 3600) * 1000,
             email_verified_at: user.email_verified_at,
             two_factor_enabled: user.two_factor_enabled,
           };
         } catch (err) {
-          // If the error is an instance of CustomAuthError, rethrow it
           if (err instanceof CustomAuthError) {
-            console.log("authorize error:" + err);
-            // Handle custom error codes
-            if (err instanceof Error && err.message.startsWith("OtpVerificationRequired:")) {
-              const email = err.message.split(":")[1];
-              // Redirect to OTP verification page
-              throw new CustomAuthError("OtpVerificationRequired:" + email);
-            }
-            if (err instanceof Error && err.message.startsWith("2faEnabled")) {
-              // const email = err.message.split(":")[1];
-              // Redirect to 2FA verification page
-              throw err;
-            }
+            throw err;
           }
           // if (err instanceof Error && err.message === "2faEnabled") {
           //   const email = err.message.split(":")[1];

@@ -5,7 +5,20 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true
   },
   images: {
-    domains: ['images.unsplash.com'], // ✅ Correctly placed
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'tradexfront.isoft-digital.net',
+        port: '',
+        pathname: '/**',
+      },
+    ],
   },
   webpack(config) {
     config.module.rules.push({

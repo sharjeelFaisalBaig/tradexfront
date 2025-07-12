@@ -21,6 +21,15 @@ declare module "next-auth" {
   }
 }
 
+export interface ICollaborator {
+    id: string;
+    type: 'owner' | 'collaborator';
+    is_favourite: boolean;
+    is_active: boolean;
+    is_online: boolean;
+    folder_id: string;
+}
+
 export interface IStrategy {
     id: string;
     name: string;
@@ -31,5 +40,5 @@ export interface IStrategy {
     created_at: string;
     updated_at: string;
     is_active: boolean;
-    is_favourite?: boolean;
+    collaborators?: ICollaborator[];
 }

@@ -20,6 +20,15 @@ import { useToast } from "@/hooks/use-toast";
 import { fetchWithAutoRefresh } from "@/lib/fetchWithAutoRefresh";
 import { endpoints } from "@/lib/endpoints";
 
+const getInitials = (name: string) => {
+    if (!name) return "";
+    const names = name.split(' ');
+    if (names.length > 1) {
+        return (names[0][0] + names[names.length - 1][0]).toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
+};
+
 const Header = () => {
     const router = useRouter();
     const { data: session } = useSession();
@@ -43,6 +52,8 @@ const Header = () => {
         }
     }, [session]);
 
+    const imageUrl = profile?.user?.avatar ? `${process.env.NEXT_PUBLIC_API_URL?.replace("/api", "")}${profile.user.avatar}` : "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face";
+    const fallbackText = profile?.user?.name ? getInitials(profile.user.name) : "JD";
 
     return (
         <header className="flex items-center justify-between bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-6 py-4">
@@ -159,10 +170,10 @@ const Header = () => {
                             <div className="flex items-center space-x-1 cursor-pointer">
                                 <Avatar>
                                     <AvatarImage
-                                        src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face"
-                                        alt="User"
-                                    />
-                                    <AvatarFallback>JD</AvatarFallback>
+                                        src={imageUrl}
+                                         alt={profile?.user?.name || "User"}
+                                     />
+                                    <AvatarFallback>{fallbackText}</AvatarFallback>
                                 </Avatar>
                                 <ChevronDown className="h-4 w-4 text-gray-600 dark:text-gray-300" />
                             </div>

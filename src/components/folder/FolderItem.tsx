@@ -5,10 +5,11 @@ interface Props {
   onRename: (id: string, name: string) => void;
   onContextMenu: (e: React.MouseEvent, id: string) => void;
   isEditing: boolean;
+  isSelected: boolean;
   onFolderClick: (id: string) => void;
 }
 
-export default function FolderItem({ folder, onRename, onContextMenu, isEditing, onFolderClick }: Props) {
+export default function FolderItem({ folder, onRename, onContextMenu, isEditing, isSelected, onFolderClick }: Props) {
   const [name, setName] = useState(folder.name);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -46,7 +47,7 @@ export default function FolderItem({ folder, onRename, onContextMenu, isEditing,
 
   return (
     <div
-      className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded cursor-pointer"
+      className={`flex items-center gap-2 p-2 rounded cursor-pointer ${isSelected ? 'bg-gray-700' : 'hover:bg-gray-800'}`}
       onContextMenu={handleContextMenu}
       onDoubleClick={handleDoubleClick}
       onClick={handleClick}
@@ -61,7 +62,7 @@ export default function FolderItem({ folder, onRename, onContextMenu, isEditing,
           onChange={(e) => setName(e.target.value)}
           onBlur={handleBlur}
           onKeyDown={handleKeyDown}
-          className="border border-gray-300 rounded px-2 py-0.5 text-sm"
+          className="border border-gray-300 rounded px-2 py-0.5 text-sm text-black"
         />
       ) : (
         <span>{name}</span>

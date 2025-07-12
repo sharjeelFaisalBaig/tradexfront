@@ -21,20 +21,22 @@ import {
   PaginationItem,
   PaginationLink,
 } from "@/components/ui/pagination";
-import { MoreHorizontal, ChevronLeft, ChevronRight } from "lucide-react";
-import { getStrategies } from "@/services/strategy/strategy_API";
+import { MoreHorizontal } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { getFavoriteStrategies } from "@/services/strategy/strategy_API";
 import {
   favouriteStrategy,
   copyStrategy,
 } from "@/services/strategy/strategy_Mutation";
 import { IStrategy } from "@/lib/types";
 import SearchIcon from "@/icons/search.svg";
+import Star from "@/icons/stargreen.svg";
 import Clipboard from "@/icons/double.svg";
 import Link2 from "@/icons/sharegreen.svg";
 import Image from "next/image";
 import Loader from "@/components/common/Loader";
 
-const Dashboard = () => {
+const Favorites = () => {
   const { data: session } = useSession();
   const [strategies, setStrategies] = useState<IStrategy[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,7 +54,7 @@ const Dashboard = () => {
     if (session) {
       try {
         setLoading(true);
-        const res = await getStrategies(session, {
+        const res = await getFavoriteStrategies(session, {
           sort_by: sortBy,
           sort_order: sortOrder,
           per_page: perPage,
@@ -91,11 +93,20 @@ const Dashboard = () => {
     return () => clearTimeout(debounceFetch);
   }, [searchTerm, sortBy, sortOrder, perPage]);
 
+  const handleSortChange = (value: string) => {
+    const [newSortBy, newSortOrder] = value.split(":");
+    setSortBy(newSortBy);
+    setSortOrder(newSortOrder || "desc");
+  };
+
   const toggleStar = async (index: number) => {
     const strategy = strategies[index];
     try {
       const res = await favouriteStrategy(strategy.id, session);
-      if (res.status) {
+      if (res.status && !res.data.is_favourite) {
+        // If unfavorited on the favorites page, refetch to remove it
+        fetchStrategies();
+      } else if (res.status) {
         const updated = [...starredItems];
         updated[index] = !!res.data.is_favourite;
         setStarredItems(updated);
@@ -104,84 +115,79 @@ const Dashboard = () => {
       console.error("Failed to update favourite status", error);
     }
   };
-
+  
   const handleCopyStrategy = async (id: string) => {
     try {
       await copyStrategy(id, session);
-      fetchStrategies();
+      // You might want to redirect to the new strategy or show a notification
     } catch (error) {
       console.error("Failed to copy strategy", error);
     }
   };
-
-  const handleSortChange = (value: string) => {
-    const [newSortBy, newSortOrder] = value.split(":");
-    setSortBy(newSortBy);
-    setSortOrder(newSortOrder || "desc");
-  };
-
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900">
       <Header />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />
+
         <main className="flex-1 overflow-y-auto p-6">
-          {/* Header Controls */}
-          <div className="flex items-center justify-between mb-6">
-            {/* Search */}
-            <div className="relative w-full max-w-md">
-              <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-10" />
-              <Input
-                type="text"
-                placeholder="Search strategies"
-                className="pl-10"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-
-            {/* Filters */}
-            <div className="flex items-center space-x-4">
-              <Select
-                onValueChange={(value) => setPerPage(parseInt(value, 10))}
-                value={perPage.toString()}
-              >
-                <SelectTrigger className="w-32">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="10">10 per page</SelectItem>
-                  <SelectItem value="25">25 per page</SelectItem>
-                  <SelectItem value="50">50 per page</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select onValueChange={handleSortChange} value={`${sortBy}:${sortOrder}`}>
-                <SelectTrigger className="w-48">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="updated_at:desc">
-                    Sort by: Last Modified
-                  </SelectItem>
-                  <SelectItem value="name:asc">Sort by: Name</SelectItem>
-                  <SelectItem value="created_at:desc">Sort by: Created</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
+          <h1 className="text-2xl font-semibold mb-6">Favorite Strategies</h1>
           {loading ? (
             <div className="flex h-full items-center justify-center">
-              <Loader text="Loading strategies..." />
+              <Loader text="Loading favorites..." />
             </div>
           ) : error ? (
             <p className="text-red-500">{error}</p>
           ) : (
             <>
+              {/* Header Controls */}
+              <div className="flex items-center justify-between mb-6">
+                {/* Search */}
+                <div className="relative w-full max-w-md">
+                  <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-10" />
+                  <Input
+                    type="text"
+                    placeholder="Search favorites"
+                    className="pl-10"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+
+                {/* Filters */}
+                <div className="flex items-center space-x-4">
+                  <Select
+                    onValueChange={(value) => setPerPage(parseInt(value, 10))}
+                    value={perPage.toString()}
+                  >
+                    <SelectTrigger className="w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="10">10 per page</SelectItem>
+                      <SelectItem value="25">25 per page</SelectItem>
+                      <SelectItem value="50">50 per page</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <Select onValueChange={handleSortChange} value={`${sortBy}:${sortOrder}`}>
+                    <SelectTrigger className="w-48">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="updated_at:desc">
+                        Sort by: Last Modified
+                      </SelectItem>
+                      <SelectItem value="name:asc">Sort by: Name</SelectItem>
+                      <SelectItem value="created_at:desc">Sort by: Created</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
               {/* Strategy Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                {strategies.map((strategy, index) => (
+                {strategies.filter(s => s.name.toLowerCase().includes(searchTerm.toLowerCase())).map((strategy, index) => (
                   <Card
                     key={strategy.id}
                     className="group hover:shadow-lg transition-shadow cursor-pointer overflow-hidden rounded-[10px]"
@@ -232,7 +238,9 @@ const Dashboard = () => {
                                 height="22"
                                 fill={starredItems[index] ? "#00AA67" : "none"}
                                 className="h-6 w-5"
-                                style={{ stroke: "#00AA67" }}
+                                style={{
+                                  stroke: "#00AA67",
+                                }}
                               >
                                 <path
                                   strokeWidth="1.7"
@@ -240,6 +248,7 @@ const Dashboard = () => {
                                 />
                               </svg>
                             </button>
+
                             <Clipboard
                               className="h-6 w-5"
                               onClick={(e: React.MouseEvent) => {
@@ -261,6 +270,7 @@ const Dashboard = () => {
           {/* Pagination */}
           <Pagination>
             <PaginationContent>
+              {/* Previous Button */}
               <PaginationItem>
                 <PaginationLink
                   href="#"
@@ -271,6 +281,7 @@ const Dashboard = () => {
                 </PaginationLink>
               </PaginationItem>
 
+              {/* Page Numbers */}
               <PaginationItem>
                 <PaginationLink
                   href="#"
@@ -292,6 +303,7 @@ const Dashboard = () => {
                 </PaginationLink>
               </PaginationItem>
 
+              {/* Dots without border */}
               <PaginationItem>
                 <PaginationLink
                   href="#"
@@ -312,6 +324,7 @@ const Dashboard = () => {
                 </PaginationLink>
               </PaginationItem>
 
+              {/* Next Button */}
               <PaginationItem>
                 <PaginationLink
                   href="#"
@@ -329,4 +342,4 @@ const Dashboard = () => {
   );
 };
 
-export default Dashboard;
+export default Favorites;

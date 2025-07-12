@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,13 +24,17 @@ import {
 import { MoreHorizontal } from "lucide-react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { getStrategies } from "@/services/strategy/strategy_API";
-import { favouriteStrategy } from "@/services/strategy/strategy_Mutation";
+import {
+  favouriteStrategy,
+  copyStrategy,
+} from "@/services/strategy/strategy_Mutation";
 import { IStrategy } from "@/lib/types";
 import SearchIcon from "@/icons/search.svg";
 import Star from "@/icons/stargreen.svg";
 import Clipboard from "@/icons/double.svg";
 import Link2 from "@/icons/sharegreen.svg";
 import Image from "next/image";
+import Loader from "@/components/common/Loader";
 
 const Strategies = () => {
   const { data: session } = useSession();
@@ -39,40 +43,84 @@ const Strategies = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [starredItems, setStarredItems] = useState<boolean[]>([]);
+  const [sortBy, setSortBy] = useState("updated_at");
+  const [sortOrder, setSortOrder] = useState("desc");
+  const [perPage, setPerPage] = useState(10);
+
+  const fetched = useRef(false);
+  const isInitialMount = useRef(true);
+
+  const fetchStrategies = async () => {
+    if (session) {
+      try {
+        setLoading(true);
+        const res = await getStrategies(session, {
+          sort_by: sortBy,
+          sort_order: sortOrder,
+          per_page: perPage,
+          search: searchTerm,
+        });
+        setStrategies(res.data.strategies);
+        setStarredItems(
+          res.data.strategies.map((s: IStrategy) => {
+            const ownerCollaborator = s.collaborators?.find(c => c.type === 'owner');
+            return !!ownerCollaborator?.is_favourite;
+          })
+        );
+      } catch (error: any) {
+        setError(error.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
 
   useEffect(() => {
-    const fetchStrategies = async () => {
-      if (session) {
-        try {
-          setLoading(true);
-          const res = await getStrategies(session);
-          setStrategies(res.data.strategies);
-          setStarredItems(res.data.strategies.map((s: IStrategy) => s.is_favourite));
-        } catch (error: any) {
-          setError(error.message);
-        } finally {
-          setLoading(false);
-        }
-      }
-    };
-
-    fetchStrategies();
+    if (session && !fetched.current) {
+      fetched.current = true;
+      fetchStrategies();
+    }
   }, [session]);
+
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    const debounceFetch = setTimeout(() => {
+      fetchStrategies();
+    }, 500);
+    return () => clearTimeout(debounceFetch);
+  }, [searchTerm, sortBy, sortOrder, perPage]);
+
+  const handleSortChange = (value: string) => {
+    const [newSortBy, newSortOrder] = value.split(":");
+    setSortBy(newSortBy);
+    setSortOrder(newSortOrder || "desc");
+  };
 
   const toggleStar = async (index: number) => {
     const strategy = strategies[index];
-    const newIsFavourite = !starredItems[index];
-
     try {
-      await favouriteStrategy(strategy.id, newIsFavourite, session);
-      const updated = [...starredItems];
-      updated[index] = newIsFavourite;
-      setStarredItems(updated);
+      const res = await favouriteStrategy(strategy.id, session);
+      if (res.status) {
+        const updated = [...starredItems];
+        updated[index] = !!res.data.is_favourite;
+        setStarredItems(updated);
+      }
     } catch (error) {
       console.error("Failed to update favourite status", error);
     }
   };
   
+  const handleCopyStrategy = async (id: string) => {
+    try {
+      await copyStrategy(id, session);
+      fetchStrategies();
+    } catch (error) {
+      console.error("Failed to copy strategy", error);
+    }
+  };
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900">
       <Header />
@@ -80,9 +128,13 @@ const Strategies = () => {
         <Sidebar />
 
         <main className="flex-1 overflow-y-auto p-6">
-          {loading && <p>Loading...</p>}
-          {error && <p className="text-red-500">{error}</p>}
-          {!loading && !error && (
+          {loading ? (
+            <div className="flex h-full items-center justify-center">
+              <Loader text="Loading strategies..." />
+            </div>
+          ) : error ? (
+            <p className="text-red-500">{error}</p>
+          ) : (
             <>
               {/* Header Controls */}
               <div className="flex items-center justify-between mb-6">
@@ -100,7 +152,10 @@ const Strategies = () => {
 
                 {/* Filters */}
                 <div className="flex items-center space-x-4">
-                  <Select defaultValue="10">
+                  <Select
+                    onValueChange={(value) => setPerPage(parseInt(value, 10))}
+                    value={perPage.toString()}
+                  >
                     <SelectTrigger className="w-32">
                       <SelectValue />
                     </SelectTrigger>
@@ -111,14 +166,16 @@ const Strategies = () => {
                     </SelectContent>
                   </Select>
 
-                  <Select defaultValue="modified">
+                  <Select onValueChange={handleSortChange} value={`${sortBy}:${sortOrder}`}>
                     <SelectTrigger className="w-48">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="modified">Sort by: Last Modified</SelectItem>
-                      <SelectItem value="name">Sort by: Name</SelectItem>
-                      <SelectItem value="created">Sort by: Created</SelectItem>
+                      <SelectItem value="updated_at:desc">
+                        Sort by: Last Modified
+                      </SelectItem>
+                      <SelectItem value="name:asc">Sort by: Name</SelectItem>
+                      <SelectItem value="created_at:desc">Sort by: Created</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -156,7 +213,7 @@ const Strategies = () => {
                           width={400}
                           height={200}
                           className="w-full h-full object-cover rounded-[10px]"
-                          unoptimized // Optional: if you're loading from external URLs and don't want to configure a loader
+                          unoptimized
                         />
                       </div>
 
@@ -183,12 +240,18 @@ const Strategies = () => {
                               >
                                 <path
                                   strokeWidth="1.7"
-                                  d="M8.39 4.958C9.553 2.875 10.133 1.833 11 1.833s1.449 1.042 2.61 3.125l.3.539c.33.591.495.887.752 1.083s.578.267 1.219.412l.583.132c2.255.51 3.382.766 3.65 1.628.268.863-.5 1.761-2.037 3.559l-.398.465c-.437.51-.655.766-.753 1.082-.099.316-.066.657 0 1.338l.06.62c.233 2.399.35 3.598-.353 4.13-.702.534-1.758.048-3.869-.924l-.546-.252c-.6-.276-.9-.414-1.218-.414s-.618.138-1.218.414l-.546.252c-2.11.972-3.166 1.458-3.869.925-.702-.533-.586-1.732-.353-4.13l.06-.62c.066-.682.099-1.023 0-1.34-.098-.315-.316-.57-.753-1.081l-.397-.465c-1.538-1.798-2.306-2.696-2.038-3.559.268-.862 1.396-1.118 3.65-1.628l.584-.132c.64-.145.96-.217 1.218-.412.257-.196.422-.492.752-1.083z"
+                                  d="M8.39 4.958C9.553 2.875 10.133 1.833 11 1.833s1.449 1.042 2.61 3.125l.3.539c.33.591.495.887.752 1.083s.578.267 1.219.412l.583.132c2.255.51 3.382.766 3.65 1.628.268.863-.5 1.761-2.037 3.559l-.398.465c-.437.51-.655.766-.753 1.082-.099.316-.066.657 0 1.338l.06.62c.233 2.399.35 3.598-.353 4.13-.702.534-1.758.048-3.869-.924l-.546-.252c-.6-.276-.9-.414-1.218-.414s-.618.138-1.218.414l-.546-.252c-2.11.972-3.166 1.458-3.869.925-.702-.533-.586-1.732-.353-4.13l.06-.62c.066-.682.099-1.023 0-1.34-.098-.315-.316-.57-.753-1.081l-.397-.465c-1.538-1.798-2.306-2.696-2.038-3.559.268-.862 1.396-1.118 3.65-1.628l.584-.132c.64-.145.96-.217 1.218-.412.257-.196.422-.492.752-1.083z"
                                 />
                               </svg>
                             </button>
 
-                            <Clipboard className="h-6 w-5" />
+                            <Clipboard
+                              className="h-6 w-5"
+                              onClick={(e: React.MouseEvent) => {
+                                e.stopPropagation();
+                                handleCopyStrategy(strategy.id);
+                              }}
+                            />
                             <Link2 className="h-6 w-5" />
                           </div>
                         </div>

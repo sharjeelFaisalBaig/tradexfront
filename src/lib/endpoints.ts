@@ -58,5 +58,27 @@ export const endpoints = {
         TOGGLE: (id: string) => `${API_BASE_PATH}/strategies/${id}/toggle`,
         FAVOURITE: (id: string) => `${API_BASE_PATH}/strategies/${id}/favourite`,
         UPDATE: (id: string) => `${API_BASE_PATH}/strategies/${id}`,
+        SEND_INVITATION: (id: string) => `${API_BASE_PATH}/strategies/${id}/invite`,
+        GET_MY_INVITATIONS: `${API_BASE_PATH}/strategies/invitations`,
+        ACCEPT_INVITATION: (id: string) => `${API_BASE_PATH}/strategies/invitations/${id}/accept`,
+        REJECT_INVITATION: (id: string) => `${API_BASE_PATH}/strategies/invitations/${id}/reject`,
+        GET_STRATEGY_INVITATIONS: (id: string) => `${API_BASE_PATH}/strategies/${id}/invitations`,
+        GET_SUBSCRIBED_USERS: `${API_BASE_PATH}/strategies/sharing/users`,
+        MOVE_TO_FOLDER: (id: string) => `${API_BASE_PATH}/strategies/${id}/move-to-folder`,
+    },
+    TEMPLATE: {
+        TOGGLE: (id: string) => `${API_BASE_PATH}/strategies/${id}/template`,
+        LIST: `${API_BASE_PATH}/templates`,
+        USE: (id: string) => `${API_BASE_PATH}/templates/${id}/use`,
+        GET: (id: string) => `${API_BASE_PATH}/templates/${id}/details`,
+    },
+    FOLDER: {
+        LIST: `${API_BASE_PATH}/folders`,
+        CREATE: `${API_BASE_PATH}/folders`,
+        GET: (id: string) => `${API_BASE_PATH}/folders/${id}`,
+        UPDATE: (id: string) => `${API_BASE_PATH}/folders/${id}`,
+        MOVE: (id: string) => `${API_BASE_PATH}/folders/${id}/move`,
+        DELETE: (id: string) => `${API_BASE_PATH}/folders/${id}`,
+        GET_STRATEGIES: (id: string) => `${API_BASE_PATH}/folders/${id}/strategies`,
     }
 }
