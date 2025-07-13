@@ -29,6 +29,7 @@ import {
 import { cn } from "@/lib/utils";
 import NodeWrapper from "./common/NodeWrapper";
 import { useUploadImageContent } from "@/hooks/strategy/useStrategyMutations";
+import { useParams } from "next/navigation";
 
 // Types for API integration
 interface AIProcessingResponse {
@@ -51,7 +52,10 @@ export default function ImageUploadNode({
   targetPosition = Position.Right,
   data,
 }: any) {
-  const { mutate: uploadImageContent } = useUploadImageContent();
+  const { mutate: uploadImageContent, isPending: isUploading } =
+    useUploadImageContent();
+
+  const strategyId = useParams()?.slug as string;
 
   const nodeControlRef = useRef(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -137,17 +141,63 @@ export default function ImageUploadNode({
     }
   };
 
+  // const handleFileSelect = (file: File) => {
+  //   if (file && file.type.startsWith("image/")) {
+  //     const reader = new FileReader();
+  //     reader.onload = (e) => {
+  //       const imageData = e.target?.result as string;
+  //       setUploadedImage(imageData);
+  //       setFileName(file.name);
+  //       // Auto-process uploaded images
+  //       processImageWithAI(imageData, file.name);
+  //     };
+  //     reader.readAsDataURL(file);
+  //   }
+  // };
+
   const handleFileSelect = (file: File) => {
     if (file && file.type.startsWith("image/")) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const imageData = e.target?.result as string;
-        setUploadedImage(imageData);
-        setFileName(file.name);
-        // Auto-process uploaded images
-        processImageWithAI(imageData, file.name);
-      };
-      reader.readAsDataURL(file);
+      setProcessingState({
+        isProcessing: true,
+        isComplete: false,
+        error: null,
+      });
+      setFileName(file.name);
+
+      console.log({ file });
+
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("title", "");
+      formData.append("description", "");
+
+      uploadImageContent(
+        {
+          strategyId: strategyId,
+          peerId: data?.id,
+          data: formData,
+        },
+        {
+          onSuccess: (response: any) => {
+            // Adjust this based on your API response structure
+            setUploadedImage(response?.imageUrl || null);
+            setProcessingState({
+              isProcessing: false,
+              isComplete: true,
+              error: null,
+            });
+            // Optionally, trigger AI processing here if needed
+            // processImageWithAI(response?.imageUrl, file.name);
+          },
+          onError: (error: any) => {
+            setProcessingState({
+              isProcessing: false,
+              isComplete: false,
+              error: error?.message || "Image upload failed",
+            });
+          },
+        }
+      );
     }
   };
 
@@ -310,7 +360,7 @@ export default function ImageUploadNode({
                   {/* Header with AI Title or Processing State */}
                   <div className="bg-gray-100 px-4 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      {processingState.isProcessing ? (
+                      {isUploading || processingState.isProcessing ? (
                         <div className="flex items-center gap-2">
                           <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
                           <span className="text-sm font-medium text-gray-700">
@@ -393,7 +443,7 @@ export default function ImageUploadNode({
                       </Button>
 
                       {/* Processing Overlay */}
-                      {processingState.isProcessing && (
+                      {(isUploading || processingState.isProcessing) && (
                         <div className="absolute inset-0 bg-black bg-opacity-50 rounded-lg flex items-center justify-center">
                           <div className="bg-white p-4 rounded-lg shadow-lg flex flex-col items-center">
                             <Loader2 className="w-8 h-8 animate-spin text-blue-600 mb-2" />

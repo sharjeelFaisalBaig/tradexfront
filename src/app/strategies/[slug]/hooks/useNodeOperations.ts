@@ -102,33 +102,52 @@ export const useNodeOperations = () => {
         data: { position_x: position.x, position_y: position.y }, // you can also add label/title etc.
       };
 
+      const addNodeWithResponse = (responseData: any) => {
+        setNodes((nodes) => [
+          ...nodes,
+          { ...newNode, data: { ...newNode.data, ...responseData?.data } },
+        ]);
+      };
+
       switch (tool) {
         case "image":
-          createImagePeer(payload);
+          createImagePeer(payload, {
+            onSuccess: (data) => addNodeWithResponse(data),
+          });
           break;
         case "audio":
-          createAudioPeer(payload);
+          createAudioPeer(payload, {
+            onSuccess: (data) => addNodeWithResponse(data),
+          });
           break;
         case "video":
-          createVideoPeer(payload);
+          createVideoPeer(payload, {
+            onSuccess: (data) => addNodeWithResponse(data),
+          });
           break;
         case "document":
-          createDocumentPeer(payload);
+          createDocumentPeer(payload, {
+            onSuccess: (data) => addNodeWithResponse(data),
+          });
           break;
         case "social":
-          createSocialPeer(payload);
+          createSocialPeer(payload, {
+            onSuccess: (data) => addNodeWithResponse(data),
+          });
           break;
         case "remote":
-          createRemotePeer(payload);
+          createRemotePeer(payload, {
+            onSuccess: (data) => addNodeWithResponse(data),
+          });
           break;
         case "AI Assistant":
-          createThreadPeer(payload);
+          createThreadPeer(payload, {
+            onSuccess: (data) => addNodeWithResponse(data),
+          });
           break;
         default:
           break;
       }
-
-      setNodes((nodes) => [...nodes, newNode]);
     },
     [setNodes, createImagePeer, createVideoPeer, createDocumentPeer]
   );

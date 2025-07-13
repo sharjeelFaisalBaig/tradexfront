@@ -100,7 +100,8 @@ export const uploadImageContent = async ({
 }) => {
   const res = await axiosInstance.post(
     endpoints.STRATEGY.UPLOAD_IMAGE_CONTENT({ strategyId, peerId }),
-    data
+    data,
+    { headers: { "Content-Type": "multipart/form-data" } }
   );
   return res.data;
 };
@@ -149,6 +150,98 @@ export const uploadDocumentContent = async ({
   const res = await axiosInstance.post(
     endpoints.STRATEGY.UPLOAD_DOCUMENT_CONTENT({ strategyId, peerId }),
     data
+  );
+  return res.data;
+};
+
+// Delete peer content APIs
+export const deleteImagePeer = async ({
+  strategyId,
+  peerId,
+}: {
+  strategyId: string;
+  peerId: string;
+}) => {
+  const res = await axiosInstance.delete(
+    endpoints.STRATEGY.DELETE_IMAGE_PEER(strategyId, peerId)
+  );
+  return res.data;
+};
+
+export const deleteAudioPeer = async ({
+  strategyId,
+  peerId,
+}: {
+  strategyId: string;
+  peerId: string;
+}) => {
+  const res = await axiosInstance.delete(
+    endpoints.STRATEGY.DELETE_AUDIO_PEER(strategyId, peerId)
+  );
+  return res.data;
+};
+
+export const deleteVideoPeer = async ({
+  strategyId,
+  peerId,
+}: {
+  strategyId: string;
+  peerId: string;
+}) => {
+  const res = await axiosInstance.delete(
+    endpoints.STRATEGY.DELETE_VIDEO_PEER(strategyId, peerId)
+  );
+  return res.data;
+};
+
+export const deleteDocumentPeer = async ({
+  strategyId,
+  peerId,
+}: {
+  strategyId: string;
+  peerId: string;
+}) => {
+  const res = await axiosInstance.delete(
+    endpoints.STRATEGY.DELETE_DOCUMENT_PEER(strategyId, peerId)
+  );
+  return res.data;
+};
+
+export const deleteSocialPeer = async ({
+  strategyId,
+  peerId,
+}: {
+  strategyId: string;
+  peerId: string;
+}) => {
+  const res = await axiosInstance.delete(
+    endpoints.STRATEGY.DELETE_SOCIAL_PEER(strategyId, peerId)
+  );
+  return res.data;
+};
+
+export const deleteRemotePeer = async ({
+  strategyId,
+  peerId,
+}: {
+  strategyId: string;
+  peerId: string;
+}) => {
+  const res = await axiosInstance.delete(
+    endpoints.STRATEGY.DELETE_REMOTE_PEER(strategyId, peerId)
+  );
+  return res.data;
+};
+
+export const deleteThreadPeer = async ({
+  strategyId,
+  peerId,
+}: {
+  strategyId: string;
+  peerId: string;
+}) => {
+  const res = await axiosInstance.delete(
+    endpoints.STRATEGY.DELETE_THREAD_PEER(strategyId, peerId)
   );
   return res.data;
 };

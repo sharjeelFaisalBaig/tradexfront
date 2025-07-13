@@ -16,6 +16,13 @@ import {
   uploadVideoContent,
   uploadDocumentContent,
   uploadImageContent,
+  deleteImagePeer,
+  deleteAudioPeer,
+  deleteVideoPeer,
+  deleteDocumentPeer,
+  deleteSocialPeer,
+  deleteRemotePeer,
+  deleteThreadPeer,
 } from "@/services/strategy/strategy_Mutation";
 import { IStrategy } from "@/lib/types";
 import { QUERY_KEYS } from "@/lib/queryKeys";
@@ -240,6 +247,139 @@ export const useUploadDocumentContent = () => {
       peerId: string;
       data: any;
     }) => uploadDocumentContent({ strategyId, peerId, data }),
+    onSuccess: (_data, { strategyId }) => {
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.STRATEGY, strategyId],
+      });
+    },
+  });
+};
+
+// Delete Image Peer
+export const useDeleteImagePeer = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      strategyId,
+      peerId,
+    }: {
+      strategyId: string;
+      peerId: string;
+    }) => deleteImagePeer({ strategyId, peerId }),
+    onSuccess: (_data, { strategyId }) => {
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.STRATEGY, strategyId],
+      });
+    },
+  });
+};
+
+// Delete Audio Peer
+export const useDeleteAudioPeer = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      strategyId,
+      peerId,
+    }: {
+      strategyId: string;
+      peerId: string;
+    }) => deleteAudioPeer({ strategyId, peerId }),
+    onSuccess: (_data, { strategyId }) => {
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.STRATEGY, strategyId],
+      });
+    },
+  });
+};
+
+// Delete Video Peer
+export const useDeleteVideoPeer = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      strategyId,
+      peerId,
+    }: {
+      strategyId: string;
+      peerId: string;
+    }) => deleteVideoPeer({ strategyId, peerId }),
+    onSuccess: (_data, { strategyId }) => {
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.STRATEGY, strategyId],
+      });
+    },
+  });
+};
+
+// Delete Document Peer
+export const useDeleteDocumentPeer = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      strategyId,
+      peerId,
+    }: {
+      strategyId: string;
+      peerId: string;
+    }) => deleteDocumentPeer({ strategyId, peerId }),
+    onSuccess: (_data, { strategyId }) => {
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.STRATEGY, strategyId],
+      });
+    },
+  });
+};
+
+// Delete Social Peer
+export const useDeleteSocialPeer = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      strategyId,
+      peerId,
+    }: {
+      strategyId: string;
+      peerId: string;
+    }) => deleteSocialPeer({ strategyId, peerId }),
+    onSuccess: (_data, { strategyId }) => {
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.STRATEGY, strategyId],
+      });
+    },
+  });
+};
+
+// Delete Remote Peer
+export const useDeleteRemotePeer = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      strategyId,
+      peerId,
+    }: {
+      strategyId: string;
+      peerId: string;
+    }) => deleteRemotePeer({ strategyId, peerId }),
+    onSuccess: (_data, { strategyId }) => {
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.STRATEGY, strategyId],
+      });
+    },
+  });
+};
+
+// Delete Thread Peer
+export const useDeleteThreadPeer = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      strategyId,
+      peerId,
+    }: {
+      strategyId: string;
+      peerId: string;
+    }) => deleteThreadPeer({ strategyId, peerId }),
     onSuccess: (_data, { strategyId }) => {
       queryClient.invalidateQueries({
         queryKey: [QUERY_KEYS.STRATEGY, strategyId],
