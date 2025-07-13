@@ -544,7 +544,10 @@ export default function VideoUploadNode({
 
   return (
     <>
-      <NodeWrapper id={id} className="bg-white">
+      <NodeWrapper
+        id={id}
+        className={cn("bg-white", uploadedVideo ? "h-[1px]" : "h-[2px]")}
+      >
         <div className="react-flow__node">
           <div ref={nodeControlRef} className={`nodrag`} />
 

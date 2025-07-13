@@ -418,7 +418,10 @@ export default function RemoteNode({
   }, [canConnect, id, setEdges]);
 
   return (
-    <NodeWrapper id={id} className="bg-white">
+    <NodeWrapper
+      id={id}
+      className={cn("bg-white", websiteData ? "h-[2px]" : "h-[1px]")}
+    >
       <div className="react-flow__node">
         <div ref={nodeControlRef} className={`nodrag`} />
         <TooltipProvider>

@@ -610,7 +610,13 @@ export default function AudioPlayerNode({
   }, [canConnect, id, setEdges]);
 
   return (
-    <NodeWrapper id={id} className="bg-white">
+    <NodeWrapper
+      id={id}
+      className={cn(
+        "bg-white",
+        uploadedAudio || showRecordingInterface ? "h-[2px]" : "h-[1px]"
+      )}
+    >
       <div className="react-flow__node">
         <div ref={nodeControlRef} className={`nodrag`} />
         <TooltipProvider>

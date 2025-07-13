@@ -437,7 +437,10 @@ export default function SocialMediaNode({
 
   return (
     <>
-      <NodeWrapper id={id} className="bg-white">
+      <NodeWrapper
+        id={id}
+        className={cn("bg-white", socialMediaData ? "h-[1px]" : "h-[2px]")}
+      >
         <div className="react-flow__node">
           <div ref={nodeControlRef} className={`nodrag`} />
 
