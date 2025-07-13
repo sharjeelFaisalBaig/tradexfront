@@ -20,6 +20,20 @@ declare module "next-auth" {
   }
 }
 
+export interface IStrategyFlow {
+  id: string;
+  is_active: boolean;
+  last_opened_at: string;
+  created_at: string;
+  aiImagePeers: any[];
+  aiVideoPeers: any[];
+  aiAudioPeers: any[];
+  aiDocsPeers: any[];
+  aiRemotePeers: any[];
+  aiSocialMediaPeers: any[];
+  aiThreadPeers: any[];
+}
+
 export interface IStrategy {
   id: string;
   name: string;
@@ -31,6 +45,7 @@ export interface IStrategy {
   updated_at: string;
   is_active: boolean;
   is_favourite?: boolean;
+  flows?: IStrategyFlow[];
 }
 
 export type Tool = "image" | "video" | "document" | "AI Assistant" | string;

@@ -29,7 +29,16 @@ import NewStrategyModal from "@/components/modal/NewStrategyModal";
 import { useGetStrategyById } from "@/hooks/strategy/useStrategyQueries";
 import Loader from "@/components/common/Loader";
 import ChartNode from "./ChartNode";
-import { useSavePeerPositions } from "@/hooks/strategy/useStrategyMutations";
+import {
+  useSavePeerPositions,
+  useCreateImagePeer,
+  useCreateAudioPeer,
+  useCreateVideoPeer,
+  useCreateDocumentPeer,
+  useCreateSocialPeer,
+  useCreateThreadPeer,
+  useCreateRemotePeer,
+} from "@/hooks/strategy/useStrategyMutations";
 
 const nodeDefaults = {
   sourcePosition: Position.Right,
@@ -145,8 +154,146 @@ const Strategy = (props: StrategyProps) => {
 
   const { mutate: savePositions } = useSavePeerPositions();
 
+  // Peer creation mutations
+  const { mutate: createImagePeer } = useCreateImagePeer();
+  const { mutate: createAudioPeer } = useCreateAudioPeer();
+  const { mutate: createVideoPeer } = useCreateVideoPeer();
+  const { mutate: createDocumentPeer } = useCreateDocumentPeer();
+  const { mutate: createSocialPeer } = useCreateSocialPeer();
+  const { mutate: createThreadPeer } = useCreateThreadPeer();
+  const { mutate: createRemotePeer } = useCreateRemotePeer();
+
   const { data, isLoading, isError, error } = useGetStrategyById(slug);
   const strategy: IStrategy = useMemo(() => data?.data, [data]);
+
+  // Handle initial node creation and loading from flows
+  useEffect(() => {
+    if (!strategy) return;
+
+    // Helper to check if flows is empty (all peer arrays are empty)
+    const flows = strategy.flows;
+    const isEmptyFlows =
+      Array.isArray(flows) &&
+      flows.length > 0 &&
+      [
+        "aiImagePeers",
+        "aiVideoPeers",
+        "aiAudioPeers",
+        "aiDocsPeers",
+        "aiRemotePeers",
+        "aiSocialMediaPeers",
+        "aiThreadPeers",
+      ].every(
+        (key) =>
+          Array.isArray((flows[0] as any)[key]) &&
+          (flows[0] as any)[key].length === 0
+      );
+
+    if (!flows || flows.length === 0 || isEmptyFlows) {
+      // Create all initial nodes as peers
+      initialNodes.forEach((node) => {
+        switch (node.type) {
+          case "imageUploadNode":
+            createImagePeer({
+              strategyId: strategy.id,
+              data: {
+                title: node.data.label,
+                position_x: node.position.x,
+                position_y: node.position.y,
+              },
+            });
+            break;
+          case "audioPlayerNode":
+            createAudioPeer({
+              strategyId: strategy.id,
+              data: {
+                title: node.data.label,
+                position_x: node.position.x,
+                position_y: node.position.y,
+              },
+            });
+            break;
+          case "videoUploadNode":
+            createVideoPeer({
+              strategyId: strategy.id,
+              data: {
+                title: node.data.label,
+                position_x: node.position.x,
+                position_y: node.position.y,
+              },
+            });
+            break;
+          case "documentUploadNode":
+            createDocumentPeer({
+              strategyId: strategy.id,
+              data: {
+                title: node.data.label,
+                position_x: node.position.x,
+                position_y: node.position.y,
+              },
+            });
+            break;
+          case "socialMediaNode":
+            createSocialPeer({
+              strategyId: strategy.id,
+              data: {
+                title: node.data.label,
+                position_x: node.position.x,
+                position_y: node.position.y,
+              },
+            });
+            break;
+          case "threadNode":
+            createThreadPeer({
+              strategyId: strategy.id,
+              data: {
+                title: node.data?.label || "AI Assistant",
+                position_x: node.position.x,
+                position_y: node.position.y,
+              },
+            });
+            break;
+          case "remoteNode":
+            createRemotePeer({
+              strategyId: strategy.id,
+              data: {
+                title: node.data.label,
+                position_x: node.position.x,
+                position_y: node.position.y,
+              },
+            });
+            break;
+          default:
+            break;
+        }
+      });
+    } else {
+      // If flows exist, set nodes from flows
+      const flow = flows[0];
+      if (!flow) return;
+      const nodesFromFlows: any[] = [];
+      const pushNodes = (peers: any[], type: string, labelKey = "title") => {
+        if (!Array.isArray(peers)) return;
+        peers.forEach((peer) => {
+          nodesFromFlows.push({
+            id: peer.id,
+            type,
+            position: { x: peer.position_x, y: peer.position_y },
+            data: { label: peer[labelKey] || type },
+            ...nodeDefaults,
+          });
+        });
+      };
+      pushNodes(flow.aiImagePeers, "imageUploadNode");
+      pushNodes(flow.aiAudioPeers, "audioPlayerNode");
+      pushNodes(flow.aiVideoPeers, "videoUploadNode");
+      pushNodes(flow.aiDocsPeers, "documentUploadNode");
+      pushNodes(flow.aiSocialMediaPeers, "socialMediaNode");
+      pushNodes(flow.aiRemotePeers, "remoteNode");
+      pushNodes(flow.aiThreadPeers, "threadNode");
+      setNodes(nodesFromFlows);
+    }
+  }, [strategy]);
 
   useEffect(() => {
     if (error) {

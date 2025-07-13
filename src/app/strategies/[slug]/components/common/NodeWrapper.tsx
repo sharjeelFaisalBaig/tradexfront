@@ -26,8 +26,6 @@ export default function NodeWrapper({
 }: NodeWrapperProps) {
   const { deleteNode } = useNodeOperations();
 
-  console.log(type, { strategyId, type, id });
-
   // Handle delete
   const handleDelete = (e: React.MouseEvent) => {
     e.preventDefault();

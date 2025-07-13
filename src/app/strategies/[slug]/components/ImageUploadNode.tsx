@@ -52,7 +52,7 @@ export default function ImageUploadNode({
   targetPosition = Position.Right,
   data,
 }: any) {
-  console.log("ImageUploadNode data:", data);
+  // console.log("ImageUploadNode data:", data);
 
   const { mutate: uploadImageContent, isPending: isUploading } =
     useUploadImageContent();
@@ -80,8 +80,6 @@ export default function ImageUploadNode({
     null
   );
   const [userNotes, setUserNotes] = useState<string>("");
-
-  console.log({ processingState, aiResponse, uploadedImage, data });
 
   // Handle pasted image data from props
   useEffect(() => {
@@ -165,8 +163,6 @@ export default function ImageUploadNode({
         error: null,
       });
       setFileName(file.name);
-
-      console.log({ file });
 
       const formData = new FormData();
       formData.append("file", file);

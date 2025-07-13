@@ -191,14 +191,14 @@ export default function AudioPlayerNode({
     if (!audio || !uploadedAudio) return;
 
     const handleLoadedMetadata = () => {
-      console.log("Audio metadata loaded, duration:", audio.duration);
+      // console.log("Audio metadata loaded, duration:", audio.duration);
       setDuration(audio.duration);
       setIsLoading(false);
     };
 
     const handleTimeUpdate = () => {
       const newCurrentTime = audio.currentTime;
-      console.log("Time update:", newCurrentTime, "Duration:", audio.duration);
+      // console.log("Time update:", newCurrentTime, "Duration:", audio.duration);
       setCurrentTime(newCurrentTime);
 
       // Double-check duration if it's not set
@@ -213,22 +213,22 @@ export default function AudioPlayerNode({
     };
 
     const handleLoadStart = () => {
-      console.log("Audio loading started");
+      // console.log("Audio loading started");
       setIsLoading(true);
     };
 
     const handleCanPlay = () => {
-      console.log("Audio can play");
+      // console.log("Audio can play");
       setIsLoading(false);
     };
 
     const handleError = (e: any) => {
-      console.error("Audio error:", e);
+      // console.error("Audio error:", e);
       setIsLoading(false);
     };
 
     const handleLoadedData = () => {
-      console.log("Audio data loaded");
+      // console.log("Audio data loaded");
       if (audio.duration && !isNaN(audio.duration)) {
         setDuration(audio.duration);
         setIsLoading(false);
