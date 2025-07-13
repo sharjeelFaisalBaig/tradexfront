@@ -29,6 +29,7 @@ import NewStrategyModal from "@/components/modal/NewStrategyModal";
 import { useGetStrategyById } from "@/hooks/strategy/useStrategyQueries";
 import Loader from "@/components/common/Loader";
 import ChartNode from "./ChartNode";
+import { useSavePeerPositions } from "@/hooks/strategy/useStrategyMutations";
 
 const nodeDefaults = {
   sourcePosition: Position.Right,
@@ -141,6 +142,8 @@ const Strategy = (props: StrategyProps) => {
 
   const [showNewStrategyModal, setShowNewStrategyModal] =
     useState<boolean>(false);
+
+  const { mutate: savePositions } = useSavePeerPositions();
 
   const { data, isLoading, isError, error } = useGetStrategyById(slug);
   const strategy: IStrategy = useMemo(() => data?.data, [data]);

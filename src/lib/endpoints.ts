@@ -68,6 +68,10 @@ export const endpoints = {
     FAVOURITE: (id: string) => `${API_BASE_PATH}/strategies/${id}/favourite`,
     UPDATE: (id: string) => `${API_BASE_PATH}/strategies/${id}`,
 
+    // board batch save peer positions
+    SAVE_PEER_POSITIONS: (id: string) =>
+      `/strategies/${id}/peers/save-positions`,
+
     // board create peer endpoints
     CREATE_IMAGE_PEER: (id: string) => `/strategies/${id}/peers/image`,
     CREATE_AUDIO_PEER: (id: string) => `/strategies/${id}/peers/audio`,

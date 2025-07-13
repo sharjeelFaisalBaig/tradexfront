@@ -31,6 +31,24 @@ export const favouriteStrategy = async (id: string, is_favourite: boolean) => {
   return res.data;
 };
 
+export const savePeerPositions = async ({
+  strategyId,
+  positions,
+}: {
+  strategyId: string;
+  positions: Array<{
+    peer_id: string;
+    position_x: number;
+    position_y: number;
+  }>;
+}) => {
+  const res = await axiosInstance.post(
+    endpoints.STRATEGY.SAVE_PEER_POSITIONS(strategyId),
+    { positions }
+  );
+  return res.data;
+};
+
 // Board Peers API calls
 export const createImagePeer = async (strategyId: string, data: any) => {
   const res = await axiosInstance.post(

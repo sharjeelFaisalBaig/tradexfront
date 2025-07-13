@@ -23,6 +23,7 @@ import {
   deleteSocialPeer,
   deleteRemotePeer,
   deleteThreadPeer,
+  savePeerPositions,
 } from "@/services/strategy/strategy_Mutation";
 import { IStrategy } from "@/lib/types";
 import { QUERY_KEYS } from "@/lib/queryKeys";
@@ -76,6 +77,28 @@ export const useFavouriteStrategy = () => {
       favouriteStrategy(id, is_favourite),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.STRATEGIES] });
+    },
+  });
+};
+
+export const useSavePeerPositions = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      strategyId,
+      positions,
+    }: {
+      strategyId: string;
+      positions: Array<{
+        peer_id: string;
+        position_x: number;
+        position_y: number;
+      }>;
+    }) => savePeerPositions({ strategyId, positions }),
+    onSuccess: (_data, { strategyId }) => {
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.STRATEGY, strategyId],
+      });
     },
   });
 };
