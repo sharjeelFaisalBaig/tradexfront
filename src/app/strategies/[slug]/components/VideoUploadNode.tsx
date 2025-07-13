@@ -38,6 +38,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import NodeWrapper from "./common/NodeWrapper";
+import { useParams } from "next/navigation";
 
 // Types for AI integration
 interface AIProcessingResponse {
@@ -92,6 +93,8 @@ export default function VideoUploadNode({
   targetPosition = Position.Right,
   data,
 }: any) {
+  const strategyId = useParams()?.slug as string;
+
   const nodeControlRef = useRef(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -546,6 +549,8 @@ export default function VideoUploadNode({
     <>
       <NodeWrapper
         id={id}
+        strategyId={strategyId}
+        type="videoUploadNode"
         className={cn("bg-white", uploadedVideo ? "h-[1px]" : "h-[2px]")}
       >
         <div className="react-flow__node">

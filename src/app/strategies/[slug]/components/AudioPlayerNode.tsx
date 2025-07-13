@@ -43,6 +43,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import NodeWrapper from "./common/NodeWrapper";
+import { useParams } from "next/navigation";
 
 // Types for AI integration
 interface AIProcessingResponse {
@@ -75,6 +76,8 @@ export default function AudioPlayerNode({
   targetPosition = Position.Right,
   data,
 }: any) {
+  const strategyId = useParams()?.slug as string;
+
   const nodeControlRef = useRef(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -612,6 +615,8 @@ export default function AudioPlayerNode({
   return (
     <NodeWrapper
       id={id}
+      type="audioPlayerNode"
+      strategyId={strategyId}
       className={cn(
         "bg-white",
         uploadedAudio || showRecordingInterface ? "h-[2px]" : "h-[1px]"

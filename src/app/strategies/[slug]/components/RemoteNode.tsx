@@ -34,6 +34,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import NodeWrapper from "./common/NodeWrapper";
+import { useParams } from "next/navigation";
 
 // Types for AI integration
 interface AIProcessingResponse {
@@ -75,6 +76,8 @@ export default function RemoteNode({
   targetPosition = Position.Right,
   data,
 }: any) {
+  const strategyId = useParams()?.slug as string;
+
   const nodeControlRef = useRef(null);
   const { setEdges } = useReactFlow();
 
@@ -417,9 +420,13 @@ export default function RemoteNode({
     }
   }, [canConnect, id, setEdges]);
 
+  console.log({ id, data });
+
   return (
     <NodeWrapper
       id={id}
+      type="remoteNode"
+      strategyId={strategyId}
       className={cn("bg-white", websiteData ? "h-[2px]" : "h-[1px]")}
     >
       <div className="react-flow__node">

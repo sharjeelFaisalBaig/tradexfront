@@ -52,6 +52,8 @@ export default function ImageUploadNode({
   targetPosition = Position.Right,
   data,
 }: any) {
+  console.log("ImageUploadNode data:", data);
+
   const { mutate: uploadImageContent, isPending: isUploading } =
     useUploadImageContent();
 
@@ -285,6 +287,8 @@ export default function ImageUploadNode({
     <>
       <NodeWrapper
         id={id}
+        type="imageUploadNode"
+        strategyId={strategyId}
         className={cn("bg-white", uploadedImage ? "h-[1px]" : "h-[2px]")}
       >
         <div className="relative react-flow__node">

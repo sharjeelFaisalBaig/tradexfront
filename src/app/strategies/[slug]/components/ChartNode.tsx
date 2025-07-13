@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import NodeWrapper from "./common/NodeWrapper";
+import { useParams } from "next/navigation";
 
 // Types for API integration
 interface AIProcessingResponse {
@@ -50,6 +51,8 @@ export default function ChartNode({
   targetPosition = Position.Right,
   data,
 }: any) {
+  const strategyId = useParams()?.slug as string;
+
   const nodeControlRef = useRef(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { setEdges } = useReactFlow();
@@ -230,6 +233,8 @@ export default function ChartNode({
     <>
       <NodeWrapper
         id={id}
+        type="chartNode"
+        strategyId={strategyId}
         className={cn("bg-white", uploadedImage ? "h-[1px]" : "h-[2px]")}
       >
         <div className="relative react-flow__node">

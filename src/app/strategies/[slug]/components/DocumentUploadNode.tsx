@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import NodeWrapper from "./common/NodeWrapper";
+import { useParams } from "next/navigation";
 
 // Types for AI integration
 interface AIProcessingResponse {
@@ -124,6 +125,8 @@ export default function DocumentUploadNode({
   targetPosition = Position.Right,
   data,
 }: any) {
+  const strategyId = useParams()?.slug as string;
+
   const nodeControlRef = useRef(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { setEdges } = useReactFlow();
@@ -414,7 +417,8 @@ export default function DocumentUploadNode({
     <>
       <NodeWrapper
         id={id}
-        // className="bg-white"
+        type="documentUploadNode"
+        strategyId={strategyId}
         className={cn("bg-white", uploadedDocument ? "h-[1px]" : "h-[2px]")}
       >
         <div className="react-flow__node">

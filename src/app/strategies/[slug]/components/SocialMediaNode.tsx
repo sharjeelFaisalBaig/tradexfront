@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import NodeWrapper from "./common/NodeWrapper";
+import { useParams } from "next/navigation";
 
 // Types for AI integration
 interface AIProcessingResponse {
@@ -130,6 +131,8 @@ export default function SocialMediaNode({
   targetPosition = Position.Right,
   data,
 }: any) {
+  const strategyId = useParams()?.slug as string;
+
   const nodeControlRef = useRef(null);
   const { setEdges } = useReactFlow();
 
@@ -439,6 +442,8 @@ export default function SocialMediaNode({
     <>
       <NodeWrapper
         id={id}
+        strategyId={strategyId}
+        type="socialMediaNode"
         className={cn("bg-white", socialMediaData ? "h-[1px]" : "h-[2px]")}
       >
         <div className="react-flow__node">

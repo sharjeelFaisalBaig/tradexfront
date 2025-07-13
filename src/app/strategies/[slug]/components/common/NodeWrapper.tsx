@@ -11,6 +11,8 @@ interface NodeWrapperProps {
   className?: string;
   showDeleteButton?: boolean;
   onDelete?: () => void;
+  strategyId: string;
+  type: string;
 }
 
 export default function NodeWrapper({
@@ -19,8 +21,12 @@ export default function NodeWrapper({
   className = "",
   showDeleteButton = true,
   onDelete,
+  strategyId,
+  type,
 }: NodeWrapperProps) {
   const { deleteNode } = useNodeOperations();
+
+  console.log(type, { strategyId, type, id });
 
   // Handle delete
   const handleDelete = (e: React.MouseEvent) => {
@@ -29,7 +35,7 @@ export default function NodeWrapper({
     if (onDelete) {
       onDelete();
     } else {
-      deleteNode(id);
+      deleteNode(id, type, strategyId); // (nodeId, nodeType, strategyId)
     }
   };
 

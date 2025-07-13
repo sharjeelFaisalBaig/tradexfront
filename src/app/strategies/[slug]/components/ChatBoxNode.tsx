@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import AIResponseLoader from "@/components/common/ai-response-loader";
 import NodeWrapper from "./common/NodeWrapper";
+import { useParams } from "next/navigation";
 
 // Message type definition
 type Message = {
@@ -61,6 +62,8 @@ export default function ChatBoxNode({
   targetPosition = Position.Right,
   data,
 }: any) {
+  const strategyId = useParams()?.slug as string;
+
   const nodeControlRef = useRef(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -417,7 +420,12 @@ export default function ChatBoxNode({
 
   return (
     <>
-      <NodeWrapper id={id} className="bg-white">
+      <NodeWrapper
+        id={id}
+        strategyId={strategyId}
+        type="chatbox"
+        className="bg-white"
+      >
         <div className="react-flow__node nowheel">
           <div ref={nodeControlRef} className={`nodrag`} />
 

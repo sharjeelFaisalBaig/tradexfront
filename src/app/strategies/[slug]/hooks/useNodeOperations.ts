@@ -11,7 +11,15 @@ import {
   useCreateAudioPeer,
   useCreateSocialPeer,
   useCreateRemotePeer,
-} from "@/hooks/strategy/useStrategyMutations"; // import your mutations
+  useDeleteImagePeer,
+  useDeleteAudioPeer,
+  useDeleteVideoPeer,
+  useDeleteDocumentPeer,
+  useDeleteSocialPeer,
+  useDeleteRemotePeer,
+  useDeleteThreadPeer,
+} from "@/hooks/strategy/useStrategyMutations";
+import { toast } from "@/hooks/use-toast";
 
 const nodeDefaults = {
   sourcePosition: Position.Right,
@@ -78,7 +86,7 @@ const toolToNode = (tool: Tool, position: { x: number; y: number }) => {
 export const useNodeOperations = () => {
   const { setNodes, setEdges } = useReactFlow();
 
-  // Hooks for mutation
+  // Hooks for create mutations
   const { mutate: createImagePeer } = useCreateImagePeer();
   const { mutate: createAudioPeer } = useCreateAudioPeer();
   const { mutate: createVideoPeer } = useCreateVideoPeer();
@@ -86,6 +94,15 @@ export const useNodeOperations = () => {
   const { mutate: createThreadPeer } = useCreateThreadPeer();
   const { mutate: createSocialPeer } = useCreateSocialPeer();
   const { mutate: createRemotePeer } = useCreateRemotePeer();
+
+  // Hooks for delete mutations
+  const { mutate: deleteImagePeer } = useDeleteImagePeer();
+  const { mutate: deleteAudioPeer } = useDeleteAudioPeer();
+  const { mutate: deleteVideoPeer } = useDeleteVideoPeer();
+  const { mutate: deleteDocumentPeer } = useDeleteDocumentPeer();
+  const { mutate: deleteSocialPeer } = useDeleteSocialPeer();
+  const { mutate: deleteRemotePeer } = useDeleteRemotePeer();
+  const { mutate: deleteThreadPeer } = useDeleteThreadPeer();
 
   const addToolNode = useCallback(
     (tool: Tool, strategyId: string) => {
@@ -105,7 +122,11 @@ export const useNodeOperations = () => {
       const addNodeWithResponse = (responseData: any) => {
         setNodes((nodes) => [
           ...nodes,
-          { ...newNode, data: { ...newNode.data, ...responseData?.data } },
+          {
+            ...newNode,
+            id: responseData?.peer_id,
+            data: { ...newNode.data, id: responseData?.peer_id },
+          },
         ]);
       };
 
@@ -153,13 +174,54 @@ export const useNodeOperations = () => {
   );
 
   const deleteNode = useCallback(
-    (nodeId: string) => {
-      setNodes((nodes) => nodes.filter((node) => node.id !== nodeId));
-      setEdges((edges) =>
-        edges.filter((edge) => edge.source !== nodeId && edge.target !== nodeId)
-      );
+    (nodeId: string, nodeType: string, strategyId: string) => {
+      const removeNodeFromState = () => {
+        setNodes((nodes) => nodes.filter((node) => node.id !== nodeId));
+        setEdges((edges) =>
+          edges.filter(
+            (edge) => edge.source !== nodeId && edge.target !== nodeId
+          )
+        );
+      };
+
+      // Map node type to correct mutation
+      const deleteMutationMap: Record<string, any> = {
+        imageUploadNode: deleteImagePeer,
+        audioPlayerNode: deleteAudioPeer,
+        videoUploadNode: deleteVideoPeer,
+        documentUploadNode: deleteDocumentPeer,
+        socialMediaNode: deleteSocialPeer,
+        remoteNode: deleteRemotePeer,
+        chatbox: deleteThreadPeer,
+      };
+
+      const mutation = deleteMutationMap[nodeType];
+      if (mutation) {
+        mutation(
+          { strategyId, peerId: nodeId },
+          { onSuccess: removeNodeFromState }
+        );
+      } else {
+        // fallback: just remove from state
+        // removeNodeFromState();
+        toast({
+          title: "Error",
+          description: "Failed to delete node",
+          variant: "destructive",
+        });
+      }
     },
-    [setNodes, setEdges]
+    [
+      setNodes,
+      setEdges,
+      deleteImagePeer,
+      deleteAudioPeer,
+      deleteVideoPeer,
+      deleteDocumentPeer,
+      deleteSocialPeer,
+      deleteRemotePeer,
+      deleteThreadPeer,
+    ]
   );
 
   const updateNodeData = useCallback(
