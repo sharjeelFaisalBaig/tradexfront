@@ -1,10 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
 import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
 import {
@@ -13,53 +12,110 @@ import {
   PaginationItem,
   PaginationLink,
 } from "@/components/ui/pagination";
-import {  MoreHorizontal, Star } from "lucide-react";
-import Image from "next/image";
-import SearchIcon from "@/icons/search.svg";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import Clipboard from "@/icons/double.svg";
+import SearchIcon from "@/icons/search.svg";
+import Loader from "@/components/common/Loader";
+import SharedStrategyCard from "@/components/SharedStrategyCard";
+import { getMyInvitations, getSharedStrategies, getStrategy } from "@/services/strategy/strategy_API";
+import { favouriteStrategy, copyStrategy } from "@/services/strategy/strategy_Mutation";
 
-
-const sharedStrategies = [
-  {
-    title: "NuAglo Research",
-    sharedAgo: "3 days ago",
-    category: "#invest",
-    image:
-      "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?w=840&h=420&auto=format&fit=crop",
-  },
-  {
-    title: "NuAglo Research",
-    sharedAgo: "3 days ago",
-    category: "#invest",
-    image:
-      "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?w=840&h=420&auto=format&fit=crop",
-  },
-  {
-    title: "NuAglo Research",
-    sharedAgo: "3 days ago",
-    category: "#invest",
-    image:
-      "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?w=840&h=420&auto=format&fit=crop",
-  },
-  {
-    title: "NuAglo Research",
-    sharedAgo: "3 days ago",
-    category: "#invest",
-    image:
-      "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?w=840&h=420&auto=format&fit=crop",
-  },
-  {
-    title: "NuAglo Research",
-    sharedAgo: "3 days ago",
-    category: "#invest",
-    image:
-      "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?w=840&h=420&auto=format&fit=crop",
-  },
-];
+function formatDate(dateStr: string) {
+  const date = new Date(dateStr);
+  return date.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+}
 
 export default function SharedWithMe() {
+  const { data: session } = useSession();
+  // Use any[] because we add _invitation meta
+  const [strategies, setStrategies] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [perPage, setPerPage] = useState(10);
+
+  const fetched = useRef(false);
+  const isInitialMount = useRef(true);
+
+  // Fetch invitations and their strategies
+  const fetchStrategies = async (search: string = "") => {
+    if (!session) return;
+    try {
+      setLoading(true);
+      let invitationsRes;
+      if (search) {
+        invitationsRes = await getSharedStrategies(session, { search });
+      } else {
+        invitationsRes = await getMyInvitations(session);
+      }
+      if (!invitationsRes.status) throw new Error(invitationsRes.message || "Failed to fetch invitations");
+      const invitations = invitationsRes.data;
+      const strategiesWithMeta = await Promise.all(
+        invitations.map(async (inv: any) => {
+          const stratRes = await getStrategy(inv.strategy_id, session);
+          return {
+            ...stratRes.data,
+            _invitation: inv,
+          };
+        })
+      );
+      setStrategies(strategiesWithMeta);
+    } catch (error: any) {
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (session && !fetched.current) {
+      fetched.current = true;
+      fetchStrategies();
+    }
+  }, [session]);
+
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    const debounceFetch = setTimeout(() => {
+      fetchStrategies(searchTerm);
+    }, 500);
+    return () => clearTimeout(debounceFetch);
+  }, [searchTerm, perPage]);
+
+  // Filter by search
+  const filtered = strategies.filter((strategy) =>
+    (strategy.name || "").toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const toggleStar = async (index: number) => {
+    const strategy = filtered[index];
+    try {
+      // Optimistically update local state
+      setStrategies((prev) =>
+        prev.map((s) =>
+          s.id === strategy.id
+            ? { ...s, is_favorite: !s.is_favorite }
+            : s
+        )
+      );
+      await favouriteStrategy(strategy.id, session);
+      // Optionally refetch to sync with backend
+      fetchStrategies();
+    } catch (error) {
+      console.error("Failed to update favourite status", error);
+    }
+  };
+
+  const handleCopyStrategy = async (id: string) => {
+    try {
+      await copyStrategy(id, session);
+      fetchStrategies();
+    } catch (error) {
+      console.error("Failed to copy strategy", error);
+    }
+  };
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -68,7 +124,8 @@ export default function SharedWithMe() {
         <Sidebar />
 
         <main className="flex-1 overflow-y-auto p-6">
-          {/* Search Bar and New Board Button */}
+          <h1 className="text-2xl font-semibold mb-6">Shared With Me</h1>
+          {/* Search Bar */}
           <div className="flex items-center justify-between mb-6">
             {/* Search Input */}
             <div className="relative w-full max-w-md">
@@ -81,71 +138,36 @@ export default function SharedWithMe() {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-
-            {/* New Board Button */}
             <Button className="ml-4 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-md px-4 py-2">
-              <span className="text-xl mr-2">＋</span> New Board
+              <span className="text-xl mr-2">+</span> New Board
             </Button>
           </div>
 
-          {/* Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
+          {loading ? (
+            <div className="flex h-full items-center justify-center">
+              <Loader text="Loading shared strategies..." />
+            </div>
+          ) : error ? (
+            <p className="text-red-500">{error}</p>
+          ) : (
+            <>
+              {/* Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
+                {filtered.map((strategy, index) => (
+                  <SharedStrategyCard
+                    key={strategy.id}
+                    strategy={strategy}
+                    invitationMeta={strategy._invitation}
+                    isStarred={!!strategy.is_favorite}
+                    onStarToggle={() => toggleStar(index)}
+                    onCopy={() => handleCopyStrategy(strategy.id)}
+                  />
+                ))}
+              </div>
+            </>
+          )}
 
-            {sharedStrategies
-              .filter((s) =>
-                s.title.toLowerCase().includes(searchTerm.toLowerCase())
-              )
-              .map((strategy, index) => (
-                <Card
-                  key={index}
-                  className="group w-full hover:shadow-lg transition-shadow cursor-pointer overflow-hidden rounded-[10px]"
-                >
-                  <div className="flex items-center justify-between px-5 pt-3 pb-2">
-                  <div className=" ">
-                    <Badge variant="secondary" className="text-xs">
-                      {strategy.category}
-                    </Badge>
-                  </div>
-                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <div className="p-3">
-                    <Image
-                      src={strategy.image}
-                      alt={strategy.title}
-                      width={434}
-                      height={180}
-                      className="h-[200px] w-full object-cover rounded-xl"
-                      unoptimized
-                      priority={index === 0}
-                    />
-                  </div>
-
-                  <CardContent className="flex items-center justify-between px-5 pt-2">
-                    <div className="flex gap-3 items-center">
-                      <Star
-                        size={18}
-                        strokeWidth={2.2}
-                        className="mt-1 text-[#1a8cff]"
-                      />
-                      <div>
-                        <h3 className="text-base font-semibold text-gray-900 dark:text-white">
-                          {strategy.title}
-                        </h3>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                          Opened {strategy.sharedAgo}
-                        </p>
-                      </div>
-                    </div>
-
-                    <Clipboard className="h-6 w-5" />
-                  </CardContent>
-                </Card>
-              ))}
-          </div>
-
-          {/* Pagination */}
+          {/* Pagination (static for now) */}
           <Pagination>
             <PaginationContent>
               {/* Previous Button */}
@@ -219,3 +241,4 @@ export default function SharedWithMe() {
     </div>
   );
 }
+

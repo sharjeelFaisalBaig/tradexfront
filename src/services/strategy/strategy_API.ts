@@ -69,6 +69,11 @@ export const getMyInvitations = async (session: Session | null) => {
     return fetchWithAutoRefresh(endpoints.STRATEGY.GET_MY_INVITATIONS, session);
 };
 
+export const getSharedStrategies = async (session: Session | null, params: Record<string, any> = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return fetchWithAutoRefresh(`${endpoints.STRATEGY.GET_MY_INVITATIONS}?${queryString}`, session);
+};
+
 export const getStrategyInvitations = async (id: string, session: Session | null) => {
     return fetchWithAutoRefresh(endpoints.STRATEGY.GET_STRATEGY_INVITATIONS(id), session);
 };
@@ -97,3 +102,7 @@ export const getFolderDetails = async (id: string, session: Session | null) => {
 export const getStrategiesInFolder = async (id: string, session: Session | null) => {
     return fetchWithAutoRefresh(endpoints.FOLDER.GET_STRATEGIES(id), session);
 };
+
+export async function getStrategyShareInvitations(session: any) {
+    return fetchWithAutoRefresh(endpoints.STRATEGY.GET_MY_INVITATIONS, session);
+}

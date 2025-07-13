@@ -27,7 +27,8 @@ export default function CheckoutForm({
   const elements = useElements()
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-  const { theme } = useTheme()
+  const { theme } = useTheme();
+  const [showCardForm, setShowCardForm] = useState(false);
 
   const cardElementOptions = {
     style: {
@@ -58,13 +59,6 @@ export default function CheckoutForm({
       return
     }
 
-    const cardElement = elements.getElement(CardElement)
-    if (!cardElement) {
-      setError('Card element not found.')
-      setLoading(false)
-      return
-    }
-
     try {
       // 1. Create or Update Subscription
       const endpoint = isUpdate
@@ -88,30 +82,44 @@ export default function CheckoutForm({
           method: 'POST',
           body: JSON.stringify(body),
         }
-      )
+      );
 
       if (!paymentIntentResponse?.status) {
-        throw new Error(paymentIntentResponse?.message || 'Failed to process subscription change.')
+        setError(paymentIntentResponse?.message || 'Failed to process subscription change.');
+        setLoading(false);
+        return;
       }
 
       // If there's a client_secret, it means a payment is required.
       if (paymentIntentResponse.data.client_secret) {
-        const clientSecret = paymentIntentResponse.data.client_secret
+        setShowCardForm(true);
+        const cardElement = elements.getElement(CardElement);
+        if (!cardElement) {
+          setError('Card element not found.');
+          setLoading(false);
+          return;
+        }
+
+        const clientSecret = paymentIntentResponse.data.client_secret;
 
         // 2. Confirm the card payment
         const { error: stripeError, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
           payment_method: {
             card: cardElement,
           },
-        })
+        });
 
         if (stripeError) {
           console.error("Stripe confirmation error:", stripeError);
-          throw new Error(stripeError.message || 'Failed to confirm payment with Stripe.')
+          setError(stripeError.message || 'Failed to confirm payment with Stripe.');
+          setLoading(false);
+          return;
         }
 
         if (!paymentIntent || !paymentIntent.id) {
-          throw new Error('Payment Intent not found after confirmation.');
+          setError('Payment Intent not found after confirmation.');
+          setLoading(false);
+          return;
         }
 
         // 3. Confirm the subscription on the server
@@ -124,22 +132,24 @@ export default function CheckoutForm({
               payment_intent_id: paymentIntent.id,
             }),
           }
-        )
+        );
 
         if (!confirmResponse?.status) {
-          throw new Error(confirmResponse?.message || 'Failed to confirm subscription on the server.')
+          setError(confirmResponse?.message || 'Failed to confirm subscription on the server.');
+          setLoading(false);
+          return;
         }
 
-        onSuccess(confirmResponse.data)
+        onSuccess(confirmResponse.data);
       } else {
         // No payment required, the subscription was updated directly.
-        onSuccess(paymentIntentResponse.data)
+        onSuccess(paymentIntentResponse.data);
       }
     } catch (err: any) {
       console.error("Payment processing error:", err);
-      setError(err.message || 'An unexpected error occurred.')
+      setError(err.message || 'An unexpected error occurred.');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
@@ -167,14 +177,16 @@ export default function CheckoutForm({
           </p>
         </div>
         <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-muted-foreground dark:text-gray-400 mb-2">
-              Card Information
-            </label>
-            <div className="p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700">
-              <CardElement key={theme} options={cardElementOptions} />
+          {showCardForm && (
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-muted-foreground dark:text-gray-400 mb-2">
+                Card Information
+              </label>
+              <div className="p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700">
+                <CardElement key={theme} options={cardElementOptions} />
+              </div>
             </div>
-          </div>
+          )}
           {error && <div className="text-red-500 text-sm mb-4" role="alert">{error}</div>}
           <Button type="submit" disabled={!stripe || loading} className="w-full h-12 text-lg">
             {loading ? 'Processing...' : 'Pay Now'}

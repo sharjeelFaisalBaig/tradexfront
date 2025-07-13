@@ -343,7 +343,7 @@ function ProfilePage() {
                     className="bg-[#0088CC] hover:bg-[#0077b3] text-white"
                     onClick={() => setShowPlanModal(true)}
                   >
-                    Change Plan
+                    {subscription ? "Change Plan" : "Buy Plan"}
                   </Button>
                   <Button
                     variant="outline"

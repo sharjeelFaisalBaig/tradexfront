@@ -28,6 +28,11 @@ export interface ICollaborator {
     is_active: boolean;
     is_online: boolean;
     folder_id: string;
+    user: {
+        id: string;
+        email: string;
+        name: string;
+    }
 }
 
 export interface IStrategy {

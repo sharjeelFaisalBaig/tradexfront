@@ -81,19 +81,19 @@ function UpdatePaymentMethodForm({ onSuccess, onClose }: { onSuccess: () => void
         }
       )
 
-      if (!response?.status) {
-        throw new Error(response?.message || 'Failed to update payment method.')
+      if (response?.status) {
+        toast({
+          title: "Payment Method Updated",
+          description: "Your payment method has been updated successfully.",
+        });
+        onSuccess();
+      } else {
+        setError(response?.message || 'An unexpected error occurred.');
       }
-
-      toast({
-        title: "Payment Method Updated",
-        description: "Your payment method has been updated successfully.",
-      });
-      onSuccess()
     } catch (err: any) {
-      setError(err.message || 'An unexpected error occurred.')
+      setError(err.message || 'An unexpected error occurred.');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 

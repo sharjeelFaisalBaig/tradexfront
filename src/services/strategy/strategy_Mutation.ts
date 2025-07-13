@@ -36,7 +36,7 @@ export const favouriteStrategy = async (id: string, session: Session | null) => 
     });
 };
 
-export const sendInvitation = async (id: string, email: string, session: Session | null) => {
+export const inviteCollaborator = async (id: string, email: string, session: Session | null) => {
     return fetchWithAutoRefresh(endpoints.STRATEGY.SEND_INVITATION(id), session, {
         method: "POST",
         body: JSON.stringify({ email }),
@@ -80,6 +80,18 @@ export const updateFolder = async (id: string, name: string, description: string
     return fetchWithAutoRefresh(endpoints.FOLDER.UPDATE(id), session, {
         method: "PATCH",
         body: JSON.stringify({ name, description }),
+    });
+};
+
+export const removeCollaborator = async (id: string, collaborator_id: string, session: Session | null) => {
+    return fetchWithAutoRefresh(endpoints.STRATEGY.REMOVE_COLLABORATOR(id, collaborator_id), session, {
+        method: "DELETE",
+    });
+};
+
+export const deleteInvitation = async (id: string, session: Session | null) => {
+    return fetchWithAutoRefresh(endpoints.STRATEGY.DELETE_INVITATION(id), session, {
+        method: "DELETE",
     });
 };
 

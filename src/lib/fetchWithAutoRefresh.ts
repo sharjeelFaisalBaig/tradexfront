@@ -57,16 +57,20 @@ export async function fetchWithAutoRefresh(
     }
   }
 
-  if (!res.ok) {
-    const error: any = new Error("API request failed");
-    try {
-      error.info = await res.json();
-    } catch (e) {
-      error.info = { statusText: res.statusText };
-    }
-    error.status = res.status;
-    throw error;
-  }
+  // if (!res.ok) {
+  //   const error: any = new Error("API request failed");
+  //   try {
+  //     const errorInfo = await res.json();
+  //     error.info = errorInfo;
+  //     if (errorInfo.message) {
+  //       error.message = errorInfo.message;
+  //     }
+  //   } catch (e) {
+  //     error.info = { statusText: res.statusText };
+  //   }
+  //   error.status = res.status;
+  //   throw error;
+  // }
 
   if (res.status === 204 || !res.headers.get("content-type")?.includes("application/json")) {
     return;

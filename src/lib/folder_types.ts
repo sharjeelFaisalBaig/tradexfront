@@ -2,15 +2,24 @@ export interface Folder {
   id: string;
   name: string;
   description: string;
-  parent_id: number | null;
+  parent_folder_id: string | null;
   strategies: IStrategy[];
   children: Folder[];
+}
+
+export interface IStrategy {
+  id: string;
+  name: string;
+  description: string;
+  tags: string[];
+  is_favourite: boolean;
+  updated_at: string;
 }
 
 export interface FolderCreateParams {
   name: string;
   description?: string;
-  parent_id?: number | null;
+  parent_folder_id?: string | null;
 }
 
 export interface FolderUpdateParams {
@@ -19,7 +28,7 @@ export interface FolderUpdateParams {
 }
 
 export interface MoveFolderParams {
-  parent_id: number | null;
+  parent_folder_id: string | null;
 }
 
 export interface ITemplate {
@@ -30,14 +39,5 @@ export interface ITemplate {
   is_template: boolean;
   author: string;
   image: string;
-  updated_at: string;
-}
-
-export interface IStrategy {
-  id: string;
-  name: string;
-  description: string;
-  tags: string[];
-  is_favourite: boolean;
   updated_at: string;
 }

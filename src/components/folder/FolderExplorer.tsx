@@ -36,7 +36,7 @@ export default function FolderExplorer({ initialFolders, session }: { initialFol
       id: newId,
       name: "",
       description: "",
-      parent_id: parentId ? parseInt(parentId, 10) : null,
+      parent_folder_id: parentId,
       strategies: [],
       children: [],
     };
@@ -67,7 +67,7 @@ export default function FolderExplorer({ initialFolders, session }: { initialFol
     if (id.startsWith("new-folder-")) {
       const parentId = findParentFolder(folders, id)?.id || "root";
       try {
-        await FolderAPI.createFolder(session, { name: trimmedName, parent_id: parentId === "root" ? null : parseInt(parentId, 10) });
+        await FolderAPI.createFolder(session, { name: trimmedName, parent_folder_id: parentId === "root" ? null : parentId });
         reloadFolders();
       } catch (error) {
         console.error("Failed to create folder:", error);
@@ -149,7 +149,7 @@ export default function FolderExplorer({ initialFolders, session }: { initialFol
   }, [contextMenu.visible]);
 
   const findFolderById = (nodes: Folder[], id: string): Folder | null => {
-    if (id === "root") return { id: "root", name: "Root", description: "", parent_id: null, strategies: [], children: folders };
+    if (id === "root") return { id: "root", name: "Root", description: "", parent_folder_id: null, strategies: [], children: folders };
     for (const folder of nodes) {
       if (folder.id === id) return folder;
       if (folder.children) {
