@@ -1,14 +1,8 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-} from "@/components/ui/pagination";
+
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -19,7 +13,6 @@ import {
 } from "@/components/ui/select";
 import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import SearchIcon from "@/icons/search.svg";
 import StrategyCard from "@/components/StrategyCard";
 import { favouriteStrategy } from "@/services/strategy/strategy_Mutation";
@@ -27,12 +20,13 @@ import { IStrategy } from "@/lib/types";
 import { toast } from "@/hooks/use-toast";
 import { useGetStrategies } from "@/hooks/strategy/useStrategyQueries";
 import Loader from "@/components/common/Loader";
+import { Pagination } from "@/components/common/Pagination";
 
 const Strategies = () => {
   const router = useRouter();
-  const { data: session } = useSession();
 
   const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState<number>(1);
   const [starredItems, setStarredItems] = useState<boolean[]>([]);
 
   const { data, isLoading, isError, error } = useGetStrategies();
@@ -85,7 +79,7 @@ const Strategies = () => {
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#f6f8fb] dark:bg-gray-900">
-        <Loader text="Loading strategy..." />
+        <Loader text="Loading strategies..." />
       </div>
     );
   }
@@ -167,72 +161,12 @@ const Strategies = () => {
             ))}
           </div>
 
-          {/* Pagination (static example) */}
-          <Pagination>
-            <PaginationContent>
-              {/* Previous Button */}
-              <PaginationItem>
-                <PaginationLink
-                  href="#"
-                  className="w-10 h-10 flex items-center justify-center rounded-lg border"
-                  style={{ borderColor: "#CBD5E0", color: "#00AA67" }}
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </PaginationLink>
-              </PaginationItem>
-              {/* Page Numbers */}
-              <PaginationItem>
-                <PaginationLink
-                  href="#"
-                  isActive
-                  className="w-10 h-10 flex items-center justify-center rounded-lg border"
-                  style={{ borderColor: "#CBD5E0", color: "#CBD5E0" }}
-                >
-                  1
-                </PaginationLink>
-              </PaginationItem>
-
-              <PaginationItem>
-                <PaginationLink
-                  href="#"
-                  className="w-10 h-10 flex items-center justify-center rounded-lg border"
-                  style={{ borderColor: "#CBD5E0", color: "#CBD5E0" }}
-                >
-                  2
-                </PaginationLink>
-              </PaginationItem>
-              {/* Dots without border */}
-              <PaginationItem>
-                <PaginationLink
-                  href="#"
-                  className="w-10 h-10 flex items-center justify-center"
-                  style={{ color: "#CBD5E0" }}
-                >
-                  ...
-                </PaginationLink>
-              </PaginationItem>
-
-              <PaginationItem>
-                <PaginationLink
-                  href="#"
-                  className="w-10 h-10 flex items-center justify-center rounded-lg border"
-                  style={{ borderColor: "#CBD5E0", color: "#CBD5E0" }}
-                >
-                  10
-                </PaginationLink>
-              </PaginationItem>
-              {/* Next Button */}
-              <PaginationItem>
-                <PaginationLink
-                  href="#"
-                  className="w-10 h-10 flex items-center justify-center rounded-lg border"
-                  style={{ borderColor: "#CBD5E0", color: "#00AA67" }}
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </PaginationLink>
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
+          {/* Pagination */}
+          <Pagination
+            totalPages={10}
+            currentPage={currentPage}
+            onPageChange={(page) => setCurrentPage(page)}
+          />
         </main>
       </div>
     </div>

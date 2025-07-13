@@ -17,7 +17,7 @@ const OtpVerificationPage = () => {
   const searchParams = useSearchParams();
 
   // Get query params from URL
-  const email = searchParams.get("email");
+  const email = searchParams.get("email")?.replace(" ", "+");
   const twoFactorEnabled = searchParams.get("2fa");
   const expiresIn = searchParams.get("expires_in");
 

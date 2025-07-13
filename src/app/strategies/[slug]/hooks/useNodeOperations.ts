@@ -59,6 +59,8 @@ export const useNodeOperations = () => {
       const newNode = toolToNode(tool);
       if (!newNode) return;
 
+      console.log({ newNode });
+
       setNodes((nodes) => [...nodes, newNode]);
     },
     [setNodes]
