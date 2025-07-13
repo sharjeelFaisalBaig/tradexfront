@@ -2,8 +2,16 @@
 
 import { useCallback } from "react";
 import { Position, useReactFlow } from "@xyflow/react";
-import type { Node } from "@xyflow/react";
 import { Tool } from "@/lib/types";
+import {
+  useCreateImagePeer,
+  useCreateVideoPeer,
+  useCreateDocumentPeer,
+  useCreateThreadPeer,
+  useCreateAudioPeer,
+  useCreateSocialPeer,
+  useCreateRemotePeer,
+} from "@/hooks/strategy/useStrategyMutations"; // import your mutations
 
 const nodeDefaults = {
   sourcePosition: Position.Right,
@@ -11,11 +19,11 @@ const nodeDefaults = {
 };
 
 // Helper to convert Tool to Node
-const toolToNode = (tool: Tool): Node<any> | null => {
+const toolToNode = (tool: Tool, position: { x: number; y: number }) => {
   const id = crypto.randomUUID();
   const base = {
     id,
-    position: { x: 500, y: 500 },
+    position,
     ...nodeDefaults,
   };
 
@@ -25,6 +33,12 @@ const toolToNode = (tool: Tool): Node<any> | null => {
         ...base,
         data: { label: "Image Upload" },
         type: "imageUploadNode",
+      };
+    case "audio":
+      return {
+        ...base,
+        data: { label: "Audio Upload" },
+        type: "audioPlayerNode",
       };
     case "video":
       return {
@@ -38,6 +52,18 @@ const toolToNode = (tool: Tool): Node<any> | null => {
         data: { label: "Document Upload" },
         type: "documentUploadNode",
       };
+    case "social":
+      return {
+        ...base,
+        data: { label: "Social Media Upload" },
+        type: "socialMediaNode",
+      };
+    case "remote":
+      return {
+        ...base,
+        data: { label: "Website Upload" },
+        type: "remoteNode",
+      };
     case "AI Assistant":
       return {
         ...base,
@@ -49,24 +75,64 @@ const toolToNode = (tool: Tool): Node<any> | null => {
   }
 };
 
-// Hook for node management operations
 export const useNodeOperations = () => {
   const { setNodes, setEdges } = useReactFlow();
 
-  // add tool node
+  // Hooks for mutation
+  const { mutate: createImagePeer } = useCreateImagePeer();
+  const { mutate: createAudioPeer } = useCreateAudioPeer();
+  const { mutate: createVideoPeer } = useCreateVideoPeer();
+  const { mutate: createDocumentPeer } = useCreateDocumentPeer();
+  const { mutate: createThreadPeer } = useCreateThreadPeer();
+  const { mutate: createSocialPeer } = useCreateSocialPeer();
+  const { mutate: createRemotePeer } = useCreateRemotePeer();
+
   const addToolNode = useCallback(
-    (tool: Tool) => {
-      const newNode = toolToNode(tool);
-      if (!newNode) return;
+    (tool: Tool, strategyId: string) => {
+      const position = { x: 500, y: 500 };
+      const newNode = toolToNode(tool, position);
 
       console.log({ newNode });
 
+      if (!newNode) return;
+
+      // 🧠 Trigger mutation request based on tool
+      const payload = {
+        strategyId,
+        data: { position_x: position.x, position_y: position.y }, // you can also add label/title etc.
+      };
+
+      switch (tool) {
+        case "image":
+          createImagePeer(payload);
+          break;
+        case "audio":
+          createAudioPeer(payload);
+          break;
+        case "video":
+          createVideoPeer(payload);
+          break;
+        case "document":
+          createDocumentPeer(payload);
+          break;
+        case "social":
+          createSocialPeer(payload);
+          break;
+        case "remote":
+          createRemotePeer(payload);
+          break;
+        case "AI Assistant":
+          createThreadPeer(payload);
+          break;
+        default:
+          break;
+      }
+
       setNodes((nodes) => [...nodes, newNode]);
     },
-    [setNodes]
+    [setNodes, createImagePeer, createVideoPeer, createDocumentPeer]
   );
 
-  // Delete node and all connected edges
   const deleteNode = useCallback(
     (nodeId: string) => {
       setNodes((nodes) => nodes.filter((node) => node.id !== nodeId));
@@ -77,7 +143,6 @@ export const useNodeOperations = () => {
     [setNodes, setEdges]
   );
 
-  // Update node data
   const updateNodeData = useCallback(
     (nodeId: string, newData: any) => {
       setNodes((nodes) =>
@@ -91,7 +156,6 @@ export const useNodeOperations = () => {
     [setNodes]
   );
 
-  // Update node size with minimum width constraint
   const updateNodeSize = useCallback(
     (nodeId: string, width: number, height: number, minWidth: number = 300) => {
       const constrainedWidth = Math.max(width, minWidth);
@@ -118,5 +182,10 @@ export const useNodeOperations = () => {
     [setNodes]
   );
 
-  return { addToolNode, deleteNode, updateNodeData, updateNodeSize };
+  return {
+    addToolNode, // now expects (tool, strategyId)
+    deleteNode,
+    updateNodeData,
+    updateNodeSize,
+  };
 };

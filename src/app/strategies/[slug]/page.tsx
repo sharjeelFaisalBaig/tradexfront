@@ -3,6 +3,7 @@ import Strategy from "./components/Strategy";
 import "@xyflow/react/dist/style.css";
 import "../../reactflow.css";
 import { Suspense } from "react";
+import Loader from "@/components/common/Loader";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -13,7 +14,13 @@ export default async function StrategyPage({ params }: PageProps) {
 
   return (
     <ReactFlowProvider>
-      <Suspense fallback={<div className="p-6">Loading...</div>}>
+      <Suspense
+        fallback={
+          <div className="flex min-h-screen items-center justify-center bg-[#f6f8fb] dark:bg-gray-900">
+            <Loader text="Loading strategy..." />
+          </div>
+        }
+      >
         <Strategy slug={slug} />
       </Suspense>
     </ReactFlowProvider>

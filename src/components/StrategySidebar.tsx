@@ -5,13 +5,16 @@ import { Button } from "@/components/ui/button";
 import {
   BotMessageSquare,
   Circle,
+  CircleFadingPlus,
   Diamond,
   FileText,
   Folder,
   Globe,
+  GlobeIcon,
   ImageIcon,
   Key,
   LayoutDashboard,
+  MicIcon,
   Play,
   Plus,
   SaveAllIcon,
@@ -22,8 +25,11 @@ import { useNodeOperations } from "@/app/strategies/[slug]/hooks/useNodeOperatio
 
 const strategyTools = [
   { id: "image", icon: ImageIcon, label: "Images" },
+  { id: "audio", icon: MicIcon, label: "Audio" },
   { id: "video", icon: Play, label: "Videos" },
   { id: "document", icon: FileText, label: "Documents" },
+  { id: "social", icon: CircleFadingPlus, label: "Social" },
+  { id: "remote", icon: GlobeIcon, label: "Website" },
   { id: "AI Assistant", icon: BotMessageSquare, label: "AI Assistant" },
   {
     id: "Save Progress",
@@ -33,7 +39,11 @@ const strategyTools = [
   },
 ];
 
-const StrategySidebar = () => {
+interface StrategySidebarProps {
+  strategyId: string;
+}
+
+const StrategySidebar = ({ strategyId }: StrategySidebarProps) => {
   const { addToolNode } = useNodeOperations();
 
   return (
@@ -65,7 +75,7 @@ const StrategySidebar = () => {
               onClick={
                 item.id === "Save Progress"
                   ? () => {}
-                  : () => addToolNode(item.id)
+                  : () => addToolNode(item.id, strategyId)
               }
             >
               <Icon

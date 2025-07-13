@@ -30,3 +30,125 @@ export const favouriteStrategy = async (id: string, is_favourite: boolean) => {
   });
   return res.data;
 };
+
+// Board Peers API calls
+export const createImagePeer = async (strategyId: string, data: any) => {
+  const res = await axiosInstance.post(
+    endpoints.STRATEGY.CREATE_IMAGE_PEER(strategyId),
+    data
+  );
+  return res.data;
+};
+
+export const createAudioPeer = async (strategyId: string, data: any) => {
+  const res = await axiosInstance.post(
+    endpoints.STRATEGY.CREATE_AUDIO_PEER(strategyId),
+    data
+  );
+  return res.data;
+};
+
+export const createVideoPeer = async (strategyId: string, data: any) => {
+  const res = await axiosInstance.post(
+    endpoints.STRATEGY.CREATE_VIDEO_PEER(strategyId),
+    data
+  );
+  return res.data;
+};
+
+export const createDocumentPeer = async (strategyId: string, data: any) => {
+  const res = await axiosInstance.post(
+    endpoints.STRATEGY.CREATE_DOCUMENT_PEER(strategyId),
+    data
+  );
+  return res.data;
+};
+
+export const createSocialPeer = async (strategyId: string, data: any) => {
+  const res = await axiosInstance.post(
+    endpoints.STRATEGY.CREATE_SOCIAL_PEER(strategyId),
+    data
+  );
+  return res.data;
+};
+
+export const createThreadPeer = async (strategyId: string, data: any) => {
+  const res = await axiosInstance.post(
+    endpoints.STRATEGY.CREATE_THREAD_PEER(strategyId),
+    data
+  );
+  return res.data;
+};
+
+export const createRemotePeer = async (strategyId: string, data: any) => {
+  const res = await axiosInstance.post(
+    endpoints.STRATEGY.CREATE_REMOTE_PEER(strategyId),
+    data
+  );
+  return res.data;
+};
+
+// Upload peer content APIs
+export const uploadImageContent = async ({
+  strategyId,
+  peerId,
+  data,
+}: {
+  strategyId: string;
+  peerId: string;
+  data: any;
+}) => {
+  const res = await axiosInstance.post(
+    endpoints.STRATEGY.UPLOAD_IMAGE_CONTENT({ strategyId, peerId }),
+    data
+  );
+  return res.data;
+};
+
+export const uploadAudioContent = async ({
+  strategyId,
+  peerId,
+  data,
+}: {
+  strategyId: string;
+  peerId: string;
+  data: any;
+}) => {
+  const res = await axiosInstance.post(
+    endpoints.STRATEGY.UPLOAD_AUDIO_CONTENT({ strategyId, peerId }),
+    data
+  );
+  return res.data;
+};
+
+export const uploadVideoContent = async ({
+  strategyId,
+  peerId,
+  data,
+}: {
+  strategyId: string;
+  peerId: string;
+  data: any;
+}) => {
+  const res = await axiosInstance.post(
+    endpoints.STRATEGY.UPLOAD_VIDEO_CONTENT({ strategyId, peerId }),
+    data
+  );
+  return res.data;
+};
+
+export const uploadDocumentContent = async ({
+  strategyId,
+  peerId,
+  data,
+}: {
+  strategyId: string;
+  peerId: string;
+  data: any;
+}) => {
+  const res = await axiosInstance.post(
+    endpoints.STRATEGY.UPLOAD_DOCUMENT_CONTENT({ strategyId, peerId }),
+    data
+  );
+  return res.data;
+};

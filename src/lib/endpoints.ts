@@ -3,6 +3,11 @@ const API_BASE_PATH =
   "https://tradexfront.isoft-digital.net/api";
 export const DOMAIN_ROOT = API_BASE_PATH.replace("/api", "");
 
+interface UploadContent {
+  strategyId: string;
+  peerId: string;
+}
+
 export const endpoints = {
   AUTH: {
     LOGIN: `${API_BASE_PATH}/auth/login`,
@@ -62,5 +67,22 @@ export const endpoints = {
     TOGGLE: (id: string) => `${API_BASE_PATH}/strategies/${id}/toggle`,
     FAVOURITE: (id: string) => `${API_BASE_PATH}/strategies/${id}/favourite`,
     UPDATE: (id: string) => `${API_BASE_PATH}/strategies/${id}`,
+    // board create peer endpoints
+    CREATE_IMAGE_PEER: (id: string) => `/strategies/${id}/peers/image`,
+    CREATE_AUDIO_PEER: (id: string) => `/strategies/${id}/peers/audio`,
+    CREATE_VIDEO_PEER: (id: string) => `/strategies/${id}/peers/video`,
+    CREATE_DOCUMENT_PEER: (id: string) => `/strategies/${id}/peers/document`,
+    CREATE_SOCIAL_PEER: (id: string) => `/strategies/${id}/peers/social`,
+    CREATE_THREAD_PEER: (id: string) => `/strategies/${id}/peers/thread`,
+    CREATE_REMOTE_PEER: (id: string) => `/strategies/${id}/peers/remote`,
+    // board upload peer endpoints
+    UPLOAD_IMAGE_CONTENT: ({ strategyId, peerId }: UploadContent) =>
+      `/strategies/${strategyId}/peers/image/${peerId}/upload`,
+    UPLOAD_AUDIO_CONTENT: ({ strategyId, peerId }: UploadContent) =>
+      `/strategies/${strategyId}/peers/audio/${peerId}/upload`,
+    UPLOAD_VIDEO_CONTENT: ({ strategyId, peerId }: UploadContent) =>
+      `/strategies/${strategyId}/peers/video/${peerId}/upload`,
+    UPLOAD_DOCUMENT_CONTENT: ({ strategyId, peerId }: UploadContent) =>
+      `/strategies/${strategyId}/peers/document/${peerId}/upload`,
   },
 };

@@ -382,7 +382,7 @@ const Strategy = (props: StrategyProps) => {
 
       <Header strategy={strategy} onEditStrategy={toggleNewStrategyModal} />
       <div className="flex flex-1 overflow-hidden">
-        <StrategySidebar />
+        <StrategySidebar strategyId={slug} />
         <main className="relative flex-1 overflow-y-auto p-6">
           <ReactFlow
             nodes={nodes}

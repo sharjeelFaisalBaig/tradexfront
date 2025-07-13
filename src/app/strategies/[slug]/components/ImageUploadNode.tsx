@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import NodeWrapper from "./common/NodeWrapper";
+import { useUploadImageContent } from "@/hooks/strategy/useStrategyMutations";
 
 // Types for API integration
 interface AIProcessingResponse {
@@ -50,6 +51,8 @@ export default function ImageUploadNode({
   targetPosition = Position.Right,
   data,
 }: any) {
+  const { mutate: uploadImageContent } = useUploadImageContent();
+
   const nodeControlRef = useRef(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { setEdges } = useReactFlow();
@@ -71,6 +74,8 @@ export default function ImageUploadNode({
     null
   );
   const [userNotes, setUserNotes] = useState<string>("");
+
+  console.log({ processingState, aiResponse, uploadedImage, data });
 
   // Handle pasted image data from props
   useEffect(() => {
