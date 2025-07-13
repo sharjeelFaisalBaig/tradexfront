@@ -49,6 +49,29 @@ export const savePeerPositions = async ({
   return res.data;
 };
 
+export const updatePeerPosition = async ({
+  strategyId,
+  peerId,
+  peerType,
+  position_x,
+  position_y,
+}: {
+  strategyId: string;
+  peerId: string;
+  peerType: string; // "image", "audio", etc.
+  position_x: number;
+  position_y: number;
+}) => {
+  const res = await axiosInstance.put(
+    endpoints.STRATEGY.UPDATE_PEER_POSITIONS(strategyId, peerId, peerType),
+    {
+      position_x,
+      position_y,
+    }
+  );
+  return res.data;
+};
+
 // Board Peers API calls
 export const createImagePeer = async (strategyId: string, data: any) => {
   const res = await axiosInstance.post(

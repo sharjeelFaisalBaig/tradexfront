@@ -72,6 +72,10 @@ export const endpoints = {
     SAVE_PEER_POSITIONS: (id: string) =>
       `/strategies/${id}/peers/save-positions`,
 
+    // update peer positions endpoint
+    UPDATE_PEER_POSITIONS: (id: string, peerId: string, peerType: string) =>
+      `/strategies/${id}/peers/${peerType}/${peerId}/position`,
+
     // board create peer endpoints
     CREATE_IMAGE_PEER: (id: string) => `/strategies/${id}/peers/image`,
     CREATE_AUDIO_PEER: (id: string) => `/strategies/${id}/peers/audio`,

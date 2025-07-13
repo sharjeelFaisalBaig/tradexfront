@@ -38,7 +38,9 @@ import {
   useCreateSocialPeer,
   useCreateThreadPeer,
   useCreateRemotePeer,
+  useUpdatePeerPosition,
 } from "@/hooks/strategy/useStrategyMutations";
+import { getPeerTypeFromNodeType } from "@/lib/utils";
 
 const nodeDefaults = {
   sourcePosition: Position.Right,
@@ -153,6 +155,7 @@ const Strategy = (props: StrategyProps) => {
     useState<boolean>(false);
 
   const { mutate: savePositions } = useSavePeerPositions();
+  const { mutate: updatePeerPosition } = useUpdatePeerPosition();
 
   // Peer creation mutations
   const { mutate: createImagePeer } = useCreateImagePeer();
@@ -489,8 +492,30 @@ const Strategy = (props: StrategyProps) => {
 
         return nextEdges;
       });
+
+      const peerType = getPeerTypeFromNodeType(node.type);
+
+      console.log("NODE_POSITION_UPDATE", {
+        node,
+        strategyId: strategy?.id,
+        peerId: node.id,
+        peerType: `peerType: (${peerType}) | node: (${node.type})`,
+        position_x: node.position.x,
+        position_y: node.position.y,
+      });
+
+      // ✅ Mutation call for updating peer position
+      if (node.id && node?.type && strategy?.id) {
+        updatePeerPosition({
+          strategyId: strategy?.id,
+          peerId: node.id,
+          peerType: peerType,
+          position_x: node.position.x,
+          position_y: node.position.y,
+        });
+      }
     },
-    [getClosestEdge]
+    [getClosestEdge, setEdges, strategy?.id, updatePeerPosition]
   );
 
   const defaultEdgeOptions = {
