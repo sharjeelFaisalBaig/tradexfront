@@ -21,7 +21,7 @@ import {
   Play,
   ExternalLink,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, extractVideoInfoFromUrl } from "@/lib/utils";
 import NodeWrapper from "./common/NodeWrapper";
 import { useParams } from "next/navigation";
 import { useGetPeerAnalysisStatus } from "@/hooks/strategy/useStrategyQueries";
@@ -58,14 +58,14 @@ interface ProcessingState {
   error: string | null;
 }
 
-interface SocialMediaData {
+export interface SocialMediaData {
   url: string;
   platform: string;
   videoId: string;
   thumbnail: string;
   title: string;
-  author: string;
-  duration: string;
+  author?: string;
+  duration?: string;
 }
 
 interface URLValidationResult {
@@ -262,9 +262,9 @@ export default function SocialMediaNode({
         shares: Math.floor(Math.random() * 10000) + 50,
       },
       metadata: {
-        duration: videoData.duration,
+        duration: videoData.duration ?? "00:00:00",
         platform: platformConfig.name,
-        author: videoData.author,
+        author: videoData.author ?? "Unknown",
         publishedAt: new Date(
           Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000
         )
@@ -405,7 +405,9 @@ export default function SocialMediaNode({
   };
 
   // Allow connection if processing is complete and no error
-  const canConnect = processingState.isComplete && !processingState.error;
+  const canConnect =
+    (processingState.isComplete && !processingState.error) ||
+    data?.is_ready_to_interact;
 
   // Remove connections if node is not connectable
   useEffect(() => {
@@ -427,6 +429,15 @@ export default function SocialMediaNode({
     }
   }, [status]);
 
+  useEffect(() => {
+    if (data?.video) {
+      const extracted = extractVideoInfoFromUrl(data.video);
+      if (extracted) {
+        setSocialMediaData(extracted);
+      }
+    }
+  }, [data]);
+
   // Memoize current platform config
   const currentPlatform = socialMediaData
     ? SUPPORTED_PLATFORMS[
@@ -444,7 +455,6 @@ export default function SocialMediaNode({
       >
         <div className="react-flow__node">
           <div ref={nodeControlRef} className={`nodrag`} />
-
           <TooltipProvider>
             <div
               className="w-[1000px] max-w-md mx-auto bg-white rounded-lg shadow-sm border overflow-hidden relative"
