@@ -24,7 +24,7 @@ export const useGetStrategyById = (id?: string) => {
   });
 };
 
-export const usePeerAnalysisStatus = ({
+export const useGetPeerAnalysisStatus = ({
   strategyId,
   peerId,
   peerType,
@@ -45,7 +45,7 @@ export const usePeerAnalysisStatus = ({
       }),
     enabled: !!strategyId && !!peerId && !!peerType && enabled, // 👈 ensure all required params are present
     refetchInterval: (data) => {
-      return data?.state?.data?.is_ready_to_interact === true ? false : 3000; // 👈 conditional refetch logic
+      return data?.state?.data?.is_ready_to_interact === true ? false : 5000; // 👈 conditional refetch logic
     },
   });
 };

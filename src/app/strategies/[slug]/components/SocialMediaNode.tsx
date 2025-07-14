@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  useState,
-  useRef,
-  useEffect,
-  useRef as useReactRef,
-  type ChangeEvent,
-} from "react";
+import { useState, useRef, useEffect, type ChangeEvent, use } from "react";
 import { useAnalyzeSocialPeer } from "@/hooks/strategy/useStrategyMutations";
 import { Handle, Position, useReactFlow } from "@xyflow/react";
 import {
@@ -26,17 +20,11 @@ import {
   CheckCircle,
   Play,
   ExternalLink,
-  Download,
-  Eye,
-  Share,
-  Heart,
-  MessageCircle,
-  Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import NodeWrapper from "./common/NodeWrapper";
 import { useParams } from "next/navigation";
-import { usePeerAnalysisStatus } from "@/hooks/strategy/useStrategyQueries";
+import { useGetPeerAnalysisStatus } from "@/hooks/strategy/useStrategyQueries";
 
 // Types for AI integration
 interface AIProcessingResponse {
@@ -151,6 +139,7 @@ export default function SocialMediaNode({
   });
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [statusLoading, setStatusLoading] = useState<boolean>(false);
 
   // Video data states
   const [socialMediaData, setSocialMediaData] =
@@ -303,12 +292,14 @@ export default function SocialMediaNode({
   const isAnalyzing = analyzeStatus === "pending";
   const isAnalyzeSuccess = analyzeStatus === "success";
 
-  const { data: status, isLoading: isStatusLoading } = usePeerAnalysisStatus({
-    peerId: id,
-    strategyId: strategyId,
-    peerType: "social_media",
-    enabled: isAnalyzeSuccess, // ✅ Only fetch when analyze is successful
-  });
+  const { data: status, isLoading: isStatusLoading } = useGetPeerAnalysisStatus(
+    {
+      peerId: id,
+      strategyId: strategyId,
+      peerType: "social_media",
+      enabled: isAnalyzeSuccess, // ✅ Only fetch when analyze is successful
+    }
+  );
 
   console.log("social_media_status", { status });
 
@@ -372,6 +363,7 @@ export default function SocialMediaNode({
           ai_notes: userNotes,
         },
       });
+      setStatusLoading(true);
     } catch (error) {
       setProcessingState({
         isProcessing: false,
@@ -380,6 +372,7 @@ export default function SocialMediaNode({
       });
     } finally {
       setIsLoading(false);
+      setStatusLoading(false);
     }
   };
 
@@ -432,7 +425,27 @@ export default function SocialMediaNode({
         edges.filter((edge) => edge.source !== id && edge.target !== id)
       );
     }
+
+    if (canConnect) {
+      setStatusLoading(false);
+    }
   }, [canConnect, id, setEdges]);
+
+  useEffect(() => {
+    if (status?.state?.data?.is_ready_to_interact === true) {
+      setProcessingState({
+        isProcessing: false,
+        isComplete: true,
+        error: null,
+      });
+    }
+  }, [status]);
+
+  useEffect(() => {
+    if (status?.state?.data?.is_ready_to_interact === true) {
+      setStatusLoading(false);
+    }
+  }, [status]);
 
   const currentPlatform = socialMediaData
     ? SUPPORTED_PLATFORMS[
