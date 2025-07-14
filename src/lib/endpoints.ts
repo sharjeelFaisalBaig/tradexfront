@@ -68,6 +68,11 @@ export const endpoints = {
     FAVOURITE: (id: string) => `${API_BASE_PATH}/strategies/${id}/favourite`,
     UPDATE: (id: string) => `${API_BASE_PATH}/strategies/${id}`,
 
+    // board connect source node to target node endpoint
+    CONNECT_NODES: (id: string) => `/strategies/${id}/thread-context/connect`,
+    DISCONNECT_NODES: (id: string) =>
+      `/strategies/${id}/thread-context/disconnect`,
+
     // board batch save peer positions
     SAVE_PEER_POSITIONS: (id: string) =>
       `/strategies/${id}/peers/save-positions`,

@@ -39,6 +39,7 @@ import {
   useCreateThreadPeer,
   useCreateRemotePeer,
   useUpdatePeerPosition,
+  useConnectNodes,
 } from "@/hooks/strategy/useStrategyMutations";
 import { getPeerTypeFromNodeType } from "@/lib/utils";
 
@@ -156,6 +157,7 @@ const Strategy = (props: StrategyProps) => {
 
   const { mutate: savePositions } = useSavePeerPositions();
   const { mutate: updatePeerPosition } = useUpdatePeerPosition();
+  const { mutate: connectNodes } = useConnectNodes();
 
   // Peer creation mutations
   const { mutate: createImagePeer } = useCreateImagePeer();
@@ -380,19 +382,46 @@ const Strategy = (props: StrategyProps) => {
 
       if (!sourceNode || !targetNode) return;
 
-      setEdges((eds) =>
-        addEdge(
-          {
-            ...params,
-            type: "styledEdge",
-            animated: true,
-            id: `edge-${params.source}-${params.target}-${Date.now()}`,
+      connectNodes(
+        {
+          strategyId: strategy?.id,
+          data: {
+            source_peer_type: getPeerTypeFromNodeType(sourceNode.type),
+            source_peer_id: sourceNode.id,
+            thread_peer_id: targetNode.id,
           },
-          eds
-        )
+        },
+        {
+          onSuccess: () => {
+            setEdges((eds) =>
+              addEdge(
+                {
+                  ...params,
+                  type: "styledEdge",
+                  animated: true,
+                  id: `edge-${params.source}-${params.target}-${Date.now()}`,
+                },
+                eds
+              )
+            );
+            toast({
+              title: "Nodes connected",
+              description: "Successfully connected nodes.",
+              variant: "default",
+            });
+          },
+          onError: (error: any) => {
+            toast({
+              title: "Connection failed",
+              description:
+                error?.response?.data?.message || "Failed to connect nodes.",
+              variant: "destructive",
+            });
+          },
+        }
       );
     },
-    [setEdges, nodes]
+    [setEdges, nodes, connectNodes, strategy, toast]
   );
 
   const getClosestEdge = useCallback((node: any) => {

@@ -302,3 +302,39 @@ export const analyzeSocialPeer = async ({
   );
   return res.data;
 };
+
+export const connectNodes = async ({
+  strategyId,
+  data,
+}: {
+  strategyId: string;
+  data: {
+    source_peer_type: string;
+    source_peer_id: string;
+    thread_peer_id: string;
+  };
+}) => {
+  const res = await axiosInstance.post(
+    endpoints.STRATEGY.CONNECT_NODES(strategyId),
+    data
+  );
+  return res.data;
+};
+
+export const disconnectNodes = async ({
+  strategyId,
+  data,
+}: {
+  strategyId: string;
+  data: {
+    source_peer_type: string;
+    source_peer_id: string;
+    thread_peer_id: string;
+  };
+}) => {
+  const res = await axiosInstance.delete(
+    endpoints.STRATEGY.DISCONNECT_NODES(strategyId),
+    { data }
+  );
+  return res.data;
+};

@@ -26,6 +26,8 @@ import {
   savePeerPositions,
   updatePeerPosition,
   analyzeSocialPeer,
+  connectNodes,
+  disconnectNodes,
 } from "@/services/strategy/strategy_Mutation";
 import { IStrategy } from "@/lib/types";
 import { QUERY_KEYS } from "@/lib/queryKeys";
@@ -458,6 +460,52 @@ export const useAnalyzeSocialPeer = () => {
       peerId: string;
       data: any;
     }) => analyzeSocialPeer({ strategyId, peerId, data }),
+    onSuccess: (_data, { strategyId }) => {
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.STRATEGY, strategyId],
+      });
+    },
+  });
+};
+
+export const useConnectNodes = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      strategyId,
+      data,
+    }: {
+      strategyId: string;
+      data: {
+        source_peer_type: string;
+        source_peer_id: string;
+        thread_peer_id: string;
+      };
+    }) => connectNodes({ strategyId, data }),
+    onSuccess: (_data, { strategyId }) => {
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.STRATEGY, strategyId],
+      });
+    },
+  });
+};
+
+export const useDisconnectNodes = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      strategyId,
+      data,
+    }: {
+      strategyId: string;
+      data: {
+        source_peer_type: string;
+        source_peer_id: string;
+        thread_peer_id: string;
+      };
+    }) => disconnectNodes({ strategyId, data }),
     onSuccess: (_data, { strategyId }) => {
       queryClient.invalidateQueries({
         queryKey: [QUERY_KEYS.STRATEGY, strategyId],
