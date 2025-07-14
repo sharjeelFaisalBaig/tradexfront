@@ -273,9 +273,9 @@ const Strategy = (props: StrategyProps) => {
         }
       });
     } else {
-      // If flows exist, set nodes from flows
       const flow = flows[0];
       if (!flow) return;
+
       const nodesFromFlows: any[] = [];
       const pushNodes = (peers: any[], type: string, labelKey = "title") => {
         if (!Array.isArray(peers)) return;
@@ -284,11 +284,12 @@ const Strategy = (props: StrategyProps) => {
             id: peer.id,
             type,
             position: { x: peer.position_x, y: peer.position_y },
-            data: { ...peer }, // This will include all peer fields in data
+            data: { ...peer },
             ...nodeDefaults,
           });
         });
       };
+
       pushNodes(flow.aiImagePeers, "imageUploadNode");
       pushNodes(flow.aiAudioPeers, "audioPlayerNode");
       pushNodes(flow.aiVideoPeers, "videoUploadNode");
@@ -296,7 +297,26 @@ const Strategy = (props: StrategyProps) => {
       pushNodes(flow.aiSocialMediaPeers, "socialMediaNode");
       pushNodes(flow.aiRemotePeers, "remoteNode");
       pushNodes(flow.aiThreadPeers, "chatbox");
+
       setNodes(nodesFromFlows);
+
+      // ✅ Safely set edges
+      if (
+        Array.isArray(flow.strategyFlowEdges) &&
+        flow.strategyFlowEdges.length > 0
+      ) {
+        const edgesFromFlows = flow.strategyFlowEdges.map((edge: any) => ({
+          id: edge.id,
+          source: edge.source_peer,
+          target: edge.target_peer,
+          type: "styledEdge",
+          animated: true,
+        }));
+
+        setEdges(edgesFromFlows);
+      } else {
+        setEdges([]); // fallback to empty
+      }
     }
   }, [strategy]);
 

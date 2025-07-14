@@ -20,6 +20,14 @@ declare module "next-auth" {
   }
 }
 
+export interface StrategyFlowEdge {
+  id: string;
+  source_peer_type: string;
+  source_peer: string;
+  target_peer: string;
+  strategy_collaborator_id: string;
+}
+
 export interface IStrategyFlow {
   id: string;
   is_active: boolean;
@@ -32,6 +40,7 @@ export interface IStrategyFlow {
   aiRemotePeers: any[];
   aiSocialMediaPeers: any[];
   aiThreadPeers: any[];
+  strategyFlowEdges?: StrategyFlowEdge[];
 }
 
 export interface IStrategy {
