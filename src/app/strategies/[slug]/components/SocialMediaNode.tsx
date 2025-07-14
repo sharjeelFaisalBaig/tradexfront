@@ -127,6 +127,8 @@ export default function SocialMediaNode({
   targetPosition = Position.Right,
   data,
 }: any) {
+  console.log("SocialMediaNode data:", { data });
+
   const strategyId = useParams()?.slug as string;
 
   const nodeControlRef = useRef(null);
@@ -139,7 +141,6 @@ export default function SocialMediaNode({
   });
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [statusLoading, setStatusLoading] = useState<boolean>(false);
 
   // Video data states
   const [socialMediaData, setSocialMediaData] =
@@ -284,23 +285,21 @@ export default function SocialMediaNode({
   // --- Mutation Integration & Polling ---
   const {
     mutate: analyzeSocialPeer,
-    status: analyzeStatus,
     error: analyzeError,
     data: analyzeData,
     reset: resetAnalyze,
+    isPending: isAnalyzing,
+    isSuccess: isAnalyzeSuccess,
   } = useAnalyzeSocialPeer();
-  const isAnalyzing = analyzeStatus === "pending";
-  const isAnalyzeSuccess = analyzeStatus === "success";
 
   // Only poll for status if analysis is successful
-  const { data: status, isLoading: isStatusLoading } = useGetPeerAnalysisStatus(
-    {
+  const { data: status, isLoading: isStatusQueryLoading } =
+    useGetPeerAnalysisStatus({
       peerId: id,
       strategyId,
       peerType: "social_media",
       enabled: isAnalyzeSuccess,
-    }
-  );
+    });
 
   // Set processing state and AI response on successful analysis
   useEffect(() => {
@@ -356,7 +355,6 @@ export default function SocialMediaNode({
           ai_notes: userNotes,
         },
       });
-      setStatusLoading(true);
     } catch (error) {
       setProcessingState({
         isProcessing: false,
@@ -365,7 +363,6 @@ export default function SocialMediaNode({
       });
     } finally {
       setIsLoading(false);
-      setStatusLoading(false);
     }
   };
 
@@ -417,7 +414,6 @@ export default function SocialMediaNode({
         edges.filter((edge) => edge.source !== id && edge.target !== id)
       );
     }
-    if (canConnect) setStatusLoading(false);
   }, [canConnect, id, setEdges]);
 
   // Update processing state if backend status is ready
@@ -428,7 +424,6 @@ export default function SocialMediaNode({
         isComplete: true,
         error: null,
       });
-      setStatusLoading(false);
     }
   }, [status]);
 
@@ -457,7 +452,7 @@ export default function SocialMediaNode({
               onMouseDown={(e) => e.stopPropagation()}
             >
               {/* Full node loader overlay when status is loading */}
-              {isStatusLoading && (
+              {isStatusQueryLoading && (
                 <div className="absolute inset-0 z-50 bg-white bg-opacity-80 flex flex-col items-center justify-center">
                   <Loader2 className="w-10 h-10 animate-spin text-purple-600 mb-2" />
                   <span className="text-base font-medium text-gray-700">
@@ -465,7 +460,6 @@ export default function SocialMediaNode({
                   </span>
                 </div>
               )}
-
               {!socialMediaData ? (
                 // URL Input Interface
                 <div className="p-6 space-y-4 py-4">

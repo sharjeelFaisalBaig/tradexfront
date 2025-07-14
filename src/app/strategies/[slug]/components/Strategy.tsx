@@ -284,7 +284,7 @@ const Strategy = (props: StrategyProps) => {
             id: peer.id,
             type,
             position: { x: peer.position_x, y: peer.position_y },
-            data: { label: peer[labelKey] || type },
+            data: { ...peer }, // This will include all peer fields in data
             ...nodeDefaults,
           });
         });
