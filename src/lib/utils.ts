@@ -6,14 +6,17 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export const getPeerTypeFromNodeType = (nodeType: string): string => {
+  // image, audio, video, docs, social_media, remote, thread, annotation,
+
   const nodeTypeToPeerTypeMap: Record<string, string> = {
-    imageUploadNode: "aiImagePeers",
-    audioPlayerNode: "aap",
-    videoUploadNode: "avp",
-    documentUploadNode: "adp",
-    socialMediaNode: "asp",
-    remoteNode: "arp",
-    threadNode: "acp",
+    imageUploadNode: "image",
+    audioPlayerNode: "audio",
+    videoUploadNode: "video",
+    documentUploadNode: "docs",
+    socialMediaNode: "social_media",
+    remoteNode: "remote",
+    chatbox: "thread",
+    annotationNode: "annotation",
   };
   // Return the corresponding peer type or an empty string if not found
   return nodeTypeToPeerTypeMap[nodeType] || "";

@@ -246,7 +246,7 @@ const Strategy = (props: StrategyProps) => {
               },
             });
             break;
-          case "threadNode":
+          case "chatbox":
             createThreadPeer({
               strategyId: strategy.id,
               data: {
@@ -293,7 +293,7 @@ const Strategy = (props: StrategyProps) => {
       pushNodes(flow.aiDocsPeers, "documentUploadNode");
       pushNodes(flow.aiSocialMediaPeers, "socialMediaNode");
       pushNodes(flow.aiRemotePeers, "remoteNode");
-      pushNodes(flow.aiThreadPeers, "threadNode");
+      pushNodes(flow.aiThreadPeers, "chatbox");
       setNodes(nodesFromFlows);
     }
   }, [strategy]);

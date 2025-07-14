@@ -81,7 +81,7 @@ export const endpoints = {
     CREATE_AUDIO_PEER: (id: string) => `/strategies/${id}/peers/audio`,
     CREATE_VIDEO_PEER: (id: string) => `/strategies/${id}/peers/video`,
     CREATE_DOCUMENT_PEER: (id: string) => `/strategies/${id}/peers/document`,
-    CREATE_SOCIAL_PEER: (id: string) => `/strategies/${id}/peers/social`,
+    CREATE_SOCIAL_PEER: (id: string) => `/strategies/${id}/peers/social_media`,
     CREATE_THREAD_PEER: (id: string) => `/strategies/${id}/peers/thread`,
     CREATE_REMOTE_PEER: (id: string) => `/strategies/${id}/peers/remote`,
 
@@ -105,7 +105,7 @@ export const endpoints = {
     DELETE_DOCUMENT_PEER: (id: string, peerId: string) =>
       `/strategies/${id}/peers/document/${peerId}`,
     DELETE_SOCIAL_PEER: (id: string, peerId: string) =>
-      `/strategies/${id}/peers/social/${peerId}`,
+      `/strategies/${id}/peers/social_media/${peerId}`,
     DELETE_REMOTE_PEER: (id: string, peerId: string) =>
       `/strategies/${id}/peers/remote/${peerId}`,
     DELETE_THREAD_PEER: (id: string, peerId: string) =>
