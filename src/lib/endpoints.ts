@@ -136,5 +136,8 @@ export const endpoints = {
     // board analyze peer endpoints
     ANALYZE_SOCIAL_PEER: (id: string, peerId: string) =>
       `/strategies/${id}/peers/social_media/${peerId}/analyze`,
+
+    // board chat endpoints
+    CHAT: (id: string) => `/strategies/${id}/chat`,
   },
 };

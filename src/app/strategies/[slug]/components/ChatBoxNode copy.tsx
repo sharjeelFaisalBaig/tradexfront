@@ -21,7 +21,6 @@ import {
 import AIResponseLoader from "@/components/common/ai-response-loader";
 import NodeWrapper from "./common/NodeWrapper";
 import { useParams } from "next/navigation";
-import { useSendChatMessage } from "@/hooks/strategy/useStrategyMutations";
 
 // Message type definition
 type Message = {
@@ -74,8 +73,6 @@ export default function ChatBoxNode({
   const [activeConversationId, setActiveConversationId] = useState<
     string | null
   >(null);
-
-  const { mutateAsync: sendChatMessageMutation } = useSendChatMessage();
 
   // Dynamic AI Models State
   const [availableModels] = useState<AIModel[]>([

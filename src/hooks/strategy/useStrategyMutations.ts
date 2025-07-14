@@ -28,6 +28,7 @@ import {
   analyzeSocialPeer,
   connectNodes,
   disconnectNodes,
+  sendChatMessage,
 } from "@/services/strategy/strategy_Mutation";
 import { IStrategy } from "@/lib/types";
 import { QUERY_KEYS } from "@/lib/queryKeys";
@@ -509,6 +510,32 @@ export const useDisconnectNodes = () => {
     onSuccess: (_data, { strategyId }) => {
       queryClient.invalidateQueries({
         queryKey: [QUERY_KEYS.STRATEGY, strategyId],
+      });
+    },
+  });
+};
+
+export const useSendChatMessage = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      strategyId,
+      data,
+    }: {
+      strategyId: string;
+      data: {
+        ai_thread_peer_id: string;
+        ai_model: string;
+        message: string;
+        conversation_id?: string;
+      };
+    }) => sendChatMessage({ strategyId, data }),
+
+    onSuccess: (_data, { strategyId }) => {
+      // Invalidate or refetch if needed
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.CHAT, strategyId],
       });
     },
   });

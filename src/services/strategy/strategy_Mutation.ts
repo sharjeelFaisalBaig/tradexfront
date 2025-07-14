@@ -338,3 +338,22 @@ export const disconnectNodes = async ({
   );
   return res.data;
 };
+
+export const sendChatMessage = async ({
+  strategyId,
+  data,
+}: {
+  strategyId: string;
+  data: {
+    ai_thread_peer_id: string;
+    ai_model: string;
+    message: string;
+    conversation_id?: string;
+  };
+}) => {
+  const res = await axiosInstance.post(
+    endpoints.STRATEGY.CHAT(strategyId),
+    data
+  );
+  return res.data;
+};
