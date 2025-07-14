@@ -9,7 +9,7 @@ import ClientWrapper from "@/components/ClientWrapper";
 import SessionProvider from "@/components/SessionProvider";
 
 const sidebarConfig = {
-  "^/strategies/[^/]+$": "strategy"
+  "^/strategies/[^/]+$": "strategy",
 };
 
 const queryClient = new QueryClient({});
