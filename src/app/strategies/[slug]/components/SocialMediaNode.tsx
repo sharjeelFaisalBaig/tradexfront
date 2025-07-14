@@ -149,6 +149,7 @@ export default function SocialMediaNode({
   const [urlValidation, setUrlValidation] = useState<URLValidationResult>({
     isValid: false,
   });
+
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   // Video data states
@@ -309,6 +310,8 @@ export default function SocialMediaNode({
     enabled: isAnalyzeSuccess, // ✅ Only fetch when analyze is successful
   });
 
+  console.log("social_media_status", { status });
+
   // When mutation is successful, set state accordingly (no polling)
   useEffect(() => {
     if (isAnalyzeSuccess && analyzeData) {
@@ -450,10 +453,20 @@ export default function SocialMediaNode({
 
           <TooltipProvider>
             <div
-              className="w-[1000px] max-w-md mx-auto bg-white rounded-lg shadow-sm border overflow-hidden"
+              className="w-[1000px] max-w-md mx-auto bg-white rounded-lg shadow-sm border overflow-hidden relative"
               onWheel={(e) => e.stopPropagation()}
               onMouseDown={(e) => e.stopPropagation()}
             >
+              {/* Full node loader overlay when status is loading */}
+              {isStatusLoading && (
+                <div className="absolute inset-0 z-50 bg-white bg-opacity-80 flex flex-col items-center justify-center">
+                  <Loader2 className="w-10 h-10 animate-spin text-purple-600 mb-2" />
+                  <span className="text-base font-medium text-gray-700">
+                    Checking analysis status...
+                  </span>
+                </div>
+              )}
+
               {!socialMediaData ? (
                 // URL Input Interface
                 <div className="p-6 space-y-4 py-4">
