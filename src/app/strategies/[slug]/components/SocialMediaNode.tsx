@@ -292,18 +292,17 @@ export default function SocialMediaNode({
   const isAnalyzing = analyzeStatus === "pending";
   const isAnalyzeSuccess = analyzeStatus === "success";
 
+  // Only poll for status if analysis is successful
   const { data: status, isLoading: isStatusLoading } = useGetPeerAnalysisStatus(
     {
       peerId: id,
-      strategyId: strategyId,
+      strategyId,
       peerType: "social_media",
-      enabled: isAnalyzeSuccess, // ✅ Only fetch when analyze is successful
+      enabled: isAnalyzeSuccess,
     }
   );
 
-  console.log("social_media_status", { status });
-
-  // When mutation is successful, set state accordingly (no polling)
+  // Set processing state and AI response on successful analysis
   useEffect(() => {
     if (isAnalyzeSuccess && analyzeData) {
       setProcessingState({
@@ -325,35 +324,29 @@ export default function SocialMediaNode({
     }
   }, [analyzeError]);
 
+  // Validate URL and update state
   const handleUrlValidation = (url: string) => {
-    const validation = validateSocialMediaUrl(url);
-    setUrlValidation(validation);
+    setUrlValidation(validateSocialMediaUrl(url));
   };
 
+  // Handle URL input change
   const handleUrlChange = (e: ChangeEvent<HTMLInputElement>) => {
     const url = e.target.value;
     setSocialUrl(url);
     handleUrlValidation(url);
   };
 
+  // Process the provided URL
   const handleProcessUrl = async () => {
     if (!urlValidation.isValid || !urlValidation.platform) return;
-
     setIsLoading(true);
-    setProcessingState({
-      isProcessing: true,
-      isComplete: false,
-      error: null,
-    });
+    setProcessingState({ isProcessing: true, isComplete: false, error: null });
     setAiResponse(null);
     setSocialMediaData(null);
     resetAnalyze();
-
     try {
-      // Extract video data (for UI preview only)
       const videoData = extractVideoData(socialUrl, urlValidation.platform);
       setSocialMediaData(videoData);
-
       // Initial analyze request (no polling, just one request)
       analyzeSocialPeer({
         strategyId,
@@ -376,36 +369,35 @@ export default function SocialMediaNode({
     }
   };
 
+  // Reset all states
   const handleReset = () => {
     setSocialUrl("");
     setSocialMediaData(null);
     setUrlValidation({ isValid: false });
     setAiResponse(null);
-    setProcessingState({
-      isProcessing: false,
-      isComplete: false,
-      error: null,
-    });
+    setProcessingState({ isProcessing: false, isComplete: false, error: null });
     setUserNotes("");
     setIsLoading(false);
   };
 
+  // Handle notes input change
   const handleNotesChange = (e: ChangeEvent<HTMLInputElement>) => {
     setUserNotes(e.target.value);
   };
 
+  // Retry processing
   const handleReprocess = () => {
-    if (socialMediaData) {
-      handleProcessUrl();
-    }
+    if (socialMediaData) handleProcessUrl();
   };
 
+  // Open original video in new tab
   const handleOpenOriginal = () => {
     if (socialMediaData) {
       window.open(socialMediaData.url, "_blank", "noopener,noreferrer");
     }
   };
 
+  // Format numbers for display
   const formatNumber = (num: number): string => {
     if (num >= 1000000) {
       return (num / 1000000).toFixed(1) + "M";
@@ -415,38 +407,32 @@ export default function SocialMediaNode({
     return num.toString();
   };
 
-  // Determine if connection should be allowed
-  const canConnect: any = processingState.isComplete && !processingState.error;
+  // Allow connection if processing is complete and no error
+  const canConnect = processingState.isComplete && !processingState.error;
 
-  // Remove connections when node becomes not connectable
+  // Remove connections if node is not connectable
   useEffect(() => {
     if (!canConnect) {
       setEdges((edges) =>
         edges.filter((edge) => edge.source !== id && edge.target !== id)
       );
     }
-
-    if (canConnect) {
-      setStatusLoading(false);
-    }
+    if (canConnect) setStatusLoading(false);
   }, [canConnect, id, setEdges]);
 
+  // Update processing state if backend status is ready
   useEffect(() => {
-    if (status?.state?.data?.is_ready_to_interact === true) {
+    if (status?.state?.data?.is_ready_to_interact) {
       setProcessingState({
         isProcessing: false,
         isComplete: true,
         error: null,
       });
-    }
-  }, [status]);
-
-  useEffect(() => {
-    if (status?.state?.data?.is_ready_to_interact === true) {
       setStatusLoading(false);
     }
   }, [status]);
 
+  // Memoize current platform config
   const currentPlatform = socialMediaData
     ? SUPPORTED_PLATFORMS[
         socialMediaData.platform as keyof typeof SUPPORTED_PLATFORMS
