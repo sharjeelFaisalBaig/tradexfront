@@ -286,3 +286,19 @@ export const deleteThreadPeer = async ({
   );
   return res.data;
 };
+
+export const analyzeSocialPeer = async ({
+  strategyId,
+  peerId,
+  data,
+}: {
+  strategyId: string;
+  peerId: string;
+  data: any;
+}) => {
+  const res = await axiosInstance.post(
+    endpoints.STRATEGY.ANALYZE_SOCIAL_PEER(strategyId, peerId),
+    data
+  );
+  return res.data;
+};

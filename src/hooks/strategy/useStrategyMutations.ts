@@ -25,6 +25,7 @@ import {
   deleteThreadPeer,
   savePeerPositions,
   updatePeerPosition,
+  analyzeSocialPeer,
 } from "@/services/strategy/strategy_Mutation";
 import { IStrategy } from "@/lib/types";
 import { QUERY_KEYS } from "@/lib/queryKeys";
@@ -436,6 +437,27 @@ export const useDeleteThreadPeer = () => {
       strategyId: string;
       peerId: string;
     }) => deleteThreadPeer({ strategyId, peerId }),
+    onSuccess: (_data, { strategyId }) => {
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.STRATEGY, strategyId],
+      });
+    },
+  });
+};
+
+export const useAnalyzeSocialPeer = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      strategyId,
+      peerId,
+      data,
+    }: {
+      strategyId: string;
+      peerId: string;
+      data: any;
+    }) => analyzeSocialPeer({ strategyId, peerId, data }),
     onSuccess: (_data, { strategyId }) => {
       queryClient.invalidateQueries({
         queryKey: [QUERY_KEYS.STRATEGY, strategyId],

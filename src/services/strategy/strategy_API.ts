@@ -13,6 +13,21 @@ export const getStrategyById = async (id: string) => {
   return response.data;
 };
 
+export const getPeerAnalysisStatus = async ({
+  id,
+  peerId,
+  peerType,
+}: {
+  id: string;
+  peerId: string;
+  peerType: string;
+}) => {
+  const res = await axiosInstance.get(
+    endpoints.STRATEGY.GET_PEER_ANALYSIS_STATUS({ id, peerId, peerType })
+  );
+  return res.data;
+};
+
 // export const getStrategies = async (session: Session | null) => {
 //   return fetchWithAutoRefresh(endpoints.STRATEGY.LIST, session);
 // };

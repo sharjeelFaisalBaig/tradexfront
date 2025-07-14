@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  useState,
-  useRef,
-  useEffect,
-  useRef as useReactRef,
-  type ChangeEvent,
-} from "react";
-import { useAnalyzeSocialPeer } from "@/hooks/strategy/useStrategyMutations";
+import { useState, useRef, useEffect, type ChangeEvent } from "react";
 import { Handle, Position, useReactFlow } from "@xyflow/react";
 import {
   Tooltip,
@@ -36,7 +29,6 @@ import {
 import { cn } from "@/lib/utils";
 import NodeWrapper from "./common/NodeWrapper";
 import { useParams } from "next/navigation";
-import { usePeerAnalysisStatus } from "@/hooks/strategy/useStrategyQueries";
 
 // Types for AI integration
 interface AIProcessingResponse {
@@ -203,41 +195,57 @@ export default function SocialMediaNode({
     };
   };
 
-  // Extract real video data for YouTube, fallback for others
+  // Mock social media data extraction
   const extractVideoData = (url: string, platform: string): SocialMediaData => {
     const platformConfig =
       SUPPORTED_PLATFORMS[platform as keyof typeof SUPPORTED_PLATFORMS];
-    if (platform === "youtube") {
-      // Extract videoId from various YouTube URL formats
-      let videoId = "";
-      const ytMatch =
-        url.match(/[?&]v=([a-zA-Z0-9_-]{11})/) ||
-        url.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/) ||
-        url.match(/youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/);
-      if (ytMatch) {
-        videoId = ytMatch[1];
-      }
-      return {
-        url,
-        platform,
-        videoId,
-        thumbnail: videoId
-          ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`
-          : "",
-        title: `YouTube Video (${videoId})`,
-        author: "",
-        duration: "",
-      };
-    }
-    // For other platforms, show generic placeholder
+
+    // Generate mock video data based on platform
+    const mockData = {
+      instagram: {
+        videoId: "CXyZ123abc",
+        thumbnail:
+          "https://scontent-lax3-2.cdninstagram.com/v/t51.2885-15/placeholder-reel-thumbnail.jpg",
+        title: "Amazing sunset timelapse from rooftop 🌅✨",
+        author: "@creator_username",
+        duration: "0:15",
+      },
+      youtube: {
+        videoId: "dQw4w9WgXcQ",
+        thumbnail: "https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg",
+        title: "How to Build Effective Business Strategies in 2024",
+        author: "Business Growth Channel",
+        duration: "12:45",
+      },
+      tiktok: {
+        videoId: "7234567890123456789",
+        thumbnail:
+          "https://p16-sign-va.tiktokcdn.com/tos-maliva-p-0068/placeholder-video-cover.jpeg",
+        title:
+          "Quick productivity tips that actually work! #productivity #tips",
+        author: "@productivityguru",
+        duration: "0:30",
+      },
+      facebook: {
+        videoId: "1234567890123456",
+        thumbnail:
+          "https://scontent-lax3-1.xx.fbcdn.net/v/placeholder-video-thumbnail.jpg",
+        title: "Team building activities that boost workplace morale",
+        author: "Corporate Training Solutions",
+        duration: "8:20",
+      },
+    };
+
+    const data = mockData[platform as keyof typeof mockData];
+
     return {
       url,
       platform,
-      videoId: "",
-      thumbnail: "https://placehold.co/640x360?text=No+Preview",
-      title: `${platformConfig.name} Video`,
-      author: "",
-      duration: "",
+      videoId: data.videoId,
+      thumbnail: data.thumbnail,
+      title: data.title,
+      author: data.author,
+      duration: data.duration,
     };
   };
 
@@ -291,45 +299,49 @@ export default function SocialMediaNode({
     };
   };
 
-  // --- Mutation Integration & Polling ---
-  const {
-    mutate: analyzeSocialPeer,
-    status: analyzeStatus,
-    error: analyzeError,
-    data: analyzeData,
-    reset: resetAnalyze,
-  } = useAnalyzeSocialPeer();
-  const isAnalyzing = analyzeStatus === "pending";
-  const isAnalyzeSuccess = analyzeStatus === "success";
+  // API Integration Function
+  const processSocialMediaWithAI = async (videoData: SocialMediaData) => {
+    setProcessingState({
+      isProcessing: true,
+      isComplete: false,
+      error: null,
+    });
 
-  const { data: status, isLoading: isStatusLoading } = usePeerAnalysisStatus({
-    peerId: id,
-    strategyId: strategyId,
-    peerType: "social_media",
-    enabled: isAnalyzeSuccess, // ✅ Only fetch when analyze is successful
-  });
+    try {
+      // Simulate API processing time (2-5 seconds for social media)
+      const processingTime = Math.random() * 3000 + 2000;
 
-  // When mutation is successful, set state accordingly (no polling)
-  useEffect(() => {
-    if (isAnalyzeSuccess && analyzeData) {
+      await new Promise((resolve) => setTimeout(resolve, processingTime));
+
+      // Simulate occasional errors
+      // if (Math.random() < 0.1) {
+      //   throw new Error("Social media processing service temporarily unavailable")
+      // }
+
+      // Get AI response
+      const result = processVideoContent(videoData);
+
+      // Update states with API response
+      setAiResponse(result);
       setProcessingState({
         isProcessing: false,
         isComplete: true,
         error: null,
       });
-      setAiResponse(analyzeData);
-    }
-  }, [isAnalyzeSuccess, analyzeData]);
 
-  useEffect(() => {
-    if (analyzeError) {
+      console.log("🤖 AI Social Media Response:", result);
+    } catch (error) {
+      console.error("AI Social Media Processing Error:", error);
       setProcessingState({
         isProcessing: false,
         isComplete: false,
-        error: analyzeError.message || "Processing failed.",
+        error:
+          error instanceof Error
+            ? error.message
+            : "Social media processing failed",
       });
     }
-  }, [analyzeError]);
+  };
 
   const handleUrlValidation = (url: string) => {
     const validation = validateSocialMediaUrl(url);
@@ -346,37 +358,25 @@ export default function SocialMediaNode({
     if (!urlValidation.isValid || !urlValidation.platform) return;
 
     setIsLoading(true);
-    setProcessingState({
-      isProcessing: true,
-      isComplete: false,
-      error: null,
-    });
-    setAiResponse(null);
-    setSocialMediaData(null);
-    resetAnalyze();
 
     try {
-      // Extract video data (for UI preview only)
+      // Simulate URL processing time
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
+      // Extract video data
       const videoData = extractVideoData(socialUrl, urlValidation.platform);
       setSocialMediaData(videoData);
 
-      // Initial analyze request (no polling, just one request)
-      analyzeSocialPeer({
-        strategyId,
-        peerId: id,
-        data: {
-          source_url: socialUrl,
-          ai_notes: userNotes,
-        },
-      });
+      // Auto-process with AI
+      processSocialMediaWithAI(videoData);
+
+      setIsLoading(false);
     } catch (error) {
-      setProcessingState({
-        isProcessing: false,
-        isComplete: false,
+      setIsLoading(false);
+      setUrlValidation({
+        isValid: false,
         error: "Failed to process URL. Please try again.",
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -400,7 +400,7 @@ export default function SocialMediaNode({
 
   const handleReprocess = () => {
     if (socialMediaData) {
-      handleProcessUrl();
+      processSocialMediaWithAI(socialMediaData);
     }
   };
 
@@ -420,7 +420,8 @@ export default function SocialMediaNode({
   };
 
   // Determine if connection should be allowed
-  const canConnect: any = processingState.isComplete && !processingState.error;
+  const canConnect: any =
+    processingState.isComplete && aiResponse && !processingState.error;
 
   // Remove connections when node becomes not connectable
   useEffect(() => {
@@ -456,7 +457,7 @@ export default function SocialMediaNode({
             >
               {!socialMediaData ? (
                 // URL Input Interface
-                <div className="p-6 space-y-4 py-4">
+                <div className="p-6 space-y-4">
                   <div className="text-center mb-6">
                     <div className="flex justify-center space-x-2 mb-4">
                       {Object.values(SUPPORTED_PLATFORMS).map(
@@ -493,6 +494,7 @@ export default function SocialMediaNode({
                         onWheel={(e) => e.stopPropagation()}
                         onMouseDown={(e) => e.stopPropagation()}
                       />
+
                       {urlValidation.isValid && urlValidation.platform && (
                         <div className="absolute right-3 top-1/2 -translate-y-1/2">
                           <div
@@ -514,35 +516,6 @@ export default function SocialMediaNode({
                         </div>
                       )}
                     </div>
-                    {/* Notes input directly below URL input */}
-                    <div className="relative">
-                      <Input
-                        placeholder="Add notes for AI to use..."
-                        value={userNotes}
-                        onChange={handleNotesChange}
-                        className="pr-8 border-gray-200 focus:border-purple-500 focus:ring-purple-500 mt-2"
-                        disabled={processingState.isProcessing}
-                        onWheel={(e) => e.stopPropagation()}
-                        onMouseDown={(e) => e.stopPropagation()}
-                      />
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 text-gray-400 hover:text-gray-600"
-                          >
-                            <HelpCircle className="w-4 h-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p className="text-sm">
-                            Add notes that will be used by AI to provide better
-                            context and insights
-                          </p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </div>
 
                     {urlValidation.error && (
                       <div className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">
@@ -561,7 +534,7 @@ export default function SocialMediaNode({
                       disabled={!urlValidation.isValid || isLoading}
                       className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white"
                     >
-                      {isLoading || isAnalyzing ? (
+                      {isLoading ? (
                         <>
                           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                           Processing URL...
@@ -768,6 +741,38 @@ export default function SocialMediaNode({
                       </div>
                     </div>
                   )}
+
+                  {/* Notes Input */}
+                  <div className="px-4 pb-4">
+                    <div className="relative">
+                      <Input
+                        placeholder="Add notes for AI to use..."
+                        value={userNotes}
+                        onChange={handleNotesChange}
+                        className="pr-8 border-gray-200 focus:border-purple-500 focus:ring-purple-500"
+                        disabled={processingState.isProcessing}
+                        onWheel={(e) => e.stopPropagation()}
+                        onMouseDown={(e) => e.stopPropagation()}
+                      />
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 text-gray-400 hover:text-gray-600"
+                          >
+                            <HelpCircle className="w-4 h-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="text-sm">
+                            Add notes that will be used by AI to provide better
+                            context and insights
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>

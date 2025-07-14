@@ -76,6 +76,17 @@ export const endpoints = {
     UPDATE_PEER_POSITIONS: (id: string, peerId: string, peerType: string) =>
       `/strategies/${id}/peers/${peerType}/${peerId}/position`,
 
+    // board get peer analysis status endpoint
+    GET_PEER_ANALYSIS_STATUS: ({
+      id,
+      peerId,
+      peerType,
+    }: {
+      id: string;
+      peerId: string;
+      peerType: string;
+    }) => `/strategies/${id}/peers/${peerType}/${peerId}/status`,
+
     // board create peer endpoints
     CREATE_IMAGE_PEER: (id: string) => `/strategies/${id}/peers/image`,
     CREATE_AUDIO_PEER: (id: string) => `/strategies/${id}/peers/audio`,
@@ -94,6 +105,12 @@ export const endpoints = {
       `/strategies/${strategyId}/peers/video/${peerId}/upload`,
     UPLOAD_DOCUMENT_CONTENT: ({ strategyId, peerId }: UploadContent) =>
       `/strategies/${strategyId}/peers/document/${peerId}/upload`,
+    UPLOAD_SOCIAL_CONTENT: ({ strategyId, peerId }: UploadContent) =>
+      `/strategies/${strategyId}/peers/social_media/${peerId}/upload`,
+    UPLOAD_REMOTE_CONTENT: ({ strategyId, peerId }: UploadContent) =>
+      `/strategies/${strategyId}/peers/remote/${peerId}/upload`,
+    UPLOAD_THREAD_CONTENT: ({ strategyId, peerId }: UploadContent) =>
+      `/strategies/${strategyId}/peers/thread/${peerId}/upload`,
 
     // board delete peer endpoints
     DELETE_IMAGE_PEER: (id: string, peerId: string) =>
@@ -110,5 +127,9 @@ export const endpoints = {
       `/strategies/${id}/peers/remote/${peerId}`,
     DELETE_THREAD_PEER: (id: string, peerId: string) =>
       `/strategies/${id}/peers/thread/${peerId}`,
+
+    // board analyze peer endpoints
+    ANALYZE_SOCIAL_PEER: (id: string, peerId: string) =>
+      `/strategies/${id}/peers/social_media/${peerId}/analyze`,
   },
 };
