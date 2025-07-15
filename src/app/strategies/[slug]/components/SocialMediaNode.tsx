@@ -24,7 +24,7 @@ import {
 import { cn, extractVideoInfoFromUrl } from "@/lib/utils";
 import NodeWrapper from "./common/NodeWrapper";
 import { useParams } from "next/navigation";
-import { useGetPeerAnalysisStatus } from "@/hooks/strategy/useStrategyQueries";
+import { useGetPeerAnalysisStatus } from "@/hooks/strategy/useGetPeerAnalysisStatus";
 
 // Types for AI integration
 interface AIProcessingResponse {
@@ -300,7 +300,7 @@ export default function SocialMediaNode({
   } = useAnalyzeSocialPeer();
 
   // Only poll for status if analysis is successful
-  const { data: status, isLoading: isStatusQueryLoading } =
+  const { data: status, isPollingLoading: isStatusPollingLoading } =
     useGetPeerAnalysisStatus({
       peerId: id,
       strategyId,
@@ -468,8 +468,8 @@ export default function SocialMediaNode({
               onWheel={(e) => e.stopPropagation()}
               onMouseDown={(e) => e.stopPropagation()}
             >
-              {/* Full node loader overlay when status is loading */}
-              {isStatusQueryLoading && (
+              {/* Full node loader overlay when status is polling/loading */}
+              {isStatusPollingLoading && (
                 <div className="absolute inset-0 z-50 bg-white bg-opacity-80 flex flex-col items-center justify-center">
                   <Loader2 className="w-10 h-10 animate-spin text-purple-600 mb-2" />
                   <span className="text-base font-medium text-gray-700">

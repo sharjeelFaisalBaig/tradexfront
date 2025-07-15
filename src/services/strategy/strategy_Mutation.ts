@@ -303,6 +303,25 @@ export const analyzeSocialPeer = async ({
   return res.data;
 };
 
+export const analyzeRemotePeer = async ({
+  strategyId,
+  peerId,
+  data,
+}: {
+  strategyId: string;
+  peerId: string;
+  data: {
+    search_query: string;
+    ai_notes?: string;
+  };
+}) => {
+  const res = await axiosInstance.post(
+    endpoints.STRATEGY.ANALYZE_REMOTE_PEER(strategyId, peerId),
+    data
+  );
+  return res.data;
+};
+
 export const connectNodes = async ({
   strategyId,
   data,

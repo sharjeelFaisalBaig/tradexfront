@@ -35,8 +35,6 @@ import {
 import { cn } from "@/lib/utils";
 import NodeWrapper from "./common/NodeWrapper";
 import { useParams } from "next/navigation";
-import { useAnalyzeRemotePeer } from "@/hooks/strategy/useStrategyMutations";
-import { useGetPeerAnalysisStatus } from "@/hooks/strategy/useGetPeerAnalysisStatus";
 
 // Types for AI integration
 interface AIProcessingResponse {
@@ -80,37 +78,16 @@ export default function RemoteNode({
 }: any) {
   const strategyId = useParams()?.slug as string;
 
-  console.log("RemoteNode data:", { data });
-
   const nodeControlRef = useRef(null);
   const { setEdges } = useReactFlow();
 
-  const {
-    mutate: analyzeRemotePeer,
-    isPending: isAnalyzing,
-    isError: isAnalyzeError,
-    error: analyzeError,
-    isSuccess: isAnalyzeSuccess,
-  } = useAnalyzeRemotePeer();
-
-  // Poll for status only if analysis is successful
-  const { data: status, isPollingLoading: isStatusPollingLoading } =
-    useGetPeerAnalysisStatus({
-      peerId: data?.id,
-      strategyId,
-      peerType: "remote",
-      enabled: isAnalyzeSuccess,
-    });
-
-  console.log("remote_status:", status);
-
   // Website states
   const [websiteUrl, setWebsiteUrl] = useState<string>("");
-  const [canConnect, setCanConnect] = useState<boolean>(false);
   const [websiteData, setWebsiteData] = useState<WebsiteData | null>(null);
   const [urlValidation, setUrlValidation] = useState<URLValidationResult>({
     isValid: false,
   });
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   // Processing states
   const [processingState, setProcessingState] = useState<ProcessingState>({
@@ -124,22 +101,6 @@ export default function RemoteNode({
     null
   );
   const [userNotes, setUserNotes] = useState<string>("");
-
-  // If data?.url exists, show preview directly
-  useEffect(() => {
-    if (data?.url) {
-      setWebsiteData({
-        url: data.url,
-        title: data.title || data.url,
-        content: data.content || "",
-        favicon: data.favicon || "🌐",
-        screenshot: data.screenshot || "",
-      });
-      setWebsiteUrl(data.url);
-    } else {
-      setWebsiteData(null);
-    }
-  }, [data]);
 
   // Handle pasted URL data from props (if needed)
   useEffect(() => {
@@ -258,8 +219,42 @@ export default function RemoteNode({
     setUrlValidation(validation);
   }, [websiteUrl]);
 
-  // Website fetching and AI processing using mutation
-  const processWebsiteWithAI = (url: string) => {
+  // Website data responses
+  const getWebsiteData = (url: string): WebsiteData => {
+    return {
+      url: url,
+      title: "Stack Overflow - Developer Community",
+      content:
+        "Stack Overflow is the largest, most trusted online community for developers to learn, share their programming knowledge, and build their careers. Get answers to your coding questions.",
+      favicon: "📚",
+      screenshot: "/placeholder.svg?height=200&width=400",
+    };
+  };
+
+  // AI responses for different website types
+  const getAIResponse = (websiteData: WebsiteData): AIProcessingResponse => {
+    return {
+      title: "AI Research & Technology Platform",
+      peerId: "peer_web_7x9k2m4n8p",
+      summary:
+        "This website focuses on artificial intelligence research and development, providing insights into cutting-edge AI technologies and their applications across various industries.",
+      keyPoints: [
+        "Advanced AI research and development",
+        "Focus on artificial general intelligence",
+        "Commitment to AI safety and ethics",
+        "Open source contributions to AI community",
+      ],
+      sentiment: "Positive",
+      confidence: 0.94,
+      tags: ["AI", "research", "technology", "innovation"],
+      wordCount: 847,
+      language: "English",
+      contentType: "Technology/Research",
+    };
+  };
+
+  // Website fetching and AI processing
+  const processWebsiteWithAI = async (url: string) => {
     // Double-check validation before processing
     const validation = validateUrl(url);
     if (!validation.isValid) {
@@ -277,42 +272,42 @@ export default function RemoteNode({
       error: null,
     });
 
-    // Use analyzeRemotePeer mutation
-    analyzeRemotePeer(
-      {
-        strategyId,
-        peerId: data?.id, // using data.id as peerId
-        data: {
-          search_query: url,
-          ai_notes: userNotes || undefined,
-        },
-      },
-      {
-        onSuccess: (result: any) => {
-          // You may need to adjust result structure based on API
-          setAiResponse(result?.aiResponse || result);
-          setWebsiteData({
-            url,
-            title: result?.aiResponse?.title || result?.title || url,
-            content: result?.aiResponse?.summary || result?.summary || "",
-            favicon: "🌐",
-            screenshot: "",
-          });
-          setProcessingState({
-            isProcessing: false,
-            isComplete: true,
-            error: null,
-          });
-        },
-        onError: (error: any) => {
-          setProcessingState({
-            isProcessing: false,
-            isComplete: false,
-            error: error?.message || "Processing failed",
-          });
-        },
-      }
-    );
+    try {
+      // Simulate website fetching time (2-4 seconds)
+      const fetchingTime = Math.random() * 2000 + 2000;
+      await new Promise((resolve) => setTimeout(resolve, fetchingTime));
+
+      // Simulate occasional fetch errors (15% chance)
+      // throw new Error("Failed to fetch website content. Please check the URL and try again.")
+
+      // Get website data
+      const websiteData = getWebsiteData(url);
+      setWebsiteData(websiteData);
+
+      // Simulate AI processing time (2-3 seconds)
+      const processingTime = Math.random() * 1000 + 2000;
+      await new Promise((resolve) => setTimeout(resolve, processingTime));
+
+      // Get AI response
+      const result = getAIResponse(websiteData);
+
+      // Update states with API response
+      setAiResponse(result);
+      setProcessingState({
+        isProcessing: false,
+        isComplete: true,
+        error: null,
+      });
+
+      console.log("🌐 Website AI Response:", result);
+    } catch (error) {
+      console.error("Website AI Processing Error:", error);
+      setProcessingState({
+        isProcessing: false,
+        isComplete: false,
+        error: error instanceof Error ? error.message : "Processing failed",
+      });
+    }
   };
 
   const handleUrlChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -412,6 +407,10 @@ export default function RemoteNode({
     }
   };
 
+  // Determine if connection should be allowed
+  const canConnect: any =
+    processingState.isComplete && aiResponse && !processingState.error;
+
   // Remove connections when node becomes not connectable
   useEffect(() => {
     if (!canConnect) {
@@ -421,40 +420,7 @@ export default function RemoteNode({
     }
   }, [canConnect, id, setEdges]);
 
-  // Optionally, handle mutation error globally
-  useEffect(() => {
-    if (isAnalyzeError && analyzeError) {
-      setProcessingState((prev) => ({
-        ...prev,
-        isProcessing: false,
-        error: analyzeError?.message || "Processing failed",
-      }));
-    }
-  }, [isAnalyzeError, analyzeError]);
-
-  // Optionally, handle mutation loading state
-  useEffect(() => {
-    if (isAnalyzing) {
-      setProcessingState((prev) => ({ ...prev, isProcessing: true }));
-    }
-  }, [isAnalyzing]);
-
-  // Update processing state if backend status is ready (status polling)
-  useEffect(() => {
-    if (status?.is_ready_to_interact) {
-      setProcessingState({
-        isProcessing: false,
-        isComplete: true,
-        error: null,
-      });
-    }
-  }, [status]);
-
-  useEffect(() => {
-    if (data?.is_ready_to_interact || status?.is_ready_to_interact) {
-      setCanConnect(true);
-    }
-  }, [data?.is_ready_to_interact, status?.is_ready_to_interact]);
+  console.log({ id, data });
 
   return (
     <NodeWrapper
@@ -466,16 +432,7 @@ export default function RemoteNode({
       <div className="react-flow__node">
         <div ref={nodeControlRef} className={`nodrag`} />
         <TooltipProvider>
-          <div className="w-[1000px] max-w-md mx-auto bg-white rounded-lg shadow-sm border overflow-hidden relative">
-            {/* Full node loader overlay when status is polling/loading */}
-            {isStatusPollingLoading && (
-              <div className="absolute inset-0 z-50 bg-white bg-opacity-80 flex flex-col items-center justify-center">
-                <Loader2 className="w-10 h-10 animate-spin text-cyan-600 mb-2" />
-                <span className="text-base font-medium text-gray-700">
-                  Checking analysis status...
-                </span>
-              </div>
-            )}
+          <div className="w-[1000px] max-w-md mx-auto bg-white rounded-lg shadow-sm border overflow-hidden">
             {!websiteData ? (
               // URL Input Interface
               <div className="space-y-0">
@@ -755,7 +712,7 @@ export default function RemoteNode({
                 </div>
 
                 {/* Website Preview */}
-                <div className="p-4">
+                <div className="px-4 pt-4">
                   <div className="bg-gray-50 p-3 rounded-lg space-y-2">
                     <div className="flex items-center gap-2">
                       <span className="text-2xl">{websiteData.favicon}</span>
@@ -838,7 +795,6 @@ export default function RemoteNode({
               </div>
             )}
           </div>
-
           <Handle
             position={sourcePosition}
             type="source"
