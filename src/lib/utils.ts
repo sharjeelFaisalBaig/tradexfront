@@ -6,6 +6,25 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+export const getFilteredAiModels = (
+  data: {
+    id: string;
+    name: string;
+    extras: {
+      color: string;
+    };
+  }[]
+) => {
+  return (
+    data?.map((model) => ({
+      id: model.id,
+      name: model.name,
+      color: model.extras.color,
+      // color: `bg-[${model.extras.color}]`,
+    })) || []
+  );
+};
+
 export const getPeerTypeFromNodeType = (nodeType: string): string => {
   // image, audio, video, docs, social_media, remote, thread, annotation,
 

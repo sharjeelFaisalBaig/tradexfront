@@ -5,4 +5,5 @@ export const QUERY_KEYS = {
   CHAT: "chat",
   CONVERSATIONS: "conversations",
   CONVERSATION: "conversation",
+  AI_MODELS: "aiModels",
 };

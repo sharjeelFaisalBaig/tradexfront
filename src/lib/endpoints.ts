@@ -148,4 +148,9 @@ export const endpoints = {
     UPDATE_CONVERSATION_TITLE: (id: string, conversationId: string) =>
       `/strategies/${id}/conversations/${conversationId}`, // replace with actual endpoint
   },
+
+  CHAT_BOX: {
+    // get ai-models endpoint
+    GET_AI_MODELS: `/ai-models`,
+  },
 };

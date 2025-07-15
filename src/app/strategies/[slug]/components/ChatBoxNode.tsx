@@ -1,6 +1,7 @@
 "use client";
+
 import type React from "react";
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo, use } from "react";
 import { Handle, Position, useReactFlow } from "@xyflow/react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -23,9 +24,11 @@ import NodeWrapper from "./common/NodeWrapper";
 import { useParams } from "next/navigation";
 import { useSendChatMessage } from "@/hooks/strategy/useStrategyMutations";
 import {
+  useGetAiModels,
   useGetConversationById,
   useGetConversations,
 } from "@/hooks/strategy/useStrategyQueries";
+import { getFilteredAiModels } from "@/lib/utils";
 
 // Message type definition
 type Message = {
@@ -40,6 +43,7 @@ type AIModel = {
   id: string;
   name: string;
   color: string;
+  // code: string;
 };
 
 // Conversation type definition - Extended with draft message and selected model
@@ -76,6 +80,8 @@ export default function ChatBoxNode({
   >(null);
 
   const { mutateAsync: sendChatMessageMutation } = useSendChatMessage();
+
+  const { data: aiModelsData } = useGetAiModels();
   const { data: conversationsData } = useGetConversations(strategyId);
   const { data: activeConversationData } = useGetConversationById(
     strategyId,
@@ -94,13 +100,10 @@ export default function ChatBoxNode({
     conversationsData?.conversations || []
   );
 
-  // Dynamic AI Models State
-  const [availableModels] = useState<AIModel[]>([
-    { id: "gpt-4o", name: "GPT-4o", color: "bg-orange-500" },
-    { id: "claude-3-sonnet", name: "Claude 3 Sonnet", color: "bg-purple-500" },
-    { id: "gemini-pro", name: "Gemini Pro", color: "bg-blue-500" },
-    { id: "llama-2", name: "Llama 2", color: "bg-green-500" },
-  ]);
+  const availableModels: AIModel[] = useMemo(
+    () => getFilteredAiModels(aiModelsData?.models),
+    [aiModelsData]
+  );
 
   // Dynamic Predefined Prompts State
   const [predefinedPrompts] = useState<PredefinedPrompt[]>([
@@ -144,7 +147,12 @@ export default function ChatBoxNode({
   const isLoading = activeConversation?.isLoading || false;
 
   // Get current selected model (conversation-specific or default)
-  const selectedModel = activeConversation?.selectedModel || availableModels[0];
+  const selectedModel = useMemo(
+    () => activeConversation?.selectedModel || availableModels[0],
+    [availableModels, activeConversation]
+  );
+
+  console.log({ selectedModel });
 
   // Check if any conversation is loading (to disable switching)
   const isAnyConversationLoading = conversations.some((conv) => conv.isLoading);
@@ -414,7 +422,7 @@ export default function ChatBoxNode({
         strategyId: strategyId,
         data: {
           ai_thread_peer_id: data?.id, // using conversation id as peer id
-          // ai_model: currentSelectedModel.id,
+          // ai_model: currentSelectedModel?.id,
           ai_model: "openai", // hardcoded for now
           message: userMessage.content,
           // conversation_id: currentConversationId,
@@ -428,7 +436,7 @@ export default function ChatBoxNode({
         content:
           (response && response.message) ||
           `<div class="ai-response-container">
-            <p>Response from <strong>${currentSelectedModel.name}</strong>:</p>
+            <p>Response from <strong>${currentSelectedModel?.name}</strong>:</p>
             <p>I understand your message: "<strong>${userMessage.content}</strong>"</p>
             <p>This is a placeholder response. In production, this would be replaced with actual AI processing using the selected model.</p>
           </div>`,
@@ -471,9 +479,12 @@ export default function ChatBoxNode({
               </div>
               <div className="flex items-center gap-2">
                 <div
-                  className={`w-2 h-2 ${selectedModel.color} rounded-full`}
-                ></div>
-                <span className="text-white text-sm">{selectedModel.name}</span>
+                  className="w-2 h-2 rounded-full"
+                  style={{ backgroundColor: selectedModel?.color }}
+                />
+                <span className="text-white text-sm">
+                  {selectedModel?.name}
+                </span>
               </div>
             </div>
 
@@ -533,8 +544,12 @@ export default function ChatBoxNode({
                             {/* Show model indicator for each conversation */}
                             {conversation.selectedModel && (
                               <div
-                                className={`w-2 h-2 ${conversation.selectedModel.color} rounded-full`}
-                              ></div>
+                                className="w-2 h-2 rounded-full"
+                                style={{
+                                  backgroundColor:
+                                    conversation.selectedModel?.color,
+                                }}
+                              />
                             )}
 
                             {/* Only show delete button if this is not the first conversation */}
@@ -576,10 +591,11 @@ export default function ChatBoxNode({
                   {/* Show current model for active conversation */}
                   <div className="flex items-center gap-2 mt-1">
                     <div
-                      className={`w-2 h-2 ${selectedModel.color} rounded-full`}
-                    ></div>
+                      className="w-2 h-2 rounded-full"
+                      style={{ backgroundColor: selectedModel?.color }}
+                    />
                     <span className="text-sm text-gray-500">
-                      Using {selectedModel.name}
+                      Using {selectedModel?.name}
                     </span>
                   </div>
                 </div>
@@ -701,9 +717,10 @@ export default function ChatBoxNode({
                           className="flex items-center gap-1 text-xs h-7"
                         >
                           <div
-                            className={`w-2 h-2 ${selectedModel.color} rounded-full`}
-                          ></div>
-                          {selectedModel.name}
+                            className="w-2 h-2 rounded-full"
+                            style={{ backgroundColor: selectedModel?.color }}
+                          />
+                          {selectedModel?.name}
                           <ChevronDown className="w-3 h-3" />
                         </Button>
                       </DropdownMenuTrigger>
@@ -715,10 +732,11 @@ export default function ChatBoxNode({
                           >
                             <div className="flex items-center gap-2">
                               <div
-                                className={`w-2 h-2 ${model.color} rounded-full`}
-                              ></div>
+                                className="w-2 h-2 rounded-full"
+                                style={{ backgroundColor: model.color }}
+                              />
                               {model.name}
-                              {selectedModel.id === model.id && (
+                              {selectedModel?.id === model?.id && (
                                 <span className="ml-auto">✓</span>
                               )}
                             </div>

@@ -6,6 +6,7 @@ import {
   getPeerAnalysisStatus,
   getConversationById,
   getAllConversations,
+  getAiModels,
 } from "@/services/strategy/strategy_API";
 
 export const useGetStrategies = () => {
@@ -68,5 +69,12 @@ export const useGetConversationById = (
     queryKey: [QUERY_KEYS.CONVERSATION, strategyId, conversationId],
     queryFn: () => getConversationById(strategyId, conversationId),
     enabled: !!strategyId && !!conversationId,
+  });
+};
+
+export const useGetAiModels = () => {
+  return useQuery({
+    queryKey: [QUERY_KEYS.AI_MODELS],
+    queryFn: () => getAiModels(),
   });
 };

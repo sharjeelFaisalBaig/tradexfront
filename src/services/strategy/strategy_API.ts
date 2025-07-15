@@ -42,3 +42,8 @@ export const getConversationById = async (
   );
   return res.data;
 };
+
+export const getAiModels = async () => {
+  const res = await axiosInstance.get(endpoints.CHAT_BOX.GET_AI_MODELS);
+  return res.data;
+};
