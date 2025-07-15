@@ -80,6 +80,7 @@ const SUPPORTED_PLATFORMS = {
   instagram: {
     name: "Instagram",
     icon: "📷",
+    // icon: "src/icons/instagram.svg",
     color: "from-purple-500 to-pink-500",
     textColor: "text-purple-600",
     patterns: [
@@ -91,6 +92,7 @@ const SUPPORTED_PLATFORMS = {
   youtube: {
     name: "YouTube",
     icon: "🎥",
+    // icon: "src/icons/youtube.svg",
     color: "from-red-500 to-red-600",
     textColor: "text-red-600",
     patterns: [
@@ -102,6 +104,7 @@ const SUPPORTED_PLATFORMS = {
   tiktok: {
     name: "TikTok",
     icon: "🎵",
+    // icon: "src/icons/tiktok.svg",
     color: "from-black to-gray-800",
     textColor: "text-gray-800",
     patterns: [
@@ -113,6 +116,7 @@ const SUPPORTED_PLATFORMS = {
   facebook: {
     name: "Facebook",
     icon: "📘",
+    // icon: "src/icons/facebook.svg",
     color: "from-blue-600 to-blue-700",
     textColor: "text-blue-600",
     patterns: [
