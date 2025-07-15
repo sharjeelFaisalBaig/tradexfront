@@ -341,18 +341,18 @@ export const disconnectNodes = async ({
 
 export const sendChatMessage = async ({
   strategyId,
+  conversationId,
   data,
 }: {
   strategyId: string;
+  conversationId: string;
   data: {
-    ai_thread_peer_id: string;
-    ai_model: string;
     message: string;
-    conversation_id?: string;
+    strategy_collaborator_id?: string;
   };
 }) => {
   const res = await axiosInstance.post(
-    endpoints.STRATEGY.CHAT(strategyId),
+    endpoints.STRATEGY.CHAT(strategyId, conversationId),
     data
   );
   return res.data;
@@ -366,7 +366,7 @@ export const createConversation = async ({
   strategyId: string;
   data: {
     title: string;
-    description: string;
+    ai_thread_peer_id: string;
   };
 }) => {
   const res = await axiosInstance.post(

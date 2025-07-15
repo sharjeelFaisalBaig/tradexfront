@@ -138,15 +138,16 @@ export const endpoints = {
       `/strategies/${id}/peers/social_media/${peerId}/analyze`,
 
     // board chat/conversation endpoints
-    CHAT: (id: string) => `/strategies/${id}/chat`,
+    CHAT: (id: string, conversationId: string) =>
+      `/strategies/${id}/ai-conversations/${conversationId}/ai-chats`,
     CONVERSATIONS: (id: string) => `/strategies/${id}/conversations`,
     CONVERSATION_BY_ID: (id: string, conversationId: string) =>
       `/strategies/${id}/conversations/${conversationId}`,
-    CREATE_CONVERSATION: (id: string) => `/strategies/${id}/conversations`, // replace with actual endpoint
+    CREATE_CONVERSATION: (id: string) => `/strategies/${id}/ai-conversations`,
     DELETE_CONVERSATION: (id: string, conversationId: string) =>
-      `/strategies/${id}/conversations/${conversationId}`, // replace with actual endpoint
+      `/strategies/${id}/ai-conversations/${conversationId}`,
     UPDATE_CONVERSATION_TITLE: (id: string, conversationId: string) =>
-      `/strategies/${id}/conversations/${conversationId}`, // replace with actual endpoint
+      `/strategies/${id}/ai-conversations/${conversationId}`,
   },
 
   CHAT_BOX: {

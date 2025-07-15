@@ -524,16 +524,16 @@ export const useSendChatMessage = () => {
   return useMutation({
     mutationFn: ({
       strategyId,
+      conversationId,
       data,
     }: {
       strategyId: string;
+      conversationId: string;
       data: {
-        ai_thread_peer_id: string;
-        ai_model: string;
         message: string;
-        conversation_id?: string;
+        strategy_collaborator_id?: string;
       };
-    }) => sendChatMessage({ strategyId, data }),
+    }) => sendChatMessage({ strategyId, conversationId, data }),
 
     onSuccess: (_data, { strategyId }) => {
       // Invalidate or refetch if needed
@@ -555,7 +555,7 @@ export const useCreateConversation = () => {
       strategyId: string;
       data: {
         title: string;
-        description: string;
+        ai_thread_peer_id: string;
       };
     }) => createConversation({ strategyId, data }),
 
