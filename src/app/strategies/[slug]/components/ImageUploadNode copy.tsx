@@ -25,14 +25,10 @@ import {
   Loader2,
   Shield,
   CheckCircle,
-  ArrowRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import NodeWrapper from "./common/NodeWrapper";
-import {
-  useAnalyzeImagePeer,
-  useUploadImageContent,
-} from "@/hooks/strategy/useStrategyMutations";
+import { useUploadImageContent } from "@/hooks/strategy/useStrategyMutations";
 import { useParams } from "next/navigation";
 
 // Types for API integration
@@ -61,9 +57,6 @@ export default function ImageUploadNode({
   const { mutate: uploadImageContent, isPending: isUploading } =
     useUploadImageContent();
 
-  const { mutate: analyzeImageContent, isPending: isAnalyzing } =
-    useAnalyzeImagePeer();
-
   const strategyId = useParams()?.slug as string;
 
   const nodeControlRef = useRef(null);
@@ -88,23 +81,15 @@ export default function ImageUploadNode({
   );
   const [userNotes, setUserNotes] = useState<string>("");
 
-  // https://tradexfront.isoft-digital.net/storage/26/bmw.png
-
-  // Handle image from data.image (relative path)
+  // Handle pasted image data from props
   useEffect(() => {
-    if (data?.image) {
-      // Build full image URL
-      let apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
-      if (apiUrl.endsWith("/api")) apiUrl = apiUrl.replace(/\/api$/, "");
-      const imageUrl = data.image.startsWith("http")
-        ? data.image
-        : apiUrl + data.image;
-      setUploadedImage(imageUrl);
-      // Extract file name from path
-      const parts = data.image.split("/");
-      setFileName(parts[parts.length - 1] || "image");
+    if (data?.pastedImage && data?.pastedFileName) {
+      setUploadedImage(data.pastedImage);
+      setFileName(data.pastedFileName);
+      // Auto-process pasted images
+      processImageWithAI(data.pastedImage, data.pastedFileName);
     }
-  }, [data?.image]);
+  }, [data]);
 
   // AI responses for different image types
   const processImage = (filename: string): AIProcessingResponse => {
@@ -511,8 +496,8 @@ export default function ImageUploadNode({
                   )}
 
                   {/* Notes Input */}
-                  <div className="px-4 pb-4 flex items-center gap-2">
-                    <div className="relative flex-1 flex items-center gap-2">
+                  <div className="px-4 pb-4">
+                    <div className="relative">
                       <Input
                         placeholder="Add notes for AI to use..."
                         value={userNotes}
@@ -525,7 +510,7 @@ export default function ImageUploadNode({
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="absolute right-4 top-1/2 -translate-y-1/2 h-6 w-6 text-gray-400 hover:text-gray-600"
+                            className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 text-gray-400 hover:text-gray-600"
                           >
                             <HelpCircle className="w-4 h-4" />
                           </Button>
@@ -538,29 +523,6 @@ export default function ImageUploadNode({
                         </TooltipContent>
                       </Tooltip>
                     </div>
-                    <Button
-                      size="sm"
-                      type="button"
-                      disabled={
-                        processingState.isProcessing ||
-                        isAnalyzing ||
-                        !userNotes
-                      }
-                      onClick={() => {
-                        analyzeImageContent({
-                          data: { ai_notes: userNotes },
-                          strategyId: strategyId,
-                          peerId: data?.id,
-                        });
-                      }}
-                      className="bg-cyan-500 hover:bg-cyan-600 text-white rounded-full w-8 h-8 p-0 disabled:opacity-50"
-                    >
-                      {processingState.isProcessing ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <ArrowRight className="w-4 h-4" />
-                      )}
-                    </Button>
                   </div>
                 </div>
               )}

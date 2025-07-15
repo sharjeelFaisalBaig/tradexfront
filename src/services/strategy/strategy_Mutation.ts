@@ -330,6 +330,28 @@ export const analyzeRemotePeer = async ({
   return res.data;
 };
 
+export const analyzeImagePeer = async ({
+  strategyId,
+  peerId,
+  data,
+}: {
+  strategyId: string;
+  peerId: string;
+  data: {
+    ai_notes?: string;
+  };
+}) => {
+  const res = await axiosInstance.post(
+    endpoints.STRATEGY.ANALYZE_PEER({
+      peerId,
+      id: strategyId,
+      peerType: "image",
+    }),
+    data
+  );
+  return res.data;
+};
+
 export const connectNodes = async ({
   strategyId,
   data,
