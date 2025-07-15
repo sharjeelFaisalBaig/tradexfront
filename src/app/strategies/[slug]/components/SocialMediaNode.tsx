@@ -85,6 +85,7 @@ const SUPPORTED_PLATFORMS = {
     patterns: [
       /^https?:\/\/(www\.)?instagram\.com\/(p|reel|tv)\/[a-zA-Z0-9_-]+/,
       /^https?:\/\/(www\.)?instagram\.com\/stories\/[a-zA-Z0-9_.]+\/[0-9]+/,
+      /^https?:\/\/(www\.)?instagram\.com\/s\/[a-zA-Z0-9_-]+/,
     ],
   },
   youtube: {
@@ -93,9 +94,9 @@ const SUPPORTED_PLATFORMS = {
     color: "from-red-500 to-red-600",
     textColor: "text-red-600",
     patterns: [
-      /^https?:\/\/(www\.)?youtube\.com\/watch\?v=[a-zA-Z0-9_-]+/,
-      /^https?:\/\/(www\.)?youtu\.be\/[a-zA-Z0-9_-]+/,
-      /^https?:\/\/(www\.)?youtube\.com\/shorts\/[a-zA-Z0-9_-]+/,
+      /^https?:\/\/(www\.)?youtube\.com\/watch\?v=[a-zA-Z0-9_-]{11}/,
+      /^https?:\/\/(www\.)?youtu\.be\/[a-zA-Z0-9_-]{11}/,
+      /^https?:\/\/(www\.)?youtube\.com\/shorts\/[a-zA-Z0-9_-]{11}/,
     ],
   },
   tiktok: {
@@ -106,6 +107,7 @@ const SUPPORTED_PLATFORMS = {
     patterns: [
       /^https?:\/\/(www\.)?tiktok\.com\/@[a-zA-Z0-9_.]+\/video\/[0-9]+/,
       /^https?:\/\/(vm\.)?tiktok\.com\/[a-zA-Z0-9]+/,
+      /^https?:\/\/(www\.)?tiktok\.com\/[a-zA-Z0-9_.]+\/video\/[0-9]+/,
     ],
   },
   facebook: {
@@ -114,9 +116,10 @@ const SUPPORTED_PLATFORMS = {
     color: "from-blue-600 to-blue-700",
     textColor: "text-blue-600",
     patterns: [
-      /^https?:\/\/(www\.)?facebook\.com\/watch\/\?v=[0-9]+/,
+      /^https?:\/\/(www\.)?facebook\.com\/watch\/?v=[0-9]+/,
       /^https?:\/\/(www\.)?facebook\.com\/[a-zA-Z0-9.]+\/videos\/[0-9]+/,
       /^https?:\/\/(www\.)?fb\.watch\/[a-zA-Z0-9_-]+/,
+      /^https?:\/\/(www\.)?facebook\.com\/share\/r\/[a-zA-Z0-9_-]+\/?$/,
     ],
   },
 };
