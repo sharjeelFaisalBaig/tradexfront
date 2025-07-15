@@ -69,12 +69,6 @@ export default function ChatBoxNode({
 }: any) {
   const strategyId = useParams()?.slug as string;
 
-  const nodeControlRef = useRef(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const { setEdges } = useReactFlow();
-  const [message, setMessage] = useState("");
-  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<
     string | null
   >(null);
@@ -84,6 +78,18 @@ export default function ChatBoxNode({
   const { data: activeConversationData } = useGetConversationById(
     strategyId,
     activeConversationId ?? ""
+  );
+
+  const nodeControlRef = useRef(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const { setEdges } = useReactFlow();
+  const [message, setMessage] = useState("");
+
+  console.log({ activeConversationData, conversationsData });
+
+  const [conversations, setConversations] = useState<Conversation[]>(
+    conversationsData?.conversations || []
   );
 
   // Dynamic AI Models State

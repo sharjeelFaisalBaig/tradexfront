@@ -28,7 +28,7 @@ export const getPeerAnalysisStatus = async ({
 
 export const getAllConversations = async (strategyId: string) => {
   const res = await axiosInstance.get(
-    endpoints.STRATEGY.CONVERSATION(strategyId)
+    endpoints.STRATEGY.CONVERSATIONS(strategyId)
   );
   return res.data;
 };

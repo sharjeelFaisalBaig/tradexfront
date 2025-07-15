@@ -139,8 +139,8 @@ export const endpoints = {
 
     // board chat/conversation endpoints
     CHAT: (id: string) => `/strategies/${id}/chat`,
-    CONVERSATION: (id: string) => `/strategies/${id}/conversation`,
+    CONVERSATIONS: (id: string) => `/strategies/${id}/conversations`,
     CONVERSATION_BY_ID: (id: string, conversationId: string) =>
-      `/strategies/${id}/conversation/${conversationId}`,
+      `/strategies/${id}/conversations/${conversationId}`,
   },
 };
