@@ -357,3 +357,54 @@ export const sendChatMessage = async ({
   );
   return res.data;
 };
+
+// need to review this api mutation
+export const createConversation = async ({
+  strategyId,
+  data,
+}: {
+  strategyId: string;
+  data: {
+    title: string;
+    description: string;
+  };
+}) => {
+  const res = await axiosInstance.post(
+    endpoints.STRATEGY.CREATE_CONVERSATION(strategyId),
+    data
+  );
+  return res.data;
+};
+
+// need to review this api mutation
+export const updateConversationTitle = async ({
+  strategyId,
+  conversationId,
+  data,
+}: {
+  strategyId: string;
+  conversationId: string;
+  data: {
+    title: string;
+  };
+}) => {
+  const res = await axiosInstance.put(
+    endpoints.STRATEGY.UPDATE_CONVERSATION_TITLE(strategyId, conversationId),
+    data
+  );
+  return res.data;
+};
+
+// need to review this api mutation
+export const deleteConversation = async ({
+  strategyId,
+  conversationId,
+}: {
+  strategyId: string;
+  conversationId: string;
+}) => {
+  const res = await axiosInstance.delete(
+    endpoints.STRATEGY.DELETE_CONVERSATION(strategyId, conversationId)
+  );
+  return res.data;
+};

@@ -67,6 +67,8 @@ export default function ChatBoxNode({
   targetPosition = Position.Right,
   data,
 }: any) {
+  console.log("ChatBoxNode rendered with data:", data);
+
   const strategyId = useParams()?.slug as string;
 
   const [activeConversationId, setActiveConversationId] = useState<
@@ -407,22 +409,35 @@ export default function ChatBoxNode({
     setConversationLoading(currentConversationId, true);
 
     try {
-      // TODO: Replace with actual AI API call using selectedModel
-      setTimeout(() => {
-        const aiMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          content: `<div class="ai-response-container">
+      // Use sendChatMessageMutation with required arguments
+      const response = await sendChatMessageMutation({
+        strategyId: strategyId,
+        data: {
+          ai_thread_peer_id: data?.id, // using conversation id as peer id
+          // ai_model: currentSelectedModel.id,
+          ai_model: "openai", // hardcoded for now
+          message: userMessage.content,
+          // conversation_id: currentConversationId,
+          // ai_thread_peer_id: currentConversationId, // using conversation id as peer id
+        },
+      });
+
+      // Assume response contains the AI message content
+      const aiMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        content:
+          (response && response.message) ||
+          `<div class="ai-response-container">
             <p>Response from <strong>${currentSelectedModel.name}</strong>:</p>
             <p>I understand your message: "<strong>${userMessage.content}</strong>"</p>
             <p>This is a placeholder response. In production, this would be replaced with actual AI processing using the selected model.</p>
           </div>`,
-          sender: "ai",
-          timestamp: new Date(),
-        };
+        sender: "ai",
+        timestamp: new Date(),
+      };
 
-        addMessageToConversation(currentConversationId, aiMessage);
-        setConversationLoading(currentConversationId, false);
-      }, 2000);
+      addMessageToConversation(currentConversationId, aiMessage);
+      setConversationLoading(currentConversationId, false);
     } catch (error) {
       console.error("Error sending message:", error);
       setConversationLoading(currentConversationId, false);

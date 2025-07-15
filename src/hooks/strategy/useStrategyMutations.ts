@@ -29,6 +29,9 @@ import {
   connectNodes,
   disconnectNodes,
   sendChatMessage,
+  createConversation,
+  updateConversationTitle,
+  deleteConversation,
 } from "@/services/strategy/strategy_Mutation";
 import { IStrategy } from "@/lib/types";
 import { QUERY_KEYS } from "@/lib/queryKeys";
@@ -536,6 +539,82 @@ export const useSendChatMessage = () => {
       // Invalidate or refetch if needed
       queryClient.invalidateQueries({
         queryKey: [QUERY_KEYS.CHAT, QUERY_KEYS.CONVERSATION, strategyId],
+      });
+    },
+  });
+};
+
+export const useCreateConversation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      strategyId,
+      data,
+    }: {
+      strategyId: string;
+      data: {
+        title: string;
+        description: string;
+      };
+    }) => createConversation({ strategyId, data }),
+
+    onSuccess: (_res, { strategyId }) => {
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.CONVERSATIONS, strategyId],
+      });
+    },
+  });
+};
+
+export const useUpdateConversationTitle = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      strategyId,
+      conversationId,
+      data,
+    }: {
+      strategyId: string;
+      conversationId: string;
+      data: {
+        title: string;
+      };
+    }) =>
+      updateConversationTitle({
+        strategyId,
+        conversationId,
+        data,
+      }),
+
+    onSuccess: (_res, { strategyId }) => {
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.CONVERSATIONS, strategyId],
+      });
+    },
+  });
+};
+
+export const useDeleteConversation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      strategyId,
+      conversationId,
+    }: {
+      strategyId: string;
+      conversationId: string;
+    }) =>
+      deleteConversation({
+        strategyId,
+        conversationId,
+      }),
+
+    onSuccess: (_res, { strategyId }) => {
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.CONVERSATIONS, strategyId],
       });
     },
   });

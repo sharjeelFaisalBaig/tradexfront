@@ -142,5 +142,10 @@ export const endpoints = {
     CONVERSATIONS: (id: string) => `/strategies/${id}/conversations`,
     CONVERSATION_BY_ID: (id: string, conversationId: string) =>
       `/strategies/${id}/conversations/${conversationId}`,
+    CREATE_CONVERSATION: (id: string) => `/strategies/${id}/conversations`, // replace with actual endpoint
+    DELETE_CONVERSATION: (id: string, conversationId: string) =>
+      `/strategies/${id}/conversations/${conversationId}`, // replace with actual endpoint
+    UPDATE_CONVERSATION_TITLE: (id: string, conversationId: string) =>
+      `/strategies/${id}/conversations/${conversationId}`, // replace with actual endpoint
   },
 };
