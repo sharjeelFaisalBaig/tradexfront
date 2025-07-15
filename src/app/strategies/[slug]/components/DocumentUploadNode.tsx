@@ -125,6 +125,8 @@ export default function DocumentUploadNode({
   targetPosition = Position.Right,
   data,
 }: any) {
+  console.log("DocumentUploadNode data:", data);
+
   const strategyId = useParams()?.slug as string;
 
   const nodeControlRef = useRef(null);
