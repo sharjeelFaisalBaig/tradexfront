@@ -28,11 +28,15 @@ export const useGetPeerAnalysisStatus = ({
     enabled: !!strategyId && !!peerId && !!peerType && enabled && shouldPoll,
     refetchInterval: (data) => {
       const isReady = data?.state?.data?.is_ready_to_interact === true;
+
+      if (isReady) {
+        setShouldPoll(false);
+        setIsPollingLoading(false);
+      }
+
       return isReady ? false : 5000;
     },
   });
-
-  console.log({ "query.data?.state?.data": query.data?.state?.data });
 
   // Set isPollingLoading true when request is triggered
   useEffect(() => {
@@ -40,13 +44,6 @@ export const useGetPeerAnalysisStatus = ({
       setIsPollingLoading(true);
     }
   }, [strategyId, peerId, peerType, enabled, shouldPoll]);
-
-  // Stop polling if ready
-  useEffect(() => {
-    if (query.data?.state?.data?.is_ready_to_interact === true) {
-      setShouldPoll(false);
-    }
-  }, [query.data]);
 
   // Stop polling on error
   useEffect(() => {
