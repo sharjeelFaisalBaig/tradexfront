@@ -30,7 +30,6 @@ import {
 import {
   useGetAiModels,
   useGetConversationById,
-  useGetConversations,
 } from "@/hooks/strategy/useStrategyQueries";
 import { getFilteredAiModels } from "@/lib/utils";
 
@@ -88,8 +87,11 @@ export default function ChatBoxNode({
   const { mutateAsync: deleteConversationMutation } = useDeleteConversation();
 
   const { data: aiModelsData } = useGetAiModels();
-  // const { data: activeConversationData } = useGetConversationById( strategyId, activeConversationId ?? "" );
-  // console.log({ activeConversationData, });
+  const { data: activeConversationData } = useGetConversationById(
+    strategyId,
+    activeConversationId ?? ""
+  );
+  console.log({ activeConversationData });
 
   const nodeControlRef = useRef(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -156,7 +158,9 @@ export default function ChatBoxNode({
   console.log({ selectedModel });
 
   // Check if any conversation is loading (to disable switching)
-  const isAnyConversationLoading = conversations.some((conv) => conv.isLoading);
+  const isAnyConversationLoading = conversations.some(
+    (conv) => conv?.isLoading
+  );
 
   // Determine if connection should be allowed
   const canConnect: any = true;
@@ -382,23 +386,24 @@ export default function ChatBoxNode({
     newMessage: Message
   ) => {
     setConversations((prev) =>
-      prev?.map((conv) =>
-        conv?.id === conversationId
+      prev?.map((conv) => {
+        console.log({ conv });
+        return conv?.id === conversationId
           ? {
               ...conv,
               messages: [...conv?.messages, newMessage],
               updatedAt: new Date(),
             }
-          : conv
-      )
+          : conv;
+      })
     );
   };
 
   // Set loading state for specific conversation
   const setConversationLoading = (conversationId: string, loading: boolean) => {
     setConversations((prev) =>
-      prev.map((conv) =>
-        conv.id === conversationId ? { ...conv, isLoading: loading } : conv
+      prev?.map((conv) =>
+        conv?.id === conversationId ? { ...conv, isLoading: loading } : conv
       )
     );
   };
@@ -426,7 +431,10 @@ export default function ChatBoxNode({
   };
 
   const handleSendMessage = async () => {
-    if (!message.trim() || !activeConversationId || isLoading) return;
+    // if (!message.trim() || !activeConversationId || isLoading) return;
+    if (!message.trim() || isLoading) return;
+
+    console.log("handleSendMessage Function trigger 1111");
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -436,23 +444,30 @@ export default function ChatBoxNode({
     };
 
     // Add user message to active conversation
-    addMessageToConversation(activeConversationId, userMessage);
+    // addMessageToConversation(activeConversationId, userMessage);
+
+    console.log("handleSendMessage Function trigger 2222");
 
     // Update conversation title if it's the first message
     const currentConversation = conversations?.find(
       (conv) => conv?.id === activeConversationId
     );
+
     if (currentConversation && currentConversation?.messages?.length === 0) {
-      updateConversationTitle(activeConversationId, message.trim());
+      updateConversationTitle(activeConversationId ?? "", message.trim());
     }
+
+    console.log("handleSendMessage Function trigger 3333");
 
     const currentConversationId = activeConversationId;
     const currentSelectedModel = selectedModel;
 
     // Clear message and draft
     setMessage("");
-    saveDraftMessage(currentConversationId, "");
-    setConversationLoading(currentConversationId, true);
+    saveDraftMessage(currentConversationId ?? "", "");
+    setConversationLoading(currentConversationId ?? "", true);
+
+    console.log("handleSendMessage Function trigger 4444");
 
     console.log({
       createChatPayload: {
@@ -465,16 +480,29 @@ export default function ChatBoxNode({
       },
     });
 
+    console.log("Sending message:", {
+      strategyId: strategyId,
+      data: {
+        message: userMessage.content,
+        conversation_id: currentConversationId,
+        // strategy_collaborator_id: "", // empty for now (optional)
+      },
+    });
+
+    console.log("handleSendMessage Function trigger 5555");
+
     try {
       // Use sendChatMessageMutation with required arguments
       const response = await sendChatMessageMutation({
         strategyId: strategyId,
         data: {
           message: userMessage.content,
-          conversation_id: currentConversationId,
+          conversation_id: currentConversationId ?? "",
           // strategy_collaborator_id: "", // empty for now (optional)
         },
       });
+
+      console.log("Response from sendChatMessageMutation:", response);
 
       // Assume response contains the AI message content
       const aiMessage: Message = {
@@ -490,11 +518,24 @@ export default function ChatBoxNode({
         timestamp: new Date(),
       };
 
-      addMessageToConversation(currentConversationId, aiMessage);
-      setConversationLoading(currentConversationId, false);
-    } catch (error) {
-      console.error("Error sending message:", error);
-      setConversationLoading(currentConversationId, false);
+      // panic function
+      // addMessageToConversation(currentConversationId, aiMessage);
+      setConversationLoading(currentConversationId ?? "", false);
+    } catch (error: any) {
+      // Always set loading to false
+      setConversationLoading(currentConversationId ?? "", false);
+      // Log error safely
+      let errorMsg = "Unknown error";
+      if (error?.response?.data) {
+        errorMsg = JSON.stringify(error.response.data);
+      } else if (error?.message) {
+        errorMsg = error.message;
+      } else if (typeof error === "string") {
+        errorMsg = error;
+      }
+      console.log("Error sending message:", errorMsg, error);
+      // Optionally, show a user-friendly error message (e.g., toast)
+      // You can add a toast or set an error state here if desired
     }
   };
 
@@ -582,8 +623,8 @@ export default function ChatBoxNode({
                                   </span>
                                 )}
                             </div>
-                            {conversation.isLoading && (
-                              <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                            {conversation?.isLoading && (
+                              <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
                             )}
                           </div>
                           <div className="flex items-center gap-1">

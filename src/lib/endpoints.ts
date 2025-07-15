@@ -145,9 +145,9 @@ export const endpoints = {
     }) => `/strategies/${id}/peers/${peerType}/${peerId}/analyze`,
 
     // board chat/conversation endpoints
-    CONVERSATIONS: (id: string) => `/strategies/${id}/conversations`,
+    CONVERSATIONS: (id: string) => `/strategies/${id}/ai-conversations`,
     CONVERSATION_BY_ID: (id: string, conversationId: string) =>
-      `/strategies/${id}/conversations/${conversationId}`,
+      `/strategies/${id}/ai-conversations/${conversationId}`,
     CREATE_CONVERSATION: (id: string) => `/strategies/${id}/ai-conversations`,
     DELETE_CONVERSATION: (id: string, conversationId: string) =>
       `/strategies/${id}/ai-conversations/${conversationId}`,
