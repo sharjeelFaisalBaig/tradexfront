@@ -22,6 +22,10 @@ import AIResponseLoader from "@/components/common/ai-response-loader";
 import NodeWrapper from "./common/NodeWrapper";
 import { useParams } from "next/navigation";
 import { useSendChatMessage } from "@/hooks/strategy/useStrategyMutations";
+import {
+  useGetConversationById,
+  useGetConversations,
+} from "@/hooks/strategy/useStrategyQueries";
 
 // Message type definition
 type Message = {
@@ -76,6 +80,11 @@ export default function ChatBoxNode({
   >(null);
 
   const { mutateAsync: sendChatMessageMutation } = useSendChatMessage();
+  const { data: conversationsData } = useGetConversations(strategyId);
+  const { data: activeConversationData } = useGetConversationById(
+    strategyId,
+    activeConversationId ?? ""
+  );
 
   // Dynamic AI Models State
   const [availableModels] = useState<AIModel[]>([

@@ -1,15 +1,13 @@
-import { fetchWithAutoRefresh } from "@/lib/fetchWithAutoRefresh";
 import { endpoints } from "@/lib/endpoints";
-import { Session } from "next-auth";
 import axiosInstance from "../axios";
 
 export const getStrategies = async () => {
-  const response = await axiosInstance.get("/strategies");
+  const response = await axiosInstance.get(endpoints.STRATEGY.LIST);
   return response.data;
 };
 
 export const getStrategyById = async (id: string) => {
-  const response = await axiosInstance.get(`/strategies/${id}`);
+  const response = await axiosInstance.get(endpoints.STRATEGY.GET(id));
   return response.data;
 };
 
@@ -28,10 +26,19 @@ export const getPeerAnalysisStatus = async ({
   return res.data;
 };
 
-// export const getStrategies = async (session: Session | null) => {
-//   return fetchWithAutoRefresh(endpoints.STRATEGY.LIST, session);
-// };
+export const getAllConversations = async (strategyId: string) => {
+  const res = await axiosInstance.get(
+    endpoints.STRATEGY.CONVERSATION(strategyId)
+  );
+  return res.data;
+};
 
-// export const getStrategy = async (id: string, session: Session | null) => {
-//   return fetchWithAutoRefresh(endpoints.STRATEGY.GET(id), session);
-// };
+export const getConversationById = async (
+  strategyId: string,
+  conversationId: string
+) => {
+  const res = await axiosInstance.get(
+    endpoints.STRATEGY.CONVERSATION_BY_ID(strategyId, conversationId)
+  );
+  return res.data;
+};

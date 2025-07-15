@@ -4,6 +4,8 @@ import {
   getStrategyById,
   getStrategies,
   getPeerAnalysisStatus,
+  getConversationById,
+  getAllConversations,
 } from "@/services/strategy/strategy_API";
 
 export const useGetStrategies = () => {
@@ -47,5 +49,24 @@ export const useGetPeerAnalysisStatus = ({
     refetchInterval: (data) => {
       return data?.state?.data?.is_ready_to_interact === true ? false : 5000; // 👈 conditional refetch logic
     },
+  });
+};
+
+export const useGetConversations = (strategyId: string) => {
+  return useQuery({
+    queryKey: [QUERY_KEYS.CONVERSATIONS, strategyId],
+    queryFn: () => getAllConversations(strategyId),
+    enabled: !!strategyId,
+  });
+};
+
+export const useGetConversationById = (
+  strategyId: string,
+  conversationId: string
+) => {
+  return useQuery({
+    queryKey: [QUERY_KEYS.CONVERSATION, strategyId, conversationId],
+    queryFn: () => getConversationById(strategyId, conversationId),
+    enabled: !!strategyId && !!conversationId,
   });
 };

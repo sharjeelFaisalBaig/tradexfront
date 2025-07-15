@@ -3,4 +3,6 @@ export const QUERY_KEYS = {
   STRATEGY: "strategy",
   USER: "user",
   CHAT: "chat",
+  CONVERSATIONS: "conversations",
+  CONVERSATION: "conversation",
 };
