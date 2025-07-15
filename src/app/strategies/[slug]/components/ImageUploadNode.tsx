@@ -34,6 +34,7 @@ import {
   useUploadImageContent,
 } from "@/hooks/strategy/useStrategyMutations";
 import { useParams } from "next/navigation";
+import { useGetPeerAnalysisStatus } from "@/hooks/strategy/useGetPeerAnalysisStatus";
 
 // Types for API integration
 interface AIProcessingResponse {
@@ -58,13 +59,16 @@ export default function ImageUploadNode({
 }: any) {
   console.log("ImageUploadNode data:", data);
 
+  const strategyId = useParams()?.slug as string;
+
   const { mutate: uploadImageContent, isPending: isUploading } =
     useUploadImageContent();
 
-  const { mutate: analyzeImageContent, isPending: isAnalyzing } =
-    useAnalyzeImagePeer();
-
-  const strategyId = useParams()?.slug as string;
+  const {
+    mutate: analyzeImageContent,
+    isPending: isAnalyzing,
+    isSuccess: isAnalyzeSuccess,
+  } = useAnalyzeImagePeer();
 
   const nodeControlRef = useRef(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -88,7 +92,16 @@ export default function ImageUploadNode({
   );
   const [userNotes, setUserNotes] = useState<string>("");
 
-  // https://tradexfront.isoft-digital.net/storage/26/bmw.png
+  // Only poll for status if analysis is successful
+  const { data: status, isPollingLoading: isStatusPollingLoading } =
+    useGetPeerAnalysisStatus({
+      peerId: data?.id,
+      strategyId,
+      peerType: "image",
+      enabled: isAnalyzeSuccess,
+    });
+
+  console.log("Image analysis status:", { status });
 
   // Handle image from data.image (relative path)
   useEffect(() => {
@@ -171,55 +184,98 @@ export default function ImageUploadNode({
   // };
 
   const handleFileSelect = (file: File) => {
-    if (file && file.type.startsWith("image/")) {
+    // Supported formats: JPEG, PNG, WEBP, GIF (static only)
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+    if (!file) return;
+    if (!allowedTypes.includes(file.type)) {
       setProcessingState({
-        isProcessing: true,
+        isProcessing: false,
         isComplete: false,
-        error: null,
+        error:
+          "Unsupported image format. Only JPEG, PNG, WEBP, and static GIF are allowed.",
       });
-      setFileName(file.name);
-
-      // Show the selected image immediately
+      return;
+    }
+    // For GIF, check if it's animated (static only allowed)
+    if (file.type === "image/gif") {
       const reader = new FileReader();
       reader.onload = (e) => {
-        const imageData = e.target?.result as string;
-        setUploadedImage(imageData);
-      };
-      reader.readAsDataURL(file);
-
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("title", "");
-      formData.append("description", "");
-
-      uploadImageContent(
-        {
-          strategyId: strategyId,
-          peerId: data?.id,
-          data: formData,
-        },
-        {
-          onSuccess: (response: any) => {
-            // If response has imageUrl, show it (replace preview with uploaded url)
-            if (response?.imageUrl) {
-              setUploadedImage(response.imageUrl);
-            }
-            setProcessingState({
-              isProcessing: false,
-              isComplete: true,
-              error: null,
-            });
-          },
-          onError: (error: any) => {
-            setProcessingState({
-              isProcessing: false,
-              isComplete: false,
-              error: error?.message || "Image upload failed",
-            });
-          },
+        const arr = new Uint8Array(e.target?.result as ArrayBuffer);
+        // Look for multiple GIF frames (0x21, 0xF9, 0x04)
+        let frameCount = 0;
+        for (let i = 0; i < arr.length - 2; i++) {
+          if (arr[i] === 0x21 && arr[i + 1] === 0xf9 && arr[i + 2] === 0x04) {
+            frameCount++;
+            if (frameCount > 1) break;
+          }
         }
-      );
+        if (frameCount > 1) {
+          setProcessingState({
+            isProcessing: false,
+            isComplete: false,
+            error:
+              "Animated GIFs are not supported. Please upload a static GIF.",
+          });
+          return;
+        }
+        // If static GIF, continue as normal
+        proceedWithImage(file);
+      };
+      reader.readAsArrayBuffer(file);
+      return;
     }
+    proceedWithImage(file);
+  };
+
+  // Helper to handle valid image
+  const proceedWithImage = (file: File) => {
+    setProcessingState({
+      isProcessing: true,
+      isComplete: false,
+      error: null,
+    });
+    setFileName(file.name);
+
+    // Show the selected image immediately
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const imageData = e.target?.result as string;
+      setUploadedImage(imageData);
+    };
+    reader.readAsDataURL(file);
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("title", "");
+    formData.append("description", "");
+
+    uploadImageContent(
+      {
+        strategyId: strategyId,
+        peerId: data?.id,
+        data: formData,
+      },
+      {
+        onSuccess: (response: any) => {
+          // If response has imageUrl, show it (replace preview with uploaded url)
+          if (response?.imageUrl) {
+            setUploadedImage(response.imageUrl);
+          }
+          setProcessingState({
+            isProcessing: false,
+            isComplete: true,
+            error: null,
+          });
+        },
+        onError: (error: any) => {
+          setProcessingState({
+            isProcessing: false,
+            isComplete: false,
+            error: error?.message || "Image upload failed",
+          });
+        },
+      }
+    );
   };
 
   const handleFileInputChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -323,68 +379,86 @@ export default function ImageUploadNode({
           <div ref={nodeControlRef} className={`nodrag`} />
 
           <TooltipProvider>
-            <div className="w-[1000px] max-w-md mx-auto bg-white rounded-lg shadow-sm border overflow-hidden">
+            <div className="w-[1000px] max-w-md mx-auto bg-white rounded-lg shadow-sm border overflow-hidden relative">
+              {/* Full node loader overlay when status is polling/loading */}
+              {isStatusPollingLoading && (
+                <div className="absolute inset-0 z-50 bg-white bg-opacity-80 flex flex-col items-center justify-center">
+                  <Loader2 className="w-10 h-10 animate-spin text-purple-600 mb-2" />
+                  <span className="text-base font-medium text-gray-700">
+                    Checking analysis status...
+                  </span>
+                </div>
+              )}
               {!uploadedImage ? (
                 // Upload Interface
-                <div
-                  className={cn(
-                    "relative bg-white rounded-2xl p-12 transition-all duration-200 border-2 border-dashed",
-                    isDragOver
-                      ? "border-blue-400 bg-blue-50"
-                      : "border-gray-300",
-                    "cursor-pointer"
-                  )}
-                  onDragEnter={handleDragEnter}
-                  onDragOver={handleDragOver}
-                  onDragLeave={handleDragLeave}
-                  onDrop={handleDrop}
-                  onClick={handleSelectFile}
-                >
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handleFileInputChange}
-                    className="hidden"
-                  />
+                <div className="relative">
+                  <div
+                    className={cn(
+                      "relative bg-white rounded-2xl p-12 transition-all duration-200 border-2 border-dashed",
+                      isDragOver
+                        ? "border-blue-400 bg-blue-50"
+                        : "border-gray-300",
+                      "cursor-pointer"
+                    )}
+                    onDragEnter={handleDragEnter}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                    onClick={handleSelectFile}
+                  >
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileInputChange}
+                      className="hidden"
+                    />
 
-                  <div className="text-center">
-                    <div className="mb-6">
-                      <Button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleSelectFile();
-                        }}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-full text-base font-medium"
-                      >
-                        <Plus className="w-5 h-5 mr-2" />
-                        Select a file
-                      </Button>
-                    </div>
-
-                    <div className="text-gray-500 mb-4">
-                      <span className="text-lg">or</span>
-                    </div>
-
-                    <div className="text-gray-600 text-lg">
-                      Drag and drop a file here
-                    </div>
-
-                    <div className="text-sm text-gray-500 mt-4">
-                      Supports: JPG, PNG, GIF, WebP
-                    </div>
-                  </div>
-
-                  {isDragOver && (
-                    <div className="absolute inset-0 bg-blue-100 bg-opacity-70 rounded-2xl flex items-center justify-center z-10">
-                      <div className="bg-white p-6 rounded-xl shadow-lg flex flex-col items-center">
-                        <Upload className="w-12 h-12 text-blue-600 mb-2" />
-                        <div className="text-blue-600 text-xl font-medium">
-                          Drop your image here
+                    <div className="text-center">
+                      {/* Show error message if unsupported format or other error and no image uploaded */}
+                      {processingState.error && (
+                        <div className="mb-4 px-4 py-2 bg-red-50 border border-red-200 rounded text-red-700 text-sm font-medium flex items-center gap-2">
+                          <X className="w-4 h-4 text-red-500" />
+                          {processingState.error}
                         </div>
+                      )}
+                      <div className="mb-6">
+                        <Button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSelectFile();
+                          }}
+                          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-full text-base font-medium"
+                        >
+                          <Plus className="w-5 h-5 mr-2" />
+                          Select a file
+                        </Button>
+                      </div>
+
+                      <div className="text-gray-500 mb-4">
+                        <span className="text-lg">or</span>
+                      </div>
+
+                      <div className="text-gray-600 text-lg">
+                        Drag and drop a file here
+                      </div>
+
+                      <div className="text-sm text-gray-500 mt-4">
+                        Supports: JPG, PNG, GIF, WebP
                       </div>
                     </div>
-                  )}
+
+                    {isDragOver && (
+                      <div className="absolute inset-0 bg-blue-100 bg-opacity-70 rounded-2xl flex items-center justify-center z-10">
+                        <div className="bg-white p-6 rounded-xl shadow-lg flex flex-col items-center">
+                          <Upload className="w-12 h-12 text-blue-600 mb-2" />
+                          <div className="text-blue-600 text-xl font-medium">
+                            Drop your image here
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               ) : (
                 // Processing/Preview Interface
@@ -555,7 +629,7 @@ export default function ImageUploadNode({
                       }}
                       className="bg-cyan-500 hover:bg-cyan-600 text-white rounded-full w-8 h-8 p-0 disabled:opacity-50"
                     >
-                      {processingState.isProcessing ? (
+                      {isAnalyzing ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
                       ) : (
                         <ArrowRight className="w-4 h-4" />

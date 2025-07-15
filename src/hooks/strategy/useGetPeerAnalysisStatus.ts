@@ -32,6 +32,8 @@ export const useGetPeerAnalysisStatus = ({
     },
   });
 
+  console.log({ "query.data?.state?.data": query.data?.state?.data });
+
   // Set isPollingLoading true when request is triggered
   useEffect(() => {
     if (!!strategyId && !!peerId && !!peerType && enabled && shouldPoll) {
