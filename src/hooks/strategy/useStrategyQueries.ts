@@ -31,7 +31,7 @@ export const useGetConversations = (
   { disabled }: { disabled?: boolean }
 ) => {
   return useQuery({
-    queryKey: [QUERY_KEYS.CONVERSATIONS, strategyId],
+    queryKey: [QUERY_KEYS.CONVERSATIONS, QUERY_KEYS.STRATEGY, strategyId],
     queryFn: () => getAllConversations(strategyId),
     enabled: !!strategyId && !disabled,
   });

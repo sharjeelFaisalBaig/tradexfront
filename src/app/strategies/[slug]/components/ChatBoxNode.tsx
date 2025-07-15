@@ -24,6 +24,7 @@ import NodeWrapper from "./common/NodeWrapper";
 import { useParams } from "next/navigation";
 import {
   useCreateConversation,
+  useDeleteConversation,
   useSendChatMessage,
 } from "@/hooks/strategy/useStrategyMutations";
 import {
@@ -84,11 +85,10 @@ export default function ChatBoxNode({
 
   const { mutateAsync: sendChatMessageMutation } = useSendChatMessage();
   const { mutateAsync: createConversationMutation } = useCreateConversation();
+  const { mutateAsync: deleteConversationMutation } = useDeleteConversation();
 
   const { data: aiModelsData } = useGetAiModels();
-  const { data: conversationsData } = useGetConversations(strategyId, {
-    disabled: true,
-  });
+  // const { data: conversationsData } = useGetConversations(strategyId, {disabled: true,});
   // const { data: activeConversationData } = useGetConversationById( strategyId, activeConversationId ?? "" );
   // console.log({ activeConversationData, conversationsData });
 
@@ -99,7 +99,7 @@ export default function ChatBoxNode({
   const [message, setMessage] = useState("");
 
   const [conversations, setConversations] = useState<Conversation[]>(
-    conversationsData?.conversations || []
+    data?.conversations || []
   );
 
   const availableModels: AIModel[] = useMemo(
@@ -261,13 +261,9 @@ export default function ChatBoxNode({
 
   // Delete conversation
   const deleteConversation = useCallback(
-    (conversationId: string) => {
+    async (conversationId: string) => {
       if (isAnyConversationLoading) return;
 
-      // Find the conversation to delete
-      const conversationToDelete = conversations.find(
-        (conv) => conv.id === conversationId
-      );
       const conversationIndex = conversations.findIndex(
         (conv) => conv.id === conversationId
       );
@@ -278,21 +274,35 @@ export default function ChatBoxNode({
         return;
       }
 
-      setConversations((prev) =>
-        prev.filter((conv) => conv.id !== conversationId)
-      );
-
-      // If deleted conversation was active, switch to first available
-      if (activeConversationId === conversationId) {
-        const remainingConversations = conversations.filter(
-          (conv) => conv.id !== conversationId
+      try {
+        await deleteConversationMutation({
+          strategyId,
+          conversationId,
+        });
+        setConversations((prev) =>
+          prev.filter((conv) => conv.id !== conversationId)
         );
-        if (remainingConversations.length > 0) {
-          setActiveConversationId(remainingConversations[0].id);
+
+        // If deleted conversation was active, switch to first available
+        if (activeConversationId === conversationId) {
+          const remainingConversations = conversations.filter(
+            (conv) => conv.id !== conversationId
+          );
+          if (remainingConversations.length > 0) {
+            setActiveConversationId(remainingConversations[0].id);
+          }
         }
+      } catch (error) {
+        console.error("Error deleting conversation:", error);
       }
     },
-    [isAnyConversationLoading, activeConversationId, conversations]
+    [
+      isAnyConversationLoading,
+      activeConversationId,
+      conversations,
+      deleteConversationMutation,
+      strategyId,
+    ]
   );
 
   // Initialize with first conversation - fix to prevent multiple calls
