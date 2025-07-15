@@ -88,9 +88,8 @@ export default function ChatBoxNode({
   const { mutateAsync: deleteConversationMutation } = useDeleteConversation();
 
   const { data: aiModelsData } = useGetAiModels();
-  // const { data: conversationsData } = useGetConversations(strategyId, {disabled: true,});
   // const { data: activeConversationData } = useGetConversationById( strategyId, activeConversationId ?? "" );
-  // console.log({ activeConversationData, conversationsData });
+  // console.log({ activeConversationData, });
 
   const nodeControlRef = useRef(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -280,15 +279,15 @@ export default function ChatBoxNode({
           conversationId,
         });
         setConversations((prev) =>
-          prev.filter((conv) => conv.id !== conversationId)
+          prev?.filter((conv) => conv?.id !== conversationId)
         );
 
         // If deleted conversation was active, switch to first available
         if (activeConversationId === conversationId) {
-          const remainingConversations = conversations.filter(
-            (conv) => conv.id !== conversationId
+          const remainingConversations = conversations?.filter(
+            (conv) => conv?.id !== conversationId
           );
-          if (remainingConversations.length > 0) {
+          if (remainingConversations?.length > 0) {
             setActiveConversationId(remainingConversations[0].id);
           }
         }
@@ -307,7 +306,7 @@ export default function ChatBoxNode({
 
   // Initialize with first conversation - fix to prevent multiple calls
   useEffect(() => {
-    if (conversations.length === 0) {
+    if (conversations?.length === 0) {
       const initialConversation: Conversation = {
         id: `conv_${Date.now()}_initial`,
         title: "New Conversation",
@@ -363,13 +362,13 @@ export default function ChatBoxNode({
     firstMessage: string
   ) => {
     setConversations((prev) =>
-      prev.map((conv) =>
-        conv.id === conversationId
+      prev?.map((conv) =>
+        conv?.id === conversationId
           ? {
               ...conv,
               title:
                 firstMessage.slice(0, 30) +
-                (firstMessage.length > 30 ? "..." : ""),
+                (firstMessage?.length > 30 ? "..." : ""),
               updatedAt: new Date(),
             }
           : conv
@@ -383,11 +382,11 @@ export default function ChatBoxNode({
     newMessage: Message
   ) => {
     setConversations((prev) =>
-      prev.map((conv) =>
-        conv.id === conversationId
+      prev?.map((conv) =>
+        conv?.id === conversationId
           ? {
               ...conv,
-              messages: [...conv.messages, newMessage],
+              messages: [...conv?.messages, newMessage],
               updatedAt: new Date(),
             }
           : conv
@@ -440,10 +439,10 @@ export default function ChatBoxNode({
     addMessageToConversation(activeConversationId, userMessage);
 
     // Update conversation title if it's the first message
-    const currentConversation = conversations.find(
-      (conv) => conv.id === activeConversationId
+    const currentConversation = conversations?.find(
+      (conv) => conv?.id === activeConversationId
     );
-    if (currentConversation && currentConversation.messages.length === 0) {
+    if (currentConversation && currentConversation?.messages?.length === 0) {
       updateConversationTitle(activeConversationId, message.trim());
     }
 
@@ -470,9 +469,9 @@ export default function ChatBoxNode({
       // Use sendChatMessageMutation with required arguments
       const response = await sendChatMessageMutation({
         strategyId: strategyId,
-        conversationId: currentConversationId,
         data: {
           message: userMessage.content,
+          conversation_id: currentConversationId,
           // strategy_collaborator_id: "", // empty for now (optional)
         },
       });
@@ -552,12 +551,12 @@ export default function ChatBoxNode({
                     Conversations
                   </h3>
                   <div className="space-y-2">
-                    {conversations.length === 0 ? (
+                    {conversations?.length === 0 ? (
                       <div className="text-sm text-gray-400 text-center py-4">
                         No conversations yet
                       </div>
                     ) : (
-                      conversations.map((conversation) => (
+                      conversations?.map((conversation) => (
                         <div
                           key={conversation.id}
                           className={`group flex items-center justify-between p-3 rounded-lg text-sm font-medium transition-colors ${
@@ -600,8 +599,8 @@ export default function ChatBoxNode({
                             )}
 
                             {/* Only show delete button if this is not the first conversation */}
-                            {conversations.length > 1 &&
-                              conversations.indexOf(conversation) !== 0 && (
+                            {conversations?.length > 1 &&
+                              conversations?.indexOf(conversation) !== 0 && (
                                 <Button
                                   size="sm"
                                   variant="ghost"
@@ -649,7 +648,7 @@ export default function ChatBoxNode({
 
                 {/* Messages Area */}
                 <div className="flex-1 overflow-y-auto p-4 space-y-6">
-                  {messages.length === 0 ? (
+                  {messages?.length === 0 ? (
                     <div className="flex items-center justify-center h-full text-gray-400">
                       <div className="text-center">
                         <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
@@ -657,7 +656,7 @@ export default function ChatBoxNode({
                       </div>
                     </div>
                   ) : (
-                    messages.map((msg) =>
+                    messages?.map((msg) =>
                       msg.sender === "user" ? (
                         <div
                           key={msg.id}

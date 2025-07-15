@@ -145,8 +145,6 @@ export const endpoints = {
     }) => `/strategies/${id}/peers/${peerType}/${peerId}/analyze`,
 
     // board chat/conversation endpoints
-    CHAT: (id: string, conversationId: string) =>
-      `/strategies/${id}/ai-conversations/${conversationId}/ai-chats`,
     CONVERSATIONS: (id: string) => `/strategies/${id}/conversations`,
     CONVERSATION_BY_ID: (id: string, conversationId: string) =>
       `/strategies/${id}/conversations/${conversationId}`,
@@ -160,5 +158,6 @@ export const endpoints = {
   CHAT_BOX: {
     // get ai-models endpoint
     GET_AI_MODELS: `/ai-models`,
+    CHAT: (id: string) => `/strategies/${id}/ai-chats`,
   },
 };

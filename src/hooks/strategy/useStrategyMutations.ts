@@ -568,16 +568,15 @@ export const useSendChatMessage = () => {
   return useMutation({
     mutationFn: ({
       strategyId,
-      conversationId,
       data,
     }: {
       strategyId: string;
-      conversationId: string;
       data: {
         message: string;
+        conversation_id: string;
         strategy_collaborator_id?: string;
       };
-    }) => sendChatMessage({ strategyId, conversationId, data }),
+    }) => sendChatMessage({ strategyId, data }),
 
     onSuccess: (_data, { strategyId }) => {
       // Invalidate or refetch if needed

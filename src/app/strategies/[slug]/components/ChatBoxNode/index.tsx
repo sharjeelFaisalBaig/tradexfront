@@ -382,7 +382,7 @@ export default function ChatBoxNode({
         conv.id === conversationId
           ? {
               ...conv,
-              messages: [...conv.messages, newMessage],
+              messages: [...conv?.messages, newMessage],
               updatedAt: new Date(),
             }
           : conv
@@ -465,9 +465,9 @@ export default function ChatBoxNode({
       // Use sendChatMessageMutation with required arguments
       const response = await sendChatMessageMutation({
         strategyId: strategyId,
-        conversationId: currentConversationId,
         data: {
           message: userMessage.content,
+          conversation_id: currentConversationId,
           // strategy_collaborator_id: "", // empty for now (optional)
         },
       });

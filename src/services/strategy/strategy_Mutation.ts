@@ -390,18 +390,17 @@ export const disconnectNodes = async ({
 
 export const sendChatMessage = async ({
   strategyId,
-  conversationId,
   data,
 }: {
   strategyId: string;
-  conversationId: string;
   data: {
     message: string;
+    conversation_id: string;
     strategy_collaborator_id?: string;
   };
 }) => {
   const res = await axiosInstance.post(
-    endpoints.STRATEGY.CHAT(strategyId, conversationId),
+    endpoints.CHAT_BOX.CHAT(strategyId),
     data
   );
   return res.data;

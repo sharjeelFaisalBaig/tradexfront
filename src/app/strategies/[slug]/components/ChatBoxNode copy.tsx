@@ -320,7 +320,7 @@ export default function ChatBoxNode({
         conv.id === conversationId
           ? {
               ...conv,
-              messages: [...conv.messages, newMessage],
+              messages: [...conv?.messages, newMessage],
               updatedAt: new Date(),
             }
           : conv
