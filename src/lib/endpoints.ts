@@ -134,10 +134,15 @@ export const endpoints = {
       `/strategies/${id}/peers/thread/${peerId}`,
 
     // board analyze peer endpoints
-    ANALYZE_SOCIAL_PEER: (id: string, peerId: string) =>
-      `/strategies/${id}/peers/social_media/${peerId}/analyze`,
-    ANALYZE_REMOTE_PEER: (id: string, peerId: string) =>
-      `/strategies/${id}/peers/remote/${peerId}/analyze`,
+    ANALYZE_PEER: ({
+      id,
+      peerId,
+      peerType,
+    }: {
+      id: string;
+      peerId: string;
+      peerType: "social_media" | "remote" | "image";
+    }) => `/strategies/${id}/peers/${peerType}/${peerId}/analyze`,
 
     // board chat/conversation endpoints
     CHAT: (id: string, conversationId: string) =>

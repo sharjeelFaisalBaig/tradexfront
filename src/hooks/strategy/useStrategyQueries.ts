@@ -26,11 +26,14 @@ export const useGetStrategyById = (id?: string) => {
   });
 };
 
-export const useGetConversations = (strategyId: string) => {
+export const useGetConversations = (
+  strategyId: string,
+  { disabled }: { disabled?: boolean }
+) => {
   return useQuery({
     queryKey: [QUERY_KEYS.CONVERSATIONS, strategyId],
     queryFn: () => getAllConversations(strategyId),
-    enabled: !!strategyId,
+    enabled: !!strategyId && !disabled,
   });
 };
 

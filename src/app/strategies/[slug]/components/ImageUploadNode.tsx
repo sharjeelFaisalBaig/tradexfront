@@ -52,7 +52,7 @@ export default function ImageUploadNode({
   targetPosition = Position.Right,
   data,
 }: any) {
-  // console.log("ImageUploadNode data:", data);
+  console.log("ImageUploadNode data:", data);
 
   const { mutate: uploadImageContent, isPending: isUploading } =
     useUploadImageContent();
@@ -164,6 +164,14 @@ export default function ImageUploadNode({
       });
       setFileName(file.name);
 
+      // Show the selected image immediately
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const imageData = e.target?.result as string;
+        setUploadedImage(imageData);
+      };
+      reader.readAsDataURL(file);
+
       const formData = new FormData();
       formData.append("file", file);
       formData.append("title", "");
@@ -177,15 +185,15 @@ export default function ImageUploadNode({
         },
         {
           onSuccess: (response: any) => {
-            // Adjust this based on your API response structure
-            setUploadedImage(response?.imageUrl || null);
+            // If response has imageUrl, show it (replace preview with uploaded url)
+            if (response?.imageUrl) {
+              setUploadedImage(response.imageUrl);
+            }
             setProcessingState({
               isProcessing: false,
               isComplete: true,
               error: null,
             });
-            // Optionally, trigger AI processing here if needed
-            // processImageWithAI(response?.imageUrl, file.name);
           },
           onError: (error: any) => {
             setProcessingState({
@@ -266,9 +274,18 @@ export default function ImageUploadNode({
     }
   };
 
+  // If data has imageUrl and is_ready_to_interact, show image and allow connect
+  useEffect(() => {
+    if (data?.imageUrl) {
+      setUploadedImage(data.imageUrl);
+      setFileName(data.fileName || "");
+    }
+  }, [data?.imageUrl, data?.fileName]);
+
   // Determine if connection should be allowed
   const canConnect: any =
-    processingState.isComplete && aiResponse && !processingState.error;
+    (processingState.isComplete && !processingState.error) ||
+    data?.is_ready_to_interact;
 
   // Remove connections when node becomes not connectable
   useEffect(() => {

@@ -297,7 +297,11 @@ export const analyzeSocialPeer = async ({
   data: any;
 }) => {
   const res = await axiosInstance.post(
-    endpoints.STRATEGY.ANALYZE_SOCIAL_PEER(strategyId, peerId),
+    endpoints.STRATEGY.ANALYZE_PEER({
+      peerId,
+      id: strategyId,
+      peerType: "social_media",
+    }),
     data
   );
   return res.data;
@@ -316,7 +320,11 @@ export const analyzeRemotePeer = async ({
   };
 }) => {
   const res = await axiosInstance.post(
-    endpoints.STRATEGY.ANALYZE_REMOTE_PEER(strategyId, peerId),
+    endpoints.STRATEGY.ANALYZE_PEER({
+      peerId,
+      id: strategyId,
+      peerType: "remote",
+    }),
     data
   );
   return res.data;
