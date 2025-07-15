@@ -87,7 +87,9 @@ export default function ChatBoxNode({
   const { mutateAsync: createConversationMutation } = useCreateConversation();
 
   const { data: aiModelsData } = useGetAiModels();
-  const { data: conversationsData } = useGetConversations(strategyId);
+  const { data: conversationsData } = useGetConversations(strategyId, {
+    disabled: true,
+  });
   const { data: activeConversationData } = useGetConversationById(
     strategyId,
     activeConversationId ?? ""
