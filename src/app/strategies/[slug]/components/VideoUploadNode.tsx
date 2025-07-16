@@ -171,13 +171,56 @@ export default function VideoUploadNode({
 
   console.log("Video analysis status:", { status });
 
-  // Handle pasted video data from props
+  // Sync state with incoming data props (like ImageUploadNode)
   useEffect(() => {
-    if (data?.pastedVideo && data?.pastedFileName) {
-      setUploadedVideo(data.pastedVideo);
-      setFileName(data.pastedFileName);
-      // Auto-process pasted videos
-      processVideoWithAI(data.pastedVideo, data.pastedFileName);
+    // Handle video from data.video (relative or absolute path)
+    if (data?.video) {
+      let apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+      if (apiUrl.endsWith("/api")) apiUrl = apiUrl.replace(/\/api$/, "");
+      const videoUrl = data.video.startsWith("http")
+        ? data.video
+        : apiUrl + data.video;
+      setUploadedVideo(videoUrl);
+      // Extract file name from path or use data.title
+      const parts = data.video.split("/");
+      setFileName(parts[parts.length - 1] || data.title || "video");
+    }
+
+    // If backend provides AI info, set it
+    if (data?.ai_title || data?.ai_summary) {
+      setAiResponse({
+        title: data.ai_title || data.title || "",
+        peerId: data.id || "",
+        analysis: data.ai_summary || "",
+        confidence: 0.95, // fallback
+        tags: [], // fallback
+        transcript: data.transcript || "", // fallback
+        keyTopics: data.keyTopics || [], // fallback
+        sentiment: data.sentiment || "neutral", // fallback
+        videoMetrics: data.videoMetrics || {
+          duration: "",
+          format: "",
+          resolution: "",
+          frameRate: "",
+          bitrate: "",
+          audioChannels: "",
+        },
+        insights: data.insights || [],
+      });
+    }
+
+    // Set user notes if present
+    if (data?.ai_notes) {
+      setUserNotes(data.ai_notes);
+    }
+
+    // If video is present, mark processing as complete (for connectability)
+    if (data?.video && data?.is_ready_to_interact) {
+      setProcessingState((prev) => ({
+        ...prev,
+        isComplete: true,
+        error: null,
+      }));
     }
   }, [data]);
 

@@ -103,21 +103,46 @@ export default function ImageUploadNode({
 
   console.log("Image analysis status:", { status });
 
-  // Handle image from data.image (relative path)
+  // Sync state with incoming data props (like VideoUploadNode)
   useEffect(() => {
+    // Handle image from data.image (relative or absolute path)
     if (data?.image) {
-      // Build full image URL
       let apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
       if (apiUrl.endsWith("/api")) apiUrl = apiUrl.replace(/\/api$/, "");
       const imageUrl = data.image.startsWith("http")
         ? data.image
         : apiUrl + data.image;
       setUploadedImage(imageUrl);
-      // Extract file name from path
+      // Extract file name from path or use data.title
       const parts = data.image.split("/");
-      setFileName(parts[parts.length - 1] || "image");
+      setFileName(parts[parts.length - 1] || data.title || "image");
     }
-  }, [data?.image]);
+
+    // If backend provides AI info, set it
+    if (data?.ai_title || data?.ai_summary) {
+      setAiResponse({
+        title: data.ai_title || data.title || "",
+        peerId: data.id || "",
+        analysis: data.ai_summary || "",
+        confidence: 0.95, // fallback
+        tags: [], // fallback
+      });
+    }
+
+    // Set user notes if present
+    if (data?.ai_notes) {
+      setUserNotes(data.ai_notes);
+    }
+
+    // If image is present, mark processing as complete (for connectability)
+    if (data?.image && data?.is_ready_to_interact) {
+      setProcessingState((prev) => ({
+        ...prev,
+        isComplete: true,
+        error: null,
+      }));
+    }
+  }, [data]);
 
   // AI responses for different image types
   const processImage = (filename: string): AIProcessingResponse => {
