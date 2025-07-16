@@ -18,6 +18,7 @@ export const useGetPeerAnalysisStatus = ({
   const [isPollingLoading, setIsPollingLoading] = useState(false);
 
   const query = useQuery({
+    retry: false, // ❌ disables auto retry
     queryKey: [QUERY_KEYS.STRATEGY, strategyId, peerId, peerType],
     queryFn: () =>
       getPeerAnalysisStatus({

@@ -40,6 +40,7 @@ import {
   useUploadDocumentContent,
 } from "@/hooks/strategy/useStrategyMutations";
 import { useGetPeerAnalysisStatus } from "@/hooks/strategy/useGetPeerAnalysisStatus";
+import { toast } from "@/hooks/use-toast";
 
 // Types for AI integration
 interface AIProcessingResponse {
@@ -324,22 +325,34 @@ export default function DocumentUploadNode({
                 error: null,
               });
             },
-            onError: (err: any) => {
+            onError: (error: any) => {
               setUploadState({
                 isUploading: false,
                 isSuccess: false,
-                error: err?.message || "Upload failed. Please try again.",
+                error: error?.message || "Upload failed. Please try again.",
+              });
+              toast({
+                title: error?.message || "Error",
+                description:
+                  error?.response?.data?.message ||
+                  "Upload failed. Please try again.",
+                variant: "destructive",
               });
             },
           }
         );
       }
-    } catch (error) {
+    } catch (error: any) {
       setUploadState({
         isUploading: false,
         isSuccess: false,
         error:
           error instanceof Error ? error.message : "Document upload failed",
+      });
+      toast({
+        title: error?.message || "Error",
+        description: error?.response?.data?.message || "Document upload failed",
+        variant: "destructive",
       });
     }
   };
@@ -882,11 +895,24 @@ export default function DocumentUploadNode({
                         !userNotes
                       }
                       onClick={() => {
-                        analyzeVideoContent({
-                          data: { ai_notes: userNotes },
-                          strategyId: strategyId,
-                          peerId: data?.id,
-                        });
+                        analyzeVideoContent(
+                          {
+                            data: { ai_notes: userNotes },
+                            strategyId: strategyId,
+                            peerId: data?.id,
+                          },
+                          {
+                            onError: (error: any) => {
+                              toast({
+                                title: error?.message || "Error",
+                                description:
+                                  error?.response?.data?.message ||
+                                  "Failed to analyze Document.",
+                                variant: "destructive",
+                              });
+                            },
+                          }
+                        );
                       }}
                       className="bg-cyan-500 hover:bg-cyan-600 text-white rounded-full w-8 h-8 p-0 disabled:opacity-50"
                     >

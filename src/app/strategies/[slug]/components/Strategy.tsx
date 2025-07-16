@@ -399,9 +399,23 @@ const Strategy = (props: StrategyProps) => {
     (params: Connection) => {
       const sourceNode = nodes.find((n) => n.id === params.source);
       const targetNode = nodes.find((n) => n.id === params.target);
+      const edgeId = `edge-${params.source}-${params.target}-${Date.now()}`;
 
       if (!sourceNode || !targetNode) return;
 
+      setEdges((eds) =>
+        addEdge(
+          {
+            ...params,
+            type: "styledEdge",
+            animated: true,
+            id: edgeId,
+          },
+          eds
+        )
+      );
+
+      // 2. Backend request
       connectNodes(
         {
           strategyId: strategy?.id,
@@ -413,17 +427,6 @@ const Strategy = (props: StrategyProps) => {
         },
         {
           onSuccess: () => {
-            setEdges((eds) =>
-              addEdge(
-                {
-                  ...params,
-                  type: "styledEdge",
-                  animated: true,
-                  id: `edge-${params.source}-${params.target}-${Date.now()}`,
-                },
-                eds
-              )
-            );
             toast({
               title: "Nodes connected",
               description: "Successfully connected nodes.",
@@ -431,6 +434,9 @@ const Strategy = (props: StrategyProps) => {
             });
           },
           onError: (error: any) => {
+            // 3. Revert edge on failure
+            setEdges((eds) => eds.filter((e) => e.id !== edgeId));
+
             toast({
               title: "Connection failed",
               description:
