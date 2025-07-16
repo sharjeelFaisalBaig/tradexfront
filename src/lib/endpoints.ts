@@ -141,7 +141,7 @@ export const endpoints = {
     }: {
       id: string;
       peerId: string;
-      peerType: "social_media" | "remote" | "image";
+      peerType: "social_media" | "remote" | "image" | "video" | "document";
     }) => `/strategies/${id}/peers/${peerType}/${peerId}/analyze`,
 
     // board chat/conversation endpoints

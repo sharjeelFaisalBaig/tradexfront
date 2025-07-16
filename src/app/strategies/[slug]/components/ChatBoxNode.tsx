@@ -60,6 +60,7 @@ import {
   useCreateConversation,
   useDeleteConversation,
   useSendChatMessage,
+  useUpdateConversation,
   useUpdateConversationAiModel,
 } from "@/hooks/strategy/useStrategyMutations";
 import {
@@ -113,6 +114,7 @@ export default function ChatBoxNode({
 
   const { mutateAsync: sendChatMessageMutation } = useSendChatMessage();
   const { mutateAsync: createConversationMutation } = useCreateConversation();
+  const { mutateAsync: updateConversationMutation } = useUpdateConversation();
   const { mutateAsync: deleteConversationMutation } = useDeleteConversation();
   const { mutateAsync: updateConversationAiModelMutation } =
     useUpdateConversationAiModel();
@@ -140,6 +142,11 @@ export default function ChatBoxNode({
   const [conversations, setConversations] = useState<Conversation[]>(
     data?.conversations || []
   );
+  // Inline editing state
+  const [editingConversationId, setEditingConversationId] = useState<
+    string | null
+  >(null);
+  const [editingTitle, setEditingTitle] = useState<string>("");
 
   // Active conversation
   const activeConversation = conversations.find(
@@ -527,6 +534,70 @@ export default function ChatBoxNode({
     }
   };
 
+  // Handle double click to edit conversation title
+  const handleConversationTitleDoubleClick = (conversation: Conversation) => {
+    if (isAnyConversationLoading) return;
+    setEditingConversationId(conversation.id);
+    setEditingTitle(conversation.title);
+  };
+
+  // Handle title input change
+  const handleEditingTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setEditingTitle(e.target.value);
+  };
+
+  // Handle Enter key or blur to save title
+  const handleEditingTitleKeyDown = async (
+    e: React.KeyboardEvent<HTMLInputElement>,
+    conversation: Conversation
+  ) => {
+    if (e.key === "Enter" && editingTitle.trim() && editingConversationId) {
+      await saveConversationTitle(conversation, editingTitle.trim());
+    } else if (e.key === "Escape") {
+      setEditingConversationId(null);
+    }
+  };
+
+  const handleEditingTitleBlur = async (conversation: Conversation) => {
+    if (editingTitle.trim() && editingConversationId) {
+      await saveConversationTitle(conversation, editingTitle.trim());
+    } else {
+      setEditingConversationId(null);
+    }
+  };
+
+  // Save conversation title
+  const saveConversationTitle = async (
+    conversation: Conversation,
+    newTitle: string
+  ) => {
+    if (conversation.title === newTitle) {
+      setEditingConversationId(null);
+      return;
+    }
+    setConversations((prev) =>
+      prev.map((conv) =>
+        conv.id === conversation.id ? { ...conv, title: newTitle } : conv
+      )
+    );
+    setEditingConversationId(null);
+    try {
+      await updateConversationMutation({
+        strategyId,
+        conversationId: conversation.id,
+        data: { title: newTitle },
+      });
+    } catch (error: any) {
+      toast({
+        title: error?.message || "Error",
+        description:
+          error?.response?.data?.message ||
+          "Failed to update conversation title.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <>
       <NodeWrapper
@@ -583,6 +654,8 @@ export default function ChatBoxNode({
                           availableModels.find(
                             (m) => m.id === conversation.ai_model_id
                           );
+                        const isEditing =
+                          editingConversationId === conversation.id;
                         return (
                           <div
                             key={conversation.id}
@@ -601,7 +674,37 @@ export default function ChatBoxNode({
                           >
                             <div className="flex-1 truncate flex items-center gap-2">
                               <div className="flex flex-col">
-                                <span>{conversation.title}</span>
+                                {isEditing ? (
+                                  <input
+                                    type="text"
+                                    className="text-sm font-medium rounded px-1 py-0.5 border border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white text-blue-700"
+                                    value={editingTitle}
+                                    autoFocus
+                                    onChange={handleEditingTitleChange}
+                                    onKeyDown={(e) =>
+                                      handleEditingTitleKeyDown(e, conversation)
+                                    }
+                                    onBlur={() =>
+                                      handleEditingTitleBlur(conversation)
+                                    }
+                                    onClick={(e) => e.stopPropagation()}
+                                    maxLength={60}
+                                    style={{ minWidth: 0, width: "100%" }}
+                                  />
+                                ) : (
+                                  <span
+                                    onDoubleClick={(e) => {
+                                      e.stopPropagation();
+                                      handleConversationTitleDoubleClick(
+                                        conversation
+                                      );
+                                    }}
+                                    title="Double click to edit"
+                                    className="truncate cursor-text"
+                                  >
+                                    {conversation.title}
+                                  </span>
+                                )}
                                 {/* Show draft indicator if conversation has unsent message */}
                                 {conversation.draftMessage &&
                                   conversation.draftMessage.trim() && (

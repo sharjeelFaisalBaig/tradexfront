@@ -645,7 +645,7 @@ export default function SocialMediaNode({
                             {currentPlatform?.icon}
                           </span>
                           <span className="text-sm font-medium truncate">
-                            {aiResponse.title}
+                            {data?.ai_title || aiResponse.title}
                           </span>
                         </div>
                       ) : (

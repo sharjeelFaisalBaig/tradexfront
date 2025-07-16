@@ -6,6 +6,7 @@ import {
   useEffect,
   type DragEvent,
   type ChangeEvent,
+  useMemo,
 } from "react";
 import { Handle, Position, useReactFlow } from "@xyflow/react";
 import {
@@ -35,10 +36,17 @@ import {
   Clock,
   FileVideo,
   Maximize,
+  ArrowRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import NodeWrapper from "./common/NodeWrapper";
 import { useParams } from "next/navigation";
+import {
+  useAnalyzeImagePeer,
+  useAnalyzeVideoPeer,
+  useUploadVideoContent,
+} from "@/hooks/strategy/useStrategyMutations";
+import { useGetPeerAnalysisStatus } from "@/hooks/strategy/useGetPeerAnalysisStatus";
 
 // Types for AI integration
 interface AIProcessingResponse {
@@ -87,13 +95,36 @@ const SUPPORTED_VIDEO_FORMATS = [
   "video/x-matroska", // .mkv
 ];
 
+// https://tradexfront.isoft-digital.net/api/strategies/9f6404ba-60ff-4bb1-ae45-55bc12c3c3f9/peers/video/peer_gasos6ofubu/upload
+
 export default function VideoUploadNode({
   id,
   sourcePosition = Position.Left,
   targetPosition = Position.Right,
   data,
 }: any) {
+  console.log("Video_node_data:", data);
+
   const strategyId = useParams()?.slug as string;
+
+  // Upload state
+  const [uploadState, setUploadState] = useState<{
+    isUploading: boolean;
+    isSuccess: boolean;
+    error: string | null;
+  }>({
+    isUploading: false,
+    isSuccess: false,
+    error: null,
+  });
+
+  // mutations
+  const { mutate: uploadVideoMutation } = useUploadVideoContent();
+  const {
+    mutate: analyzeVideoContent,
+    isPending: isAnalyzing,
+    isSuccess: isAnalyzeSuccess,
+  } = useAnalyzeVideoPeer();
 
   const nodeControlRef = useRef(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -101,6 +132,7 @@ export default function VideoUploadNode({
   const { setEdges } = useReactFlow();
 
   // Video states
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [uploadedVideo, setUploadedVideo] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string>("");
   const [videoMetadata, setVideoMetadata] = useState<VideoMetadata | null>(
@@ -127,6 +159,17 @@ export default function VideoUploadNode({
     null
   );
   const [userNotes, setUserNotes] = useState<string>("");
+
+  // Only poll for status if analysis is successful
+  const { data: status, isPollingLoading: isStatusPollingLoading } =
+    useGetPeerAnalysisStatus({
+      peerId: data?.id,
+      strategyId,
+      peerType: "video",
+      enabled: isAnalyzeSuccess,
+    });
+
+  console.log("Video analysis status:", { status });
 
   // Handle pasted video data from props
   useEffect(() => {
@@ -255,28 +298,21 @@ export default function VideoUploadNode({
   };
 
   // API Integration Function
-  const processVideoWithAI = async (videoData: string, filename: string) => {
+  const processVideoWithAI = async (
+    videoData: string,
+    filename: string,
+    fileObj?: File
+  ) => {
     setProcessingState({
       isProcessing: true,
       isComplete: false,
       error: null,
     });
+    setUploadState({ isUploading: false, isSuccess: false, error: null });
 
     try {
-      // Simulate API processing time (5-8 seconds for video processing)
-      const processingTime = Math.random() * 3000 + 5000;
-
-      await new Promise((resolve) => setTimeout(resolve, processingTime));
-
-      // Simulate occasional errors
-      // if (Math.random() < 0.1) {
-      //   throw new Error("Video processing service temporarily unavailable")
-      // }
-
-      // Get AI response
+      // Simulate AI processing
       const result = processVideo(filename);
-
-      // Update states with API response
       setAiResponse(result);
       setProcessingState({
         isProcessing: false,
@@ -284,9 +320,39 @@ export default function VideoUploadNode({
         error: null,
       });
 
-      console.log("🤖 AI Video Response:", result);
+      // Prepare upload
+      const formData: any = new FormData();
+      formData.append("file", fileObj);
+      formData.append("title", result.title || filename);
+
+      // Upload video to backend after AI processing is complete
+      if (strategyId && result.peerId && fileObj) {
+        setUploadState({ isUploading: true, isSuccess: false, error: null });
+        uploadVideoMutation(
+          {
+            strategyId,
+            peerId: data?.id,
+            data: formData,
+          },
+          {
+            onSuccess: () => {
+              setUploadState({
+                isUploading: false,
+                isSuccess: true,
+                error: null,
+              });
+            },
+            onError: (err: any) => {
+              setUploadState({
+                isUploading: false,
+                isSuccess: false,
+                error: err?.message || "Upload failed. Please try again.",
+              });
+            },
+          }
+        );
+      }
     } catch (error) {
-      console.error("AI Video Processing Error:", error);
       setProcessingState({
         isProcessing: false,
         isComplete: false,
@@ -320,7 +386,6 @@ export default function VideoUploadNode({
 
   const handleFileSelect = (file: File) => {
     const validation = validateVideoFile(file);
-
     if (!validation.isValid) {
       setProcessingState({
         isProcessing: false,
@@ -329,7 +394,6 @@ export default function VideoUploadNode({
       });
       return;
     }
-
     const reader = new FileReader();
     reader.onload = (e) => {
       const videoData = e.target?.result as string;
@@ -341,14 +405,15 @@ export default function VideoUploadNode({
         type: file.type,
         lastModified: file.lastModified,
       });
+      setUploadedFile(file); // Store the file for upload
 
       // Reset player states
       setIsPlaying(false);
       setCurrentTime(0);
       setDuration(0);
 
-      // Auto-process uploaded videos
-      processVideoWithAI(videoData, file.name);
+      // Auto-process uploaded videos and upload to backend
+      processVideoWithAI(videoData, file.name, file);
     };
     reader.readAsDataURL(file);
   };
@@ -481,10 +546,12 @@ export default function VideoUploadNode({
       isComplete: false,
       error: null,
     });
+    setUploadState({ isUploading: false, isSuccess: false, error: null });
     setUserNotes("");
     setIsPlaying(false);
     setCurrentTime(0);
     setDuration(0);
+    setUploadedFile(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -495,8 +562,8 @@ export default function VideoUploadNode({
   };
 
   const handleReprocess = () => {
-    if (uploadedVideo && fileName) {
-      processVideoWithAI(uploadedVideo, fileName);
+    if (uploadedVideo && fileName && uploadedFile) {
+      processVideoWithAI(uploadedVideo, fileName, uploadedFile);
     }
   };
 
@@ -533,8 +600,8 @@ export default function VideoUploadNode({
     videoMetadata?.type === "video/webm";
 
   // Determine if connection should be allowed
-  const canConnect: any =
-    processingState.isComplete && aiResponse && !processingState.error;
+  // const canConnect: any = processingState.isComplete && aiResponse && !processingState.error;
+  const canConnect = useMemo(() => data?.is_ready_to_interact, [data]);
 
   // Remove connections when node becomes not connectable
   useEffect(() => {
@@ -558,10 +625,19 @@ export default function VideoUploadNode({
 
           <TooltipProvider>
             <div
-              className="w-[800px] max-w-md mx-auto bg-white rounded-lg shadow-sm border overflow-hidden"
+              className="w-[800px] max-w-md mx-auto bg-white rounded-lg shadow-sm border overflow-hidden relative"
               onWheel={(e) => e.stopPropagation()}
               onMouseDown={(e) => e.stopPropagation()}
             >
+              {/* Full node loader overlay when status is polling/loading */}
+              {isStatusPollingLoading && (
+                <div className="absolute inset-0 z-50 bg-white bg-opacity-80 flex flex-col items-center justify-center">
+                  <Loader2 className="w-10 h-10 animate-spin text-purple-600 mb-2" />
+                  <span className="text-base font-medium text-gray-700">
+                    Checking analysis status...
+                  </span>
+                </div>
+              )}
               {!uploadedVideo ? (
                 // Upload Interface
                 <div
@@ -1000,24 +1076,64 @@ export default function VideoUploadNode({
                     </div>
                   )}
 
+                  {/* Upload State */}
+                  {uploadState.isUploading && (
+                    <div className="px-4">
+                      <div className="bg-blue-50 p-3 rounded-lg flex items-center gap-2">
+                        <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+                        <span className="text-sm text-blue-700">
+                          Uploading video...
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                  {uploadState.error && (
+                    <div className="px-4">
+                      <div className="bg-red-50 p-3 rounded-lg">
+                        <div className="text-xs text-red-600 font-medium mb-1">
+                          Upload Error
+                        </div>
+                        <div className="text-sm text-red-700 mb-2">
+                          {uploadState.error}
+                        </div>
+                        <Button
+                          onClick={handleReprocess}
+                          size="sm"
+                          variant="outline"
+                          className="text-red-600 border-red-200 hover:bg-red-50 bg-transparent"
+                        >
+                          Retry Upload
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                  {uploadState.isSuccess && (
+                    <div className="px-4">
+                      <div className="bg-green-50 p-3 rounded-lg flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                        <span className="text-sm text-green-700">
+                          Video uploaded successfully!
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Notes Input */}
-                  <div className="px-4 pb-4">
-                    <div className="relative">
+                  <div className="px-4 pb-4 flex items-center gap-2">
+                    <div className="relative flex-1 flex items-center gap-2">
                       <Input
                         placeholder="Add notes for AI to use..."
                         value={userNotes}
                         onChange={handleNotesChange}
                         className="pr-8 border-gray-200 focus:border-blue-500 focus:ring-blue-500"
                         disabled={processingState.isProcessing}
-                        onWheel={(e) => e.stopPropagation()}
-                        onMouseDown={(e) => e.stopPropagation()}
                       />
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 text-gray-400 hover:text-gray-600"
+                            className="absolute right-4 top-1/2 -translate-y-1/2 h-6 w-6 text-gray-400 hover:text-gray-600"
                           >
                             <HelpCircle className="w-4 h-4" />
                           </Button>
@@ -1025,11 +1141,34 @@ export default function VideoUploadNode({
                         <TooltipContent>
                           <p className="text-sm">
                             Add notes that will be used by AI to provide better
-                            context and analysis
+                            context and insights
                           </p>
                         </TooltipContent>
                       </Tooltip>
                     </div>
+                    <Button
+                      size="sm"
+                      type="button"
+                      disabled={
+                        processingState.isProcessing ||
+                        isAnalyzing ||
+                        !userNotes
+                      }
+                      onClick={() => {
+                        analyzeVideoContent({
+                          data: { ai_notes: userNotes },
+                          strategyId: strategyId,
+                          peerId: data?.id,
+                        });
+                      }}
+                      className="bg-cyan-500 hover:bg-cyan-600 text-white rounded-full w-8 h-8 p-0 disabled:opacity-50"
+                    >
+                      {isAnalyzing ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <ArrowRight className="w-4 h-4" />
+                      )}
+                    </Button>
                   </div>
                 </div>
               )}

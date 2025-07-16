@@ -35,6 +35,7 @@ import {
   analyzeRemotePeer,
   analyzeImagePeer,
   updateConversationAiModel,
+  analyzeVideoPeer,
 } from "@/services/strategy/strategy_Mutation";
 import { IStrategy } from "@/lib/types";
 import { QUERY_KEYS } from "@/lib/queryKeys";
@@ -290,7 +291,10 @@ export const useUploadVideoContent = () => {
     }: {
       strategyId: string;
       peerId: string;
-      data: any;
+      data: {
+        file: any;
+        title: string;
+      };
     }) => uploadVideoContent({ strategyId, peerId, data }),
     onSuccess: (_data, { strategyId }) => {
       queryClient.invalidateQueries({
@@ -517,6 +521,27 @@ export const useAnalyzeImagePeer = () => {
   });
 };
 
+export const useAnalyzeVideoPeer = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      strategyId,
+      peerId,
+      data,
+    }: {
+      strategyId: string;
+      peerId: string;
+      data: { ai_notes?: string };
+    }) => analyzeVideoPeer({ strategyId, peerId, data }),
+    onSuccess: (_data, { strategyId }) => {
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.STRATEGY, strategyId],
+      });
+    },
+  });
+};
+
 export const useConnectNodes = () => {
   const queryClient = useQueryClient();
 
@@ -639,7 +664,7 @@ export const useCreateConversation = () => {
   });
 };
 
-export const useUpdateConversationTitle = () => {
+export const useUpdateConversation = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
