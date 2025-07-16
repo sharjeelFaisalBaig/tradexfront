@@ -578,15 +578,38 @@ export const useSendChatMessage = () => {
       };
     }) => sendChatMessage({ strategyId, data }),
 
-    onSuccess: (_data, { strategyId, data }) => {
-      // Invalidate or refetch if needed
-      queryClient.invalidateQueries({
-        queryKey: [
-          QUERY_KEYS.CONVERSATION,
-          QUERY_KEYS.CHAT,
-          data.conversation_id,
-          strategyId,
-        ],
+    onSuccess: (res, { strategyId, data }) => {
+      const queryKey = [
+        QUERY_KEYS.CONVERSATION,
+        QUERY_KEYS.CHAT,
+        data.conversation_id,
+        strategyId,
+      ];
+
+      // Create message object from API response
+      const aiMessage = {
+        id: `ai-${Date.now()}`, // Temporary ID
+        message: res.response, // AI response text
+        sender: "ai", // or "assistant", etc.
+        timestamp: new Date().toISOString(),
+      };
+
+      // Optionally, also push user's original message
+      const userMessage = {
+        id: `user-${Date.now()}`,
+        message: data.message,
+        sender: "user",
+        timestamp: new Date().toISOString(),
+      };
+
+      // Update query cache directly
+      queryClient.setQueryData(queryKey, (oldData: any) => {
+        if (!oldData) return oldData;
+
+        return {
+          ...oldData,
+          messages: [...(oldData.messages || []), userMessage, aiMessage],
+        };
       });
     },
   });
