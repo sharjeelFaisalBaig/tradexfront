@@ -613,59 +613,6 @@ export const useDisconnectNodes = () => {
   });
 };
 
-export const useSendChatMessage = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({
-      strategyId,
-      data,
-    }: {
-      strategyId: string;
-      data: {
-        message: string;
-        conversation_id: string;
-        strategy_collaborator_id?: string;
-      };
-    }) => sendChatMessage({ strategyId, data }),
-
-    onSuccess: (res, { strategyId, data }) => {
-      const queryKey = [
-        QUERY_KEYS.CONVERSATION,
-        QUERY_KEYS.CHAT,
-        data.conversation_id,
-        strategyId,
-      ];
-
-      // Create message object from API response
-      const aiMessage = {
-        id: `ai-${Date.now()}`, // Temporary ID
-        message: res.response, // AI response text
-        sender: "ai", // or "assistant", etc.
-        timestamp: new Date().toISOString(),
-      };
-
-      // Optionally, also push user's original message
-      const userMessage = {
-        id: `user-${Date.now()}`,
-        message: data.message,
-        sender: "user",
-        timestamp: new Date().toISOString(),
-      };
-
-      // Update query cache directly
-      queryClient.setQueryData(queryKey, (oldData: any) => {
-        if (!oldData) return oldData;
-
-        return {
-          ...oldData,
-          messages: [...(oldData.messages || []), userMessage, aiMessage],
-        };
-      });
-    },
-  });
-};
-
 export const useCreateConversation = () => {
   const queryClient = useQueryClient();
 
@@ -770,3 +717,75 @@ export const useUpdateConversationAiModel = () => {
     },
   });
 };
+
+export const useSendChatMessage = () => {
+  // const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      strategyId,
+      data,
+    }: {
+      strategyId: string;
+      data: {
+        message: string;
+        conversation_id: string;
+        strategy_collaborator_id?: string;
+      };
+    }) => sendChatMessage({ strategyId, data }),
+  });
+};
+
+// important code please don't remove
+// export const useSendChatMessage = () => {
+//   const queryClient = useQueryClient();
+
+//   return useMutation({
+//     mutationFn: ({
+//       strategyId,
+//       data,
+//     }: {
+//       strategyId: string;
+//       data: {
+//         message: string;
+//         conversation_id: string;
+//         strategy_collaborator_id?: string;
+//       };
+//     }) => sendChatMessage({ strategyId, data }),
+
+//     onSuccess: (res, { strategyId, data }) => {
+//       const queryKey = [
+//         QUERY_KEYS.CONVERSATION,
+//         QUERY_KEYS.CHAT,
+//         data.conversation_id,
+//         strategyId,
+//       ];
+
+//       // Create message object from API response
+//       const aiMessage = {
+//         id: `ai-${Date.now()}`, // Temporary ID
+//         message: res.response, // AI response text
+//         sender: "ai", // or "assistant", etc.
+//         timestamp: new Date().toISOString(),
+//       };
+
+//       // Optionally, also push user's original message
+//       const userMessage = {
+//         id: `user-${Date.now()}`,
+//         message: data.message,
+//         sender: "user",
+//         timestamp: new Date().toISOString(),
+//       };
+
+//       // Update query cache directly
+//       queryClient.setQueryData(queryKey, (oldData: any) => {
+//         if (!oldData) return oldData;
+
+//         return {
+//           ...oldData,
+//           messages: [...(oldData.messages || []), userMessage, aiMessage],
+//         };
+//       });
+//     },
+//   });
+// };

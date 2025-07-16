@@ -158,9 +158,6 @@ export default function ChatBoxNode({
 
   // message state
   const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState<
-    { id: string; content: string; sender: "user" | "ai"; timestamp: Date }[]
-  >([]);
 
   // refs
   const nodeControlRef = useRef(null);
@@ -171,26 +168,26 @@ export default function ChatBoxNode({
   const isLoading = activeConversation?.isLoading || false;
 
   // All messages come from API (activeConversationData)
-  // const messagesToShow = useMemo(() => {
-  //   const aiChats = activeConversationData?.conversation?.aiChats;
-  //   if (!aiChats || !Array.isArray(aiChats)) return [];
-  //   return aiChats
-  //     .map((chat: any) => [
-  //       {
-  //         id: chat.id + "_user",
-  //         content: chat.prompt,
-  //         sender: "user" as const,
-  //         timestamp: parseTimestamp(chat.created_at),
-  //       },
-  //       {
-  //         id: chat.id + "_ai",
-  //         content: chat.response,
-  //         sender: "ai" as const,
-  //         timestamp: parseTimestamp(chat.updated_at),
-  //       },
-  //     ])
-  //     .flat();
-  // }, [activeConversationData]);
+  const messagesToShow = useMemo(() => {
+    const aiChats = activeConversationData?.conversation?.aiChats;
+    if (!aiChats || !Array.isArray(aiChats)) return [];
+    return aiChats
+      .map((chat: any) => [
+        {
+          id: chat.id + "_user",
+          content: chat.prompt,
+          sender: "user" as const,
+          timestamp: parseTimestamp(chat.created_at),
+        },
+        {
+          id: chat.id + "_ai",
+          content: chat.response,
+          sender: "ai" as const,
+          timestamp: parseTimestamp(chat.updated_at),
+        },
+      ])
+      .flat();
+  }, [activeConversationData]);
 
   // Get current selected model (conversation-specific or default)
   const selectedModel = useMemo(
@@ -205,30 +202,6 @@ export default function ChatBoxNode({
 
   // Determine if connection should be allowed
   const canConnect: any = true;
-
-  useEffect(() => {
-    if (activeConversationData?.conversation?.aiChats) {
-      const initialMessages =
-        activeConversationData.conversation.aiChats.flatMap((chat: any) => [
-          {
-            id: `${chat.id}_user`,
-            content: chat.prompt,
-            sender: "user" as const,
-            timestamp: parseTimestamp(chat.created_at),
-          },
-          {
-            id: `${chat.id}_ai`,
-            content: chat.response,
-            sender: "ai" as const,
-            timestamp: parseTimestamp(chat.updated_at),
-          },
-        ]);
-
-      setMessages(initialMessages);
-    } else {
-      setMessages([]);
-    }
-  }, [activeConversationData]);
 
   // Remove connections when node becomes not connectable
   useEffect(() => {
@@ -385,8 +358,7 @@ export default function ChatBoxNode({
   // Scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    // }, [messagesToShow]);
-  }, [messages]);
+  }, [messagesToShow]);
 
   // Auto-resize textarea
   useEffect(() => {
@@ -486,71 +458,75 @@ export default function ChatBoxNode({
 
   const handleSendMessage = async () => {
     if (!message.trim() || !activeConversationId || isLoading) return;
-
+    const currentConversationId = activeConversationId;
     const userMessageText = message.trim();
     const timestamp = new Date();
-
+    // Step 1: Clear input & set loading
     setMessage("");
-    saveDraftMessage(activeConversationId, "");
-    setConversationLoading(activeConversationId, true);
-
-    // Append user message locally
-    setMessages((prevMessages) => [
-      ...prevMessages,
-      {
-        id: `user_${Date.now()}`,
-        content: userMessageText,
-        sender: "user",
-        timestamp,
-      },
-    ]);
-
+    saveDraftMessage(currentConversationId, "");
+    setConversationLoading(currentConversationId, true);
     try {
       const response = await sendChatMessageMutation({
         strategyId,
         data: {
           message: userMessageText,
-          conversation_id: activeConversationId,
+          conversation_id: currentConversationId,
         },
       });
-
-      console.log({ response });
-
-      const aiMessageContent = response?.response;
-
-      // Append AI response locally
-      setMessages((prevMessages) => [
-        ...prevMessages,
-        {
-          id: `ai_${Date.now()}`,
-          content: aiMessageContent,
-          sender: "ai",
-          timestamp: new Date(),
-          // id: `ai_${Date.now()}`,
-          // content: aiMessageContent,
-          // sender: "ai",
-          // timestamp: new Date(),
-        },
-      ]);
-
-      // Update conversation title if it's first message
+      const aiMessageContent = response.response;
+      // Step 2: Update react-query cache for future usage
+      const queryKey = [
+        QUERY_KEYS.CONVERSATION,
+        QUERY_KEYS.CHAT,
+        currentConversationId,
+        strategyId,
+      ];
+      queryClient.setQueryData(queryKey, (old: any) => {
+        if (!old?.conversation) return old;
+        const updatedChats = [
+          ...(old.conversation.aiChats || []),
+          {
+            id: `local-${Date.now()}`,
+            prompt: userMessageText,
+            response: aiMessageContent,
+            created_at: timestamp.toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+        ];
+        return {
+          ...old,
+          conversation: {
+            ...old.conversation,
+            aiChats: updatedChats,
+          },
+        };
+      });
+      // Set title if it's the first message
       const currentConv = conversations.find(
-        (c) => c.id === activeConversationId
+        (c) => c.id === currentConversationId
       );
-      if (currentConv && messages.length === 0) {
-        updateConversationTitle(activeConversationId, userMessageText);
+
+      console.log({ activeConversationData });
+
+      if (
+        currentConv &&
+        (!activeConversationData?.conversation?.aiChats ||
+          activeConversationData.conversation.aiChats.length === 0)
+      ) {
+        updateConversationTitle(currentConversationId, userMessageText);
       }
+      setConversationLoading(currentConversationId, false);
     } catch (error: any) {
+      setConversationLoading(currentConversationId, false);
       toast({
         title: error?.message || "Error",
         description:
-          error?.response?.data?.message || "Failed to send message.",
+          error?.response?.data?.message || "Failed to update Ai-Model.",
         variant: "destructive",
       });
-    } finally {
-      setConversationLoading(activeConversationId, false);
     }
   };
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -801,7 +777,7 @@ export default function ChatBoxNode({
 
                 {/* Messages Area */}
                 <div className="flex-1 overflow-y-auto p-4 space-y-6">
-                  {messages.length === 0 ? (
+                  {messagesToShow.length === 0 ? (
                     <div className="flex items-center justify-center h-full text-gray-400">
                       <div className="text-center">
                         <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
@@ -809,7 +785,7 @@ export default function ChatBoxNode({
                       </div>
                     </div>
                   ) : (
-                    messages.map((msg) =>
+                    messagesToShow.map((msg) =>
                       msg.sender === "user" ? (
                         <div
                           key={msg.id}
