@@ -34,6 +34,7 @@ import {
 import { cn } from "@/lib/utils";
 import NodeWrapper from "./common/NodeWrapper";
 import { useParams } from "next/navigation";
+import { useUploadDocumentContent } from "@/hooks/strategy/useStrategyMutations";
 
 // Types for AI integration
 interface AIProcessingResponse {
@@ -128,6 +129,18 @@ export default function DocumentUploadNode({
   console.log("DocumentUploadNode data:", data);
 
   const strategyId = useParams()?.slug as string;
+  const { mutate: uploadDocContent } = useUploadDocumentContent();
+
+  // Upload state
+  const [uploadState, setUploadState] = useState<{
+    isUploading: boolean;
+    isSuccess: boolean;
+    error: string | null;
+  }>({
+    isUploading: false,
+    isSuccess: false,
+    error: null,
+  });
 
   const nodeControlRef = useRef(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -203,42 +216,59 @@ export default function DocumentUploadNode({
     documentData: string,
     docInfo: DocumentInfo
   ) => {
-    setProcessingState({
-      isProcessing: true,
-      isComplete: false,
-      error: null,
-    });
-
+    setUploadState({ isUploading: true, isSuccess: false, error: null });
     try {
-      // Simulate API processing time (3-6 seconds for documents)
-      const processingTime = Math.random() * 3000 + 3000;
+      // Prepare upload
+      const formData: any = new FormData();
+      // Convert base64 to Blob for upload
+      if (documentData && docInfo) {
+        const arr = documentData.split(",");
+        const mimeMatch = arr[0].match(/:(.*?);/);
+        const mime = mimeMatch ? mimeMatch[1] : "application/octet-stream";
+        const bstr = atob(arr[1]);
+        let n = bstr.length;
+        const u8arr = new Uint8Array(n);
+        for (let i = 0; i < n; i++) {
+          u8arr[i] = bstr.charCodeAt(i);
+        }
+        // File constructor: new File(bits: BlobPart[], name: string, options?: FilePropertyBag)
+        const file = new window.File([u8arr], docInfo.name, { type: mime });
+        formData.append("file", file);
+        formData.append("title", docInfo.name.replace(/\.[^/.]+$/, ""));
+      }
 
-      await new Promise((resolve) => setTimeout(resolve, processingTime));
-
-      // Simulate occasional errors
-      // if (Math.random() < 0.1) {
-      //   throw new Error("Document processing service temporarily unavailable")
-      // }
-
-      // Get AI response
-      const result = processDocument(docInfo);
-
-      // Update states with API response
-      setAiResponse(result);
-      setProcessingState({
-        isProcessing: false,
-        isComplete: true,
-        error: null,
-      });
-
-      console.log("🤖 AI Document Response:", result);
+      // Directly upload document to backend
+      if (strategyId && docInfo && formData.has("file")) {
+        uploadDocContent(
+          {
+            strategyId,
+            peerId: data?.id,
+            data: formData,
+          },
+          {
+            onSuccess: () => {
+              setUploadState({
+                isUploading: false,
+                isSuccess: true,
+                error: null,
+              });
+            },
+            onError: (err: any) => {
+              setUploadState({
+                isUploading: false,
+                isSuccess: false,
+                error: err?.message || "Upload failed. Please try again.",
+              });
+            },
+          }
+        );
+      }
     } catch (error) {
-      console.error("AI Document Processing Error:", error);
-      setProcessingState({
-        isProcessing: false,
-        isComplete: false,
+      setUploadState({
+        isUploading: false,
+        isSuccess: false,
         error:
-          error instanceof Error ? error.message : "Document processing failed",
+          error instanceof Error ? error.message : "Document upload failed",
       });
     }
   };
@@ -353,6 +383,7 @@ export default function DocumentUploadNode({
       isComplete: false,
       error: null,
     });
+    setUploadState({ isUploading: false, isSuccess: false, error: null });
     setUserNotes("");
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -367,6 +398,7 @@ export default function DocumentUploadNode({
     if (uploadedDocument && documentInfo) {
       processDocumentWithAI(uploadedDocument, documentInfo);
     }
+    setUploadState({ isUploading: false, isSuccess: false, error: null });
   };
 
   const handlePreview = () => {
@@ -678,6 +710,48 @@ export default function DocumentUploadNode({
                         >
                           Retry Processing
                         </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Upload State */}
+                  {uploadState.isUploading && (
+                    <div className="px-4">
+                      <div className="bg-blue-50 p-3 rounded-lg flex items-center gap-2">
+                        <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+                        <span className="text-sm text-blue-700">
+                          Uploading document...
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                  {uploadState.error && (
+                    <div className="px-4">
+                      <div className="bg-red-50 p-3 rounded-lg">
+                        <div className="text-xs text-red-600 font-medium mb-1">
+                          Upload Error
+                        </div>
+                        <div className="text-sm text-red-700 mb-2">
+                          {uploadState.error}
+                        </div>
+                        <Button
+                          onClick={handleReprocess}
+                          size="sm"
+                          variant="outline"
+                          className="text-red-600 border-red-200 hover:bg-red-50 bg-transparent"
+                        >
+                          Retry Upload
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                  {uploadState.isSuccess && (
+                    <div className="px-4">
+                      <div className="bg-green-50 p-3 rounded-lg flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                        <span className="text-sm text-green-700">
+                          Document uploaded successfully!
+                        </span>
                       </div>
                     </div>
                   )}

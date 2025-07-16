@@ -190,11 +190,15 @@ export const uploadDocumentContent = async ({
 }: {
   strategyId: string;
   peerId: string;
-  data: any;
+  data: {
+    file: any;
+    title: string;
+  };
 }) => {
   const res = await axiosInstance.post(
     endpoints.STRATEGY.UPLOAD_DOCUMENT_CONTENT({ strategyId, peerId }),
-    data
+    data,
+    { headers: { "Content-Type": "multipart/form-data" } }
   );
   return res.data;
 };

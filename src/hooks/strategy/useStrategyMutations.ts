@@ -315,7 +315,10 @@ export const useUploadDocumentContent = () => {
     }: {
       strategyId: string;
       peerId: string;
-      data: any;
+      data: {
+        file: any;
+        title: string;
+      };
     }) => uploadDocumentContent({ strategyId, peerId, data }),
     onSuccess: (_data, { strategyId }) => {
       queryClient.invalidateQueries({
