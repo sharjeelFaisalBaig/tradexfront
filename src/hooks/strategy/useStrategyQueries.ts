@@ -42,7 +42,12 @@ export const useGetConversationById = (
   conversationId: string
 ) => {
   return useQuery({
-    queryKey: [QUERY_KEYS.CONVERSATION, strategyId, conversationId],
+    queryKey: [
+      QUERY_KEYS.CONVERSATION,
+      QUERY_KEYS.CHAT,
+      conversationId,
+      strategyId,
+    ],
     queryFn: () => getConversationById(strategyId, conversationId),
     enabled: !!strategyId && !!conversationId,
   });

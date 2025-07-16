@@ -32,6 +32,7 @@ import {
   useGetConversationById,
 } from "@/hooks/strategy/useStrategyQueries";
 import { getFilteredAiModels } from "@/lib/utils";
+import ReactMarkdown from "react-markdown";
 
 // Message type definition
 type Message = {
@@ -74,7 +75,7 @@ export default function ChatBoxNode({
   targetPosition = Position.Right,
   data,
 }: any) {
-  console.log("ChatBoxNode rendered with data:", data);
+  console.log("ChatBoxNode rendered with data:", { data, sourcePosition });
 
   const strategyId = useParams()?.slug as string;
 
@@ -92,6 +93,35 @@ export default function ChatBoxNode({
     activeConversationId ?? ""
   );
   console.log({ activeConversationData });
+
+  // Helper: parse ISO or fallback to now
+  const parseTimestamp = (val: string | undefined) => {
+    if (!val) return new Date();
+    const d = new Date(val);
+    return isNaN(d.getTime()) ? new Date() : d;
+  };
+
+  // Transform aiChats to Message[] if present
+  const apiMessages: Message[] = useMemo(() => {
+    const aiChats = activeConversationData?.conversation?.aiChats;
+    if (!aiChats || !Array.isArray(aiChats)) return [];
+    return aiChats
+      .map((chat: any) => [
+        {
+          id: chat.id + "_user",
+          content: chat.prompt,
+          sender: "user" as "user",
+          timestamp: parseTimestamp(chat.created_at),
+        },
+        {
+          id: chat.id + "_ai",
+          content: chat.response,
+          sender: "ai" as "ai",
+          timestamp: parseTimestamp(chat.updated_at),
+        },
+      ])
+      .flat();
+  }, [activeConversationData]);
 
   const nodeControlRef = useRef(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -142,12 +172,15 @@ export default function ChatBoxNode({
     },
   ]);
 
-  // Get active conversation
+  // Get active conversation from local state
   const activeConversation = conversations.find(
     (conv) => conv.id === activeConversationId
   );
-  const messages = activeConversation?.messages || [];
+  const localMessages = activeConversation?.messages || [];
   const isLoading = activeConversation?.isLoading || false;
+
+  // Prefer API messages if available, else local state
+  const messagesToShow = apiMessages.length > 0 ? apiMessages : localMessages;
 
   // Get current selected model (conversation-specific or default)
   const selectedModel = useMemo(
@@ -330,7 +363,7 @@ export default function ChatBoxNode({
   // Scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messagesToShow]);
 
   // Auto-resize textarea
   useEffect(() => {
@@ -431,8 +464,7 @@ export default function ChatBoxNode({
   };
 
   const handleSendMessage = async () => {
-    // if (!message.trim() || !activeConversationId || isLoading) return;
-    if (!message.trim() || isLoading) return;
+    if (!message.trim() || !activeConversationId || isLoading) return;
 
     console.log("handleSendMessage Function trigger 1111");
 
@@ -688,8 +720,9 @@ export default function ChatBoxNode({
                 </div>
 
                 {/* Messages Area */}
+
                 <div className="flex-1 overflow-y-auto p-4 space-y-6">
-                  {messages?.length === 0 ? (
+                  {messagesToShow.length === 0 ? (
                     <div className="flex items-center justify-center h-full text-gray-400">
                       <div className="text-center">
                         <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
@@ -697,7 +730,7 @@ export default function ChatBoxNode({
                       </div>
                     </div>
                   ) : (
-                    messages?.map((msg) =>
+                    messagesToShow.map((msg) =>
                       msg.sender === "user" ? (
                         <div
                           key={msg.id}
@@ -727,10 +760,9 @@ export default function ChatBoxNode({
                             <div className="text-sm font-semibold text-blue-600 mb-2">
                               AI
                             </div>
-                            <div
-                              className="ai-message-content text-gray-700 text-sm leading-relaxed"
-                              dangerouslySetInnerHTML={{ __html: msg.content }}
-                            />
+                            <div className="ai-message-content text-gray-700 text-sm leading-relaxed">
+                              <ReactMarkdown>{msg.content}</ReactMarkdown>
+                            </div>
                             <div className="flex items-center gap-4 mt-3">
                               <button className="flex items-center gap-1 text-xs text-blue-500 hover:text-blue-600">
                                 <Copy className="w-3 h-3" />

@@ -578,10 +578,15 @@ export const useSendChatMessage = () => {
       };
     }) => sendChatMessage({ strategyId, data }),
 
-    onSuccess: (_data, { strategyId }) => {
+    onSuccess: (_data, { strategyId, data }) => {
       // Invalidate or refetch if needed
       queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.CHAT, QUERY_KEYS.CONVERSATION, strategyId],
+        queryKey: [
+          QUERY_KEYS.CONVERSATION,
+          QUERY_KEYS.CHAT,
+          data.conversation_id,
+          strategyId,
+        ],
       });
     },
   });
