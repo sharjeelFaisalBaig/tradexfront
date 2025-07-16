@@ -60,6 +60,7 @@ import {
   useCreateConversation,
   useDeleteConversation,
   useSendChatMessage,
+  useUpdateConversationAiModel,
 } from "@/hooks/strategy/useStrategyMutations";
 import {
   useGetAiModels,
@@ -69,6 +70,7 @@ import { getFilteredAiModels } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
 import { QUERY_KEYS } from "@/lib/queryKeys";
 import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "@/hooks/use-toast";
 
 // Model type definition
 type AIModel = {
@@ -112,6 +114,8 @@ export default function ChatBoxNode({
   const { mutateAsync: sendChatMessageMutation } = useSendChatMessage();
   const { mutateAsync: createConversationMutation } = useCreateConversation();
   const { mutateAsync: deleteConversationMutation } = useDeleteConversation();
+  const { mutateAsync: updateConversationAiModelMutation } =
+    useUpdateConversationAiModel();
 
   const { data: aiModelsData } = useGetAiModels();
   const { data: activeConversationData } = useGetConversationById(
@@ -268,8 +272,13 @@ export default function ChatBoxNode({
         return [newConversation, ...prev];
       });
       setActiveConversationId(newConversation.id);
-    } catch (error) {
-      console.error("Error creating conversation:", error);
+    } catch (error: any) {
+      toast({
+        title: error?.message || "Error",
+        description:
+          error?.response?.data?.message || "Failed to update Ai-Model.",
+        variant: "destructive",
+      });
     }
   }, [
     isAnyConversationLoading,
@@ -305,8 +314,13 @@ export default function ChatBoxNode({
             setActiveConversationId(remainingConversations[0].id);
           }
         }
-      } catch (error) {
-        console.error("Error deleting conversation:", error);
+      } catch (error: any) {
+        toast({
+          title: error?.message || "Error",
+          description:
+            error?.response?.data?.message || "Failed to update Ai-Model.",
+          variant: "destructive",
+        });
       }
     },
     [
@@ -412,9 +426,26 @@ export default function ChatBoxNode({
   };
 
   // Handle model selection - Save to current conversation
-  const handleModelSelect = (model: AIModel) => {
+  const handleModelSelect = async (model: AIModel) => {
     if (activeConversationId) {
+      // Optimistically update UI
       saveSelectedModel(activeConversationId, model);
+      try {
+        await updateConversationAiModelMutation({
+          strategyId,
+          conversationId: activeConversationId,
+          data: {
+            ai_model_id: model.id,
+          },
+        });
+      } catch (error: any) {
+        toast({
+          title: error?.message || "Error",
+          description:
+            error?.response?.data?.message || "Failed to update Ai-Model.",
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -478,9 +509,14 @@ export default function ChatBoxNode({
         updateConversationTitle(currentConversationId, userMessageText);
       }
       setConversationLoading(currentConversationId, false);
-    } catch (err) {
-      console.error("Message send failed:", err);
+    } catch (error: any) {
       setConversationLoading(currentConversationId, false);
+      toast({
+        title: error?.message || "Error",
+        description:
+          error?.response?.data?.message || "Failed to update Ai-Model.",
+        variant: "destructive",
+      });
     }
   };
 

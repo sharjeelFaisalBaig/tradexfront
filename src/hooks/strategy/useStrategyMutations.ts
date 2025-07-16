@@ -34,6 +34,7 @@ import {
   deleteConversation,
   analyzeRemotePeer,
   analyzeImagePeer,
+  updateConversationAiModel,
 } from "@/services/strategy/strategy_Mutation";
 import { IStrategy } from "@/lib/types";
 import { QUERY_KEYS } from "@/lib/queryKeys";
@@ -686,6 +687,35 @@ export const useDeleteConversation = () => {
     onSuccess: (_res, { strategyId }) => {
       queryClient.invalidateQueries({
         queryKey: [QUERY_KEYS.CONVERSATIONS, strategyId],
+      });
+    },
+  });
+};
+
+export const useUpdateConversationAiModel = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      strategyId,
+      conversationId,
+      data,
+    }: {
+      strategyId: string;
+      conversationId: string;
+      data: {
+        ai_model_id: string;
+      };
+    }) =>
+      updateConversationAiModel({
+        strategyId,
+        conversationId,
+        data,
+      }),
+
+    onSuccess: (_res, { strategyId, conversationId }) => {
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.CONVERSATIONS, strategyId, conversationId],
       });
     },
   });

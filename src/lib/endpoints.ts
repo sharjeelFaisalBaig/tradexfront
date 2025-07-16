@@ -158,6 +158,8 @@ export const endpoints = {
   CHAT_BOX: {
     // get ai-models endpoint
     GET_AI_MODELS: `/ai-models`,
+    UPDATE_AI_MODEL: (id: string, conversationId: string) =>
+      `/strategies/${id}/ai-conversations-model/${conversationId}`,
     CHAT: (id: string) => `/strategies/${id}/ai-chats`,
   },
 };

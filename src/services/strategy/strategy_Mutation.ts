@@ -456,3 +456,22 @@ export const deleteConversation = async ({
   );
   return res.data;
 };
+
+// update conversation ai model mutation
+export const updateConversationAiModel = async ({
+  strategyId,
+  conversationId,
+  data,
+}: {
+  strategyId: string;
+  conversationId: string;
+  data: {
+    ai_model_id: string;
+  };
+}) => {
+  const res = await axiosInstance.patch(
+    endpoints.CHAT_BOX.UPDATE_AI_MODEL(strategyId, conversationId),
+    data
+  );
+  return res.data;
+};
