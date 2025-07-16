@@ -30,16 +30,11 @@ import {
   FileImage,
   Download,
   Eye,
-  ArrowRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import NodeWrapper from "./common/NodeWrapper";
 import { useParams } from "next/navigation";
-import {
-  useAnalyzeDocumentPeer,
-  useUploadDocumentContent,
-} from "@/hooks/strategy/useStrategyMutations";
-import { useGetPeerAnalysisStatus } from "@/hooks/strategy/useGetPeerAnalysisStatus";
+import { useUploadDocumentContent } from "@/hooks/strategy/useStrategyMutations";
 
 // Types for AI integration
 interface AIProcessingResponse {
@@ -135,11 +130,6 @@ export default function DocumentUploadNode({
 
   const strategyId = useParams()?.slug as string;
   const { mutate: uploadDocContent } = useUploadDocumentContent();
-  const {
-    mutate: analyzeVideoContent,
-    isPending: isAnalyzing,
-    isSuccess: isAnalyzeSuccess,
-  } = useAnalyzeDocumentPeer();
 
   // Upload state
   const [uploadState, setUploadState] = useState<{
@@ -174,70 +164,9 @@ export default function DocumentUploadNode({
   );
   const [userNotes, setUserNotes] = useState<string>("");
 
-  // Only poll for status if analysis is successful
-  const { isPollingLoading: isStatusPollingLoading } = useGetPeerAnalysisStatus(
-    {
-      peerId: data?.id,
-      strategyId,
-      peerType: "docs",
-      // peerType: "document",
-      enabled: isAnalyzeSuccess,
-    }
-  );
-
-  // Handle initial document data from props (like VideoUploadNode)
+  // Handle pasted document data from props
   useEffect(() => {
-    // If document_peer_media exists, treat as already uploaded
-    if (data?.document_peer_media) {
-      // Set uploadedDocument to the media URL
-      setUploadedDocument(data.document_peer_media);
-      // Guess type from file extension
-      const ext = data.document_peer_media.split(".").pop()?.toLowerCase();
-      let type = "application/octet-stream";
-      if (ext === "pdf") type = "application/pdf";
-      else if (["doc", "docx"].includes(ext))
-        type =
-          "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-      else if (["xls", "xlsx"].includes(ext))
-        type =
-          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-      else if (["ppt", "pptx"].includes(ext))
-        type =
-          "application/vnd.openxmlformats-officedocument.presentationml.presentation";
-      else if (ext === "txt") type = "text/plain";
-      else if (ext === "rtf") type = "application/rtf";
-      else if (ext === "csv") type = "text/csv";
-
-      setDocumentInfo({
-        name: data.title || "Document",
-        size: 0, // Size unknown
-        type,
-        lastModified: Date.now(),
-      });
-      // Optionally set AI response if available
-      if (data.ai_title || data.ai_summary) {
-        setAiResponse({
-          title: data.ai_title || data.title || "Document",
-          peerId: data.id,
-          summary: data.ai_summary || "",
-          content: "",
-          keyPoints: [],
-          documentType: getDocumentLabel(type),
-          language: "",
-          wordCount: 0,
-          pageCount: 0,
-          confidence: 0,
-          tags: [],
-          entities: [],
-          sentiment: undefined,
-        });
-        setProcessingState({
-          isProcessing: false,
-          isComplete: true,
-          error: null,
-        });
-      }
-    } else if (data?.pastedDocument && data?.pastedDocumentInfo) {
+    if (data?.pastedDocument && data?.pastedDocumentInfo) {
       setUploadedDocument(data.pastedDocument);
       setDocumentInfo(data.pastedDocumentInfo);
       // Auto-process pasted documents
@@ -474,35 +403,25 @@ export default function DocumentUploadNode({
 
   const handlePreview = () => {
     if (uploadedDocument) {
-      // If uploadedDocument is a URL (from backend), open directly
-      if (uploadedDocument.startsWith("/storage/")) {
-        window.open(uploadedDocument, "_blank");
-      } else {
-        // Otherwise, treat as base64
-        const byteCharacters = atob(uploadedDocument.split(",")[1]);
-        const byteNumbers = new Array(byteCharacters.length);
-        for (let i = 0; i < byteCharacters.length; i++) {
-          byteNumbers[i] = byteCharacters.charCodeAt(i);
-        }
-        const byteArray = new Uint8Array(byteNumbers);
-        const blob = new Blob([byteArray], {
-          type: documentInfo?.type || "application/octet-stream",
-        });
-        const url = URL.createObjectURL(blob);
-        window.open(url, "_blank");
+      // Create a blob URL and open in new tab
+      const byteCharacters = atob(uploadedDocument.split(",")[1]);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
       }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], {
+        type: documentInfo?.type || "application/octet-stream",
+      });
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank");
     }
   };
 
   const handleDownload = () => {
     if (uploadedDocument && documentInfo) {
       const link = document.createElement("a");
-      // If uploadedDocument is a URL, use it directly
-      if (uploadedDocument.startsWith("/storage/")) {
-        link.href = uploadedDocument;
-      } else {
-        link.href = uploadedDocument;
-      }
+      link.href = uploadedDocument;
       link.download = documentInfo.name;
       document.body.appendChild(link);
       link.click();
@@ -511,8 +430,9 @@ export default function DocumentUploadNode({
   };
 
   // Determine if connection should be allowed
-  // const canConnect: boolean | undefined =(processingState.isComplete && aiResponse && !processingState.error) ||undefined;
-  const canConnect = data?.is_ready_to_interact;
+  const canConnect: boolean | undefined =
+    (processingState.isComplete && aiResponse && !processingState.error) ||
+    undefined;
 
   // Remove connections when node becomes not connectable
   useEffect(() => {
@@ -540,19 +460,10 @@ export default function DocumentUploadNode({
 
           <TooltipProvider>
             <div
-              className="w-[1000px] max-w-md mx-auto bg-white rounded-lg shadow-sm border overflow-hidden relative"
+              className="w-[1000px] max-w-md mx-auto bg-white rounded-lg shadow-sm border overflow-hidden"
               onWheel={(e) => e.stopPropagation()}
               onMouseDown={(e) => e.stopPropagation()}
             >
-              {/* Full node loader overlay when status is polling/loading */}
-              {isStatusPollingLoading && (
-                <div className="absolute inset-0 z-50 bg-white bg-opacity-80 flex flex-col items-center justify-center">
-                  <Loader2 className="w-10 h-10 animate-spin text-purple-600 mb-2" />
-                  <span className="text-base font-medium text-gray-700">
-                    Checking analysis status...
-                  </span>
-                </div>
-              )}
               {!uploadedDocument ? (
                 // Upload Interface
                 <div
@@ -846,21 +757,23 @@ export default function DocumentUploadNode({
                   )}
 
                   {/* Notes Input */}
-                  <div className="px-4 pb-4 flex items-center gap-2">
-                    <div className="relative flex-1 flex items-center gap-2">
+                  <div className="px-4 pb-4">
+                    <div className="relative">
                       <Input
                         placeholder="Add notes for AI to use..."
                         value={userNotes}
                         onChange={handleNotesChange}
-                        className="pr-8 border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                        className="pr-8 border-gray-200 focus:border-indigo-500 focus:ring-indigo-500"
                         disabled={processingState.isProcessing}
+                        onWheel={(e) => e.stopPropagation()}
+                        onMouseDown={(e) => e.stopPropagation()}
                       />
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="absolute right-4 top-1/2 -translate-y-1/2 h-6 w-6 text-gray-400 hover:text-gray-600"
+                            className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 text-gray-400 hover:text-gray-600"
                           >
                             <HelpCircle className="w-4 h-4" />
                           </Button>
@@ -873,29 +786,6 @@ export default function DocumentUploadNode({
                         </TooltipContent>
                       </Tooltip>
                     </div>
-                    <Button
-                      size="sm"
-                      type="button"
-                      disabled={
-                        processingState.isProcessing ||
-                        isAnalyzing ||
-                        !userNotes
-                      }
-                      onClick={() => {
-                        analyzeVideoContent({
-                          data: { ai_notes: userNotes },
-                          strategyId: strategyId,
-                          peerId: data?.id,
-                        });
-                      }}
-                      className="bg-cyan-500 hover:bg-cyan-600 text-white rounded-full w-8 h-8 p-0 disabled:opacity-50"
-                    >
-                      {isAnalyzing ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <ArrowRight className="w-4 h-4" />
-                      )}
-                    </Button>
                   </div>
                 </div>
               )}

@@ -161,15 +161,14 @@ export default function VideoUploadNode({
   const [userNotes, setUserNotes] = useState<string>("");
 
   // Only poll for status if analysis is successful
-  const { data: status, isPollingLoading: isStatusPollingLoading } =
-    useGetPeerAnalysisStatus({
+  const { isPollingLoading: isStatusPollingLoading } = useGetPeerAnalysisStatus(
+    {
       peerId: data?.id,
       strategyId,
       peerType: "video",
       enabled: isAnalyzeSuccess,
-    });
-
-  console.log("Video analysis status:", { status });
+    }
+  );
 
   // Sync state with incoming data props (like ImageUploadNode)
   useEffect(() => {

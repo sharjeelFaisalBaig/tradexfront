@@ -36,6 +36,7 @@ import {
   analyzeImagePeer,
   updateConversationAiModel,
   analyzeVideoPeer,
+  analyzeDocumentPeer,
 } from "@/services/strategy/strategy_Mutation";
 import { IStrategy } from "@/lib/types";
 import { QUERY_KEYS } from "@/lib/queryKeys";
@@ -537,6 +538,27 @@ export const useAnalyzeVideoPeer = () => {
       peerId: string;
       data: { ai_notes?: string };
     }) => analyzeVideoPeer({ strategyId, peerId, data }),
+    onSuccess: (_data, { strategyId }) => {
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.STRATEGY, strategyId],
+      });
+    },
+  });
+};
+
+export const useAnalyzeDocumentPeer = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      strategyId,
+      peerId,
+      data,
+    }: {
+      strategyId: string;
+      peerId: string;
+      data: { ai_notes?: string };
+    }) => analyzeDocumentPeer({ strategyId, peerId, data }),
     onSuccess: (_data, { strategyId }) => {
       queryClient.invalidateQueries({
         queryKey: [QUERY_KEYS.STRATEGY, strategyId],

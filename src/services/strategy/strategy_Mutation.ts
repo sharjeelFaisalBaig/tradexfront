@@ -382,6 +382,28 @@ export const analyzeVideoPeer = async ({
   return res.data;
 };
 
+export const analyzeDocumentPeer = async ({
+  strategyId,
+  peerId,
+  data,
+}: {
+  strategyId: string;
+  peerId: string;
+  data: {
+    ai_notes?: string;
+  };
+}) => {
+  const res = await axiosInstance.post(
+    endpoints.STRATEGY.ANALYZE_PEER({
+      peerId,
+      id: strategyId,
+      peerType: "document",
+    }),
+    data
+  );
+  return res.data;
+};
+
 export const connectNodes = async ({
   strategyId,
   data,
