@@ -125,7 +125,11 @@ export const useNodeOperations = () => {
           {
             ...newNode,
             id: responseData?.peer_id,
-            data: { ...newNode.data, id: responseData?.peer_id },
+            data: {
+              ...newNode.data,
+              id: responseData?.peer_id,
+              ...responseData,
+            },
           },
         ]);
       };

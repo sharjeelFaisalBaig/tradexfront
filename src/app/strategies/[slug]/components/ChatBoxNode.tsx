@@ -142,6 +142,7 @@ export default function ChatBoxNode({
   const [conversations, setConversations] = useState<Conversation[]>(
     data?.conversations || []
   );
+
   // Inline editing state
   const [editingConversationId, setEditingConversationId] = useState<
     string | null
@@ -149,9 +150,11 @@ export default function ChatBoxNode({
   const [editingTitle, setEditingTitle] = useState<string>("");
 
   // Active conversation
-  const activeConversation = conversations.find(
-    (conv) => conv.id === activeConversationId
+  const activeConversation = conversations?.find(
+    (conv) => conv?.id === activeConversationId
   );
+
+  console.log({ conversations });
 
   // setEdges from reactflow
   const { setEdges } = useReactFlow();
@@ -367,20 +370,20 @@ export default function ChatBoxNode({
   );
 
   // Initialize with first conversation - fix to prevent multiple calls
-  useEffect(() => {
-    if (conversations?.length === 0) {
-      const initialConversation: Conversation = {
-        id: `conv_${Date.now()}_initial`,
-        title: "New Conversation",
-        ai_model_id: availableModels[0]?.id || "",
-        isLoading: false,
-        draftMessage: "",
-        selectedModel: availableModels[0],
-      };
-      setConversations([initialConversation]);
-      setActiveConversationId(initialConversation.id);
-    }
-  }, []);
+  // useEffect(() => {
+  //   if (conversations?.length === 0) {
+  //     const initialConversation: Conversation = {
+  //       id: `conv_${Date.now()}_initial`,
+  //       title: "New Conversation",
+  //       ai_model_id: availableModels[0]?.id || "",
+  //       isLoading: false,
+  //       draftMessage: "",
+  //       selectedModel: availableModels[0],
+  //     };
+  //     setConversations([initialConversation]);
+  //     setActiveConversationId(initialConversation.id);
+  //   }
+  // }, []);
 
   // Scroll to bottom when messages change
   useEffect(() => {
