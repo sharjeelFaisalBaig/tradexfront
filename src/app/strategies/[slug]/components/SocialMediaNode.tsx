@@ -166,11 +166,64 @@ export default function SocialMediaNode({
   );
   const [userNotes, setUserNotes] = useState<string>("");
 
-  // Handle pasted URL data from props
+  // Sync state with incoming data props (like VideoUploadNode)
   useEffect(() => {
-    if (data?.pastedUrl) {
-      setSocialUrl(data.pastedUrl);
-      handleUrlValidation(data.pastedUrl);
+    if (data && data.video) {
+      // Validate and extract platform
+      const validation = validateSocialMediaUrl(data.video);
+      setSocialUrl(data.video);
+      setUrlValidation(validation);
+      // Extract video data for preview
+      if (validation.isValid && validation.platform) {
+        setSocialMediaData(extractVideoData(data.video, validation.platform));
+      } else {
+        setSocialMediaData(null);
+      }
+      // Set AI response if present
+      if (data.ai_title || data.ai_summary) {
+        setAiResponse({
+          title: data.ai_title || data.title || "",
+          peerId: data.id || "",
+          description: data.ai_summary || "",
+          transcript: data.transcript || "",
+          keyTopics: data.keyTopics || [],
+          sentiment: data.sentiment || "neutral",
+          engagement: data.engagement || {},
+          metadata: data.metadata || {},
+          confidence: 0.95, // fallback
+          tags: [], // fallback
+          insights: data.insights || [],
+        });
+      } else {
+        setAiResponse(null);
+      }
+      // Set user notes if present
+      setUserNotes(data.ai_notes || "");
+      // If video is present and ready, mark processing as complete (for connectability)
+      if (data.is_ready_to_interact) {
+        setProcessingState((prev) => ({
+          ...prev,
+          isComplete: true,
+          error: null,
+        }));
+      } else {
+        setProcessingState((prev) => ({
+          ...prev,
+          isComplete: false,
+        }));
+      }
+    } else {
+      // If no data or no video, reset to pre-upload state
+      setSocialUrl("");
+      setUrlValidation({ isValid: false });
+      setSocialMediaData(null);
+      setAiResponse(null);
+      setProcessingState({
+        isProcessing: false,
+        isComplete: false,
+        error: null,
+      });
+      setUserNotes("");
     }
   }, [data]);
 
@@ -205,34 +258,158 @@ export default function SocialMediaNode({
   const extractVideoData = (url: string, platform: string): SocialMediaData => {
     const platformConfig =
       SUPPORTED_PLATFORMS[platform as keyof typeof SUPPORTED_PLATFORMS];
+    let videoId = "";
+    let thumbnail = "https://placehold.co/640x360?text=No+Preview";
     if (platform === "youtube") {
-      // Extract videoId from various YouTube URL formats
-      let videoId = "";
-      const ytMatch =
-        url.match(/[?&]v=([a-zA-Z0-9_-]{11})/) ||
-        url.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/) ||
-        url.match(/youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/);
-      if (ytMatch) {
-        videoId = ytMatch[1];
+      // Robustly extract videoId from all common YouTube URL formats
+      try {
+        const parsedUrl = new URL(url);
+        if (parsedUrl.searchParams.get("v")) {
+          videoId = parsedUrl.searchParams.get("v")!;
+        } else if (parsedUrl.hostname.includes("youtu.be")) {
+          videoId = parsedUrl.pathname.split("/")[1];
+        } else if (parsedUrl.pathname.startsWith("/shorts/")) {
+          videoId = parsedUrl.pathname.split("/")[2];
+        } else if (parsedUrl.pathname.startsWith("/embed/")) {
+          videoId = parsedUrl.pathname.split("/")[2];
+        } else {
+          const match =
+            url.match(/[?&]v=([a-zA-Z0-9_-]{11})/) ||
+            url.match(/([a-zA-Z0-9_-]{11})/);
+          if (match) videoId = match[1];
+        }
+        if (videoId && videoId.includes("?")) {
+          videoId = videoId.split("?")[0];
+        }
+      } catch {
+        const match =
+          url.match(/[?&]v=([a-zA-Z0-9_-]{11})/) ||
+          url.match(/([a-zA-Z0-9_-]{11})/);
+        if (match) videoId = match[1];
+      }
+      if (videoId) {
+        // Try maxresdefault, fallback to hqdefault
+        thumbnail = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
       }
       return {
         url,
         platform,
         videoId,
-        thumbnail: videoId
-          ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`
-          : "",
+        thumbnail,
         title: `YouTube Video (${videoId})`,
         author: "",
         duration: "",
       };
     }
-    // For other platforms, show generic placeholder
+    if (platform === "facebook") {
+      // Try to extract videoId from various Facebook video/reel URLs
+      // 1. Reel: https://www.facebook.com/reel/VIDEOID
+      // 2. Watch: https://www.facebook.com/watch/?v=VIDEOID
+      // 3. Videos: https://www.facebook.com/{user}/videos/VIDEOID
+      try {
+        const parsedUrl = new URL(url);
+        if (parsedUrl.pathname.startsWith("/reel/")) {
+          videoId = parsedUrl.pathname.split("/")[2];
+        } else if (parsedUrl.pathname.startsWith("/watch")) {
+          videoId = parsedUrl.searchParams.get("v") || "";
+        } else if (parsedUrl.pathname.includes("/videos/")) {
+          videoId =
+            parsedUrl.pathname.split("/videos/")[1]?.split("/")[0] || "";
+        }
+      } catch {}
+      // Facebook Graph API thumbnail (public videos only, reels may not work)
+      if (videoId) {
+        thumbnail = `https://graph.facebook.com/${videoId}/picture`;
+      }
+      return {
+        url,
+        platform,
+        videoId,
+        thumbnail,
+        title: `Facebook Video (${videoId})`,
+        author: "",
+        duration: "",
+      };
+    }
+    if (platform === "instagram") {
+      // Try to extract shortcode from Instagram URL
+      // 1. Post/Reel/TV: https://www.instagram.com/p/SHORTCODE, /reel/SHORTCODE, /tv/SHORTCODE
+      let shortcode = "";
+      try {
+        const parsedUrl = new URL(url);
+        const parts = parsedUrl.pathname.split("/").filter(Boolean);
+        if (["p", "reel", "tv"].includes(parts[0]) && parts[1]) {
+          shortcode = parts[1];
+        }
+      } catch {}
+      // Instagram does not provide a public thumbnail endpoint, use placeholder
+      thumbnail = "https://placehold.co/640x360?text=Instagram+Preview";
+      return {
+        url,
+        platform,
+        videoId: shortcode,
+        thumbnail,
+        title: `Instagram Video (${shortcode})`,
+        author: "",
+        duration: "",
+      };
+    }
+    if (platform === "tiktok") {
+      // Try to extract videoId from TikTok URL
+      // 1. https://www.tiktok.com/@user/video/VIDEOID
+      // 2. https://vm.tiktok.com/xxxx
+      try {
+        const parsedUrl = new URL(url);
+        if (parsedUrl.hostname.includes("tiktok.com")) {
+          const match = url.match(/video\/(\d+)/);
+          if (match) videoId = match[1];
+        }
+      } catch {}
+      // Set placeholder, will fetch real thumbnail in useEffect
+      thumbnail = "https://placehold.co/640x360?text=TikTok+Preview";
+      return {
+        url,
+        platform,
+        videoId,
+        thumbnail,
+        title: `TikTok Video (${videoId})`,
+        author: "",
+        duration: "",
+      };
+    }
+    // TikTok oEmbed thumbnail fetcher
+    useEffect(() => {
+      if (
+        socialMediaData &&
+        socialMediaData.platform === "tiktok" &&
+        socialMediaData.url &&
+        socialMediaData.thumbnail &&
+        socialMediaData.thumbnail.includes("TikTok+Preview")
+      ) {
+        fetch(
+          `https://www.tiktok.com/oembed?url=${encodeURIComponent(
+            socialMediaData.url
+          )}`
+        )
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.thumbnail_url) {
+              setSocialMediaData((prev) =>
+                prev ? { ...prev, thumbnail: data.thumbnail_url } : prev
+              );
+            }
+          })
+          .catch(() => {
+            // fallback: do nothing, keep placeholder
+          });
+      }
+    }, [socialMediaData?.platform, socialMediaData?.url]);
+    // Fallback for unsupported or unknown platforms
     return {
       url,
       platform,
       videoId: "",
-      thumbnail: "https://placehold.co/640x360?text=No+Preview",
+      thumbnail,
       title: `${platformConfig.name} Video`,
       author: "",
       duration: "",
