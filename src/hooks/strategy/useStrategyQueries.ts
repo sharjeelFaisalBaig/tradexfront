@@ -6,6 +6,7 @@ import {
   getConversationById,
   getAllConversations,
   getAiModels,
+  getChatTemplates,
 } from "@/services/strategy/strategy_API";
 
 export const useGetStrategies = () => {
@@ -57,5 +58,12 @@ export const useGetAiModels = () => {
   return useQuery({
     queryKey: [QUERY_KEYS.AI_MODELS],
     queryFn: () => getAiModels(),
+  });
+};
+
+export const useGetChatTemplates = () => {
+  return useQuery({
+    queryKey: [QUERY_KEYS.AI_CHAT_TEMPLATES],
+    queryFn: () => getChatTemplates(),
   });
 };

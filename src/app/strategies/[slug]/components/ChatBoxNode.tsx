@@ -33,6 +33,7 @@ import {
 } from "@/hooks/strategy/useStrategyMutations";
 import {
   useGetAiModels,
+  useGetChatTemplates,
   useGetConversationById,
 } from "@/hooks/strategy/useStrategyQueries";
 import { getFilteredAiModels } from "@/lib/utils";
@@ -87,40 +88,6 @@ interface ChatBoxNodeProps {
   };
 }
 
-// Predefined prompts
-const predefinedPrompts: PredefinedPrompt[] = [
-  {
-    id: "summarize",
-    label: "Summarize",
-    prompt:
-      "Please summarize the attached content, focusing on the main points and key takeaways.",
-  },
-  {
-    id: "key-insights",
-    label: "Get Key Insights",
-    prompt:
-      "Extract the key insights and important findings from the provided content.",
-  },
-  {
-    id: "write-email",
-    label: "Write Email",
-    prompt:
-      "Help me write a professional email based on the following context:",
-  },
-  {
-    id: "explain",
-    label: "Explain",
-    prompt:
-      "Please explain this content in simple terms that anyone can understand.",
-  },
-  {
-    id: "action-items",
-    label: "Action Items",
-    prompt:
-      "Identify actionable items and next steps from the provided information.",
-  },
-];
-
 export default function ChatBoxNode({
   id,
   sourcePosition = Position.Left,
@@ -165,6 +132,8 @@ export default function ChatBoxNode({
 
   // Queries
   const { data: aiModelsData, isLoading: isLoadingModels } = useGetAiModels();
+  const { data: aiTemplatesData, isLoading: isLoadingTemplates } =
+    useGetChatTemplates();
   const { data: activeConversationData, isLoading: isLoadingConversation } =
     useGetConversationById(strategyId, activeConversationId ?? "");
 
@@ -172,6 +141,17 @@ export default function ChatBoxNode({
   const availableModels: AIModel[] = useMemo(
     () => getFilteredAiModels(aiModelsData?.models) || [],
     [aiModelsData]
+  );
+  const predefinedPrompts: PredefinedPrompt[] = useMemo(
+    () =>
+      aiTemplatesData?.templates?.map(
+        (template: { text: string; title: string }) => ({
+          id: template?.title,
+          label: template?.title,
+          prompt: template?.text,
+        })
+      ) || [],
+    [aiTemplatesData]
   );
   const activeConversation = useMemo(
     () =>
@@ -1139,18 +1119,22 @@ export default function ChatBoxNode({
                       </DropdownMenu>
                     )}
                     {/* Predefined Prompts */}
-                    {predefinedPrompts.map((prompt) => (
-                      <Button
-                        key={prompt.id}
-                        variant="outline"
-                        size="sm"
-                        className="text-xs h-7 bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100"
-                        onClick={() => handlePredefinedPromptClick(prompt)}
-                        disabled={isLoading}
-                      >
-                        {prompt.label}
-                      </Button>
-                    ))}
+                    {!isLoadingTemplates ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin text-blue-600" />
+                    ) : (
+                      predefinedPrompts?.map((prompt) => (
+                        <Button
+                          key={prompt.id}
+                          variant="outline"
+                          size="sm"
+                          className="text-xs h-7 bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100"
+                          onClick={() => handlePredefinedPromptClick(prompt)}
+                          disabled={isLoading}
+                        >
+                          {prompt.label}
+                        </Button>
+                      ))
+                    )}
                   </div>
                 </div>
               )}
