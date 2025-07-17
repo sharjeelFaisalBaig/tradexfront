@@ -60,6 +60,9 @@ interface AIProcessingResponse {
   tags: string[];
   duration: number;
   language: string;
+  audioUrl?: string; // Add audioUrl to AIProcessingResponse if it comes from the backend
+  ai_title?: string; // Add raw ai_title if needed for parsing
+  ai_summary?: string; // Add raw ai_summary if needed for parsing
 }
 
 interface ProcessingState {
@@ -82,7 +85,6 @@ export default function AudioPlayerNode({
   data,
 }: any) {
   console.log("AudioPlayerNode", { data });
-
   const strategyId = useParams()?.slug as string;
 
   // mutations
@@ -94,11 +96,13 @@ export default function AudioPlayerNode({
     data: uploadData,
     isSuccess: uploadSuccess,
   } = useUploadAudioContent();
+
   const {
     mutate: analyzeAudioContent,
     isPending: isAnalyzing,
     isSuccess: isAnalyzeSuccess,
   } = useAnalyzeAudioPeer();
+
   const { isPollingLoading: isStatusPollingLoading } = useGetPeerAnalysisStatus(
     {
       strategyId,
@@ -153,11 +157,79 @@ export default function AudioPlayerNode({
     null
   );
   const [userNotes, setUserNotes] = useState<string>("");
+  const [isInitialLoadFromProps, setIsInitialLoadFromProps] = useState(true); // Flag to ensure initial data handling runs only once
+
   const speeds = [1, 1.5, 2];
 
-  // Handle pasted audio data from props
+  // Effect to handle initial loading of pre-existing audio and AI data from props
   useEffect(() => {
-    if (data?.pastedAudio && data?.pastedFileName) {
+    if (isInitialLoadFromProps && data?.audio) {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "";
+      const cleanBaseUrl = baseUrl.endsWith("/api")
+        ? baseUrl.replace(/\/api$/, "")
+        : baseUrl;
+      const cleanAudioPath = data.audio.startsWith("/")
+        ? data.audio
+        : `/${data.audio}`;
+      const fullAudioUrl = `${cleanBaseUrl}${cleanAudioPath}`;
+
+      setUploadedAudio(fullAudioUrl);
+      setFileName(data.title || data.audio.split("/").pop() || "audio-file");
+      setUserNotes(data.ai_notes || "");
+
+      if (data.is_ready_to_interact && data.ai_title && data.ai_summary) {
+        try {
+          const parsedTitleObj = JSON.parse(data.ai_title);
+          const parsedSummaryObj = JSON.parse(data.ai_summary);
+
+          setAiResponse({
+            title: parsedTitleObj.title || data.title,
+            peerId: data.id,
+            transcription:
+              parsedSummaryObj.important_quotes?.join(" ") ||
+              data.transcription ||
+              "",
+            summary: parsedSummaryObj.summary || "",
+            confidence: data.confidence,
+            tags: parsedSummaryObj.key_topics || [],
+            duration: data.duration,
+            language: data.language,
+          });
+          setProcessingState({
+            isProcessing: false,
+            isComplete: true,
+            error: null,
+          });
+        } catch (e) {
+          console.error("Error parsing AI metadata from data props:", e);
+          setProcessingState({
+            isProcessing: false,
+            isComplete: false,
+            error: "Failed to parse AI data from props.",
+          });
+        }
+      } else {
+        // Audio is present but not ready for interaction/analysis complete
+        setProcessingState({
+          isProcessing: false,
+          isComplete: false,
+          error: data.error_message || null,
+        });
+      }
+      setIsLoading(true); // Assume audio needs to load in the player
+      setIsInitialLoadFromProps(false); // Mark as processed
+    }
+  }, [data, isInitialLoadFromProps]); // Depend on data and the initial load flag
+
+  // Handle pasted audio data from props (ensure it doesn't conflict with initial data from 'audio' prop)
+  useEffect(() => {
+    // Only process if it's new pasted audio and not already handled by main data loading
+    if (
+      data?.pastedAudio &&
+      data?.pastedFileName &&
+      !uploadedAudio &&
+      !isInitialLoadFromProps
+    ) {
       const fetchAndUploadPastedAudio = async () => {
         try {
           const response = await fetch(data.pastedAudio);
@@ -166,7 +238,7 @@ export default function AudioPlayerNode({
             type: blob.type,
           });
           setCurrentFile(pastedFile);
-          setUploadedAudio(data.pastedAudio);
+          setUploadedAudio(data.pastedAudio); // This is a blob URL
           setFileName(data.pastedFileName);
           setIsLoading(true); // Audio player loading
 
@@ -191,7 +263,7 @@ export default function AudioPlayerNode({
       };
       fetchAndUploadPastedAudio();
     }
-  }, [data, strategyId, uploadAudio]);
+  }, [data, uploadedAudio, isInitialLoadFromProps, strategyId, uploadAudio]);
 
   // Update processing state based on mutation status
   useEffect(() => {
@@ -203,13 +275,53 @@ export default function AudioPlayerNode({
         : null,
       isComplete: uploadSuccess,
     }));
-
     if (uploadSuccess && uploadData) {
-      setAiResponse(uploadData); // Assuming uploadData contains AIProcessingResponse
-      // If the audio player needs to load the uploaded audio from a URL provided by the backend, uncomment below:
-      // setUploadedAudio(uploadData.audioUrl);
+      let processedTitle = uploadData.title;
+      let processedSummary = uploadData.summary;
+      let processedTags = uploadData.tags;
+      let processedTranscription = uploadData.transcription;
+
+      try {
+        if (uploadData.ai_title) {
+          processedTitle =
+            JSON.parse(uploadData.ai_title)?.title || uploadData.title;
+        }
+        if (uploadData.ai_summary) {
+          const summaryObj = JSON.parse(uploadData.ai_summary);
+          processedSummary = summaryObj.summary || uploadData.summary;
+          processedTags = summaryObj.key_topics || uploadData.tags;
+          processedTranscription =
+            summaryObj.important_quotes?.join(" ") || uploadData.transcription;
+        }
+      } catch (e) {
+        console.error("Error parsing AI metadata from uploadData:", e);
+      }
+
+      setAiResponse({
+        ...uploadData, // Spread existing data
+        title: processedTitle,
+        summary: processedSummary,
+        tags: processedTags,
+        transcription: processedTranscription,
+      });
+      // Set uploadedAudio if the mutation returns a new URL
+      if (uploadData.audioUrl) {
+        setUploadedAudio(uploadData.audioUrl);
+      }
+      // Set fileName for the UI if it changed or wasn't set.
+      if (!fileName && uploadData.title) {
+        setFileName(uploadData.title);
+      }
+      setIsLoading(true); // Audio player loading for the new file
     }
-  }, [isUploading, uploadError, uploadErrorMessage, uploadSuccess, uploadData]);
+  }, [
+    isUploading,
+    uploadError,
+    uploadErrorMessage,
+    uploadSuccess,
+    uploadData,
+    fileName,
+  ]);
 
   // Audio level monitoring for recording
   useEffect(() => {
@@ -281,9 +393,13 @@ export default function AudioPlayerNode({
     const handleCanPlay = () => {
       setIsLoading(false);
     };
-    const handleError = (e: any) => {
+    const handleError = (e: Event) => {
       console.error("Audio error:", e);
       setIsLoading(false);
+      setProcessingState((prev) => ({
+        ...prev,
+        error: "Failed to load audio file.",
+      }));
     };
     const handleLoadedData = () => {
       if (audio.duration && !isNaN(audio.duration)) {
@@ -300,7 +416,8 @@ export default function AudioPlayerNode({
     audio.addEventListener("canplay", handleCanPlay);
     audio.addEventListener("error", handleError);
 
-    if (uploadedAudio) {
+    if (uploadedAudio && audio.src !== uploadedAudio) {
+      // Only load if src changed
       audio.load();
     }
 
@@ -326,7 +443,6 @@ export default function AudioPlayerNode({
         },
       });
       streamRef.current = stream;
-
       audioContextRef.current = new AudioContext();
       const source = audioContextRef.current.createMediaStreamSource(stream);
       analyserRef.current = audioContextRef.current.createAnalyser();
@@ -344,6 +460,7 @@ export default function AudioPlayerNode({
           setRecordedChunks((prev) => [...prev, event.data]);
         }
       };
+
       mediaRecorder.onstop = () => {
         stream.getTracks().forEach((track) => track.stop());
       };
@@ -392,7 +509,6 @@ export default function AudioPlayerNode({
       const blob = new Blob(recordedChunks, { type: "audio/webm" });
       const filename = `recording-${Date.now()}.webm`;
       const recordedFile = new File([blob], filename, { type: "audio/webm" });
-
       setCurrentFile(recordedFile); // Store the actual file
 
       // Reset all audio states first
@@ -408,7 +524,6 @@ export default function AudioPlayerNode({
       const formData: any = new FormData();
       formData.append("file", recordedFile);
       formData.append("title", filename);
-
       uploadAudio({
         strategyId,
         peerId: data?.id,
@@ -434,14 +549,14 @@ export default function AudioPlayerNode({
       const reader = new FileReader();
       reader.onload = (e) => {
         const audioData = e.target?.result as string;
-        setUploadedAudio(audioData); // For playback
+        setUploadedAudio(audioData); // For playback (e.g., base64 data URL)
         setFileName(file.name);
         setIsLoading(true); // For audio player loading
+
         // Trigger the actual upload mutation
         const formData: any = new FormData();
         formData.append("file", file);
         formData.append("title", file.name);
-
         uploadAudio({
           strategyId,
           peerId: data?.id,
@@ -509,6 +624,7 @@ export default function AudioPlayerNode({
     setCurrentTime(0);
     setDuration(0);
     setShowRecordingInterface(false);
+    setIsInitialLoadFromProps(true); // Reset flag so initial data can be re-evaluated if props change
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -523,12 +639,19 @@ export default function AudioPlayerNode({
       const formData: any = new FormData();
       formData.append("file", currentFile);
       formData.append("title", currentFile.name);
-
       uploadAudio({
         strategyId,
         peerId: data?.id,
         data: formData,
       });
+    } else if (uploadedAudio && fileName) {
+      // If currentFile is null but uploadedAudio exists (e.g., loaded from props without saving original file object)
+      // You might need a way to re-fetch/re-process the existing uploaded audio from its URL
+      // For simplicity, we'll assume currentFile is available for reprocess if it was a local upload/recording.
+      // If it came from props, re-running initial useEffect would be needed (handled by resetting isInitialLoadFromProps).
+      console.warn(
+        "Cannot reprocess audio without original File object or explicit backend reprocess API."
+      );
     }
   };
 
@@ -536,7 +659,6 @@ export default function AudioPlayerNode({
   const togglePlayPause = () => {
     const audio = audioRef.current;
     if (!audio) return;
-
     if (isPlaying) {
       audio.pause();
       setIsPlaying(false);
@@ -551,6 +673,10 @@ export default function AudioPlayerNode({
         })
         .catch((error) => {
           console.error("Error playing audio:", error);
+          setProcessingState((prev) => ({
+            ...prev,
+            error: "Failed to play audio.",
+          }));
         });
     }
   };
@@ -602,8 +728,7 @@ export default function AudioPlayerNode({
 
   const progressValue = duration > 0 ? (currentTime / duration) * 100 : 0;
 
-  // Determine if connection should be allowed
-  // const canConnect: any = processingState.isComplete && aiResponse && !processingState.error;
+  // Determine if connection should be allowed based on data.is_ready_to_interact
   const canConnect = data?.is_ready_to_interact;
 
   // Remove connections when node becomes not connectable
@@ -614,6 +739,9 @@ export default function AudioPlayerNode({
       );
     }
   }, [canConnect, id, setEdges]);
+
+  // Determine which interface to show
+  const shouldShowUploadInterface = !uploadedAudio && !showRecordingInterface;
 
   return (
     <NodeWrapper
@@ -638,7 +766,8 @@ export default function AudioPlayerNode({
                 </span>
               </div>
             )}
-            {!uploadedAudio && !showRecordingInterface ? (
+
+            {shouldShowUploadInterface ? (
               // Upload/Record Interface
               <div
                 className={cn(
@@ -821,7 +950,7 @@ export default function AudioPlayerNode({
                 </div>
               </div>
             ) : (
-              // Audio Player Interface
+              // Audio Player Interface (always shown if uploadedAudio is present)
               <div className="space-y-0">
                 {/* Hidden Audio Element */}
                 <audio
@@ -848,7 +977,7 @@ export default function AudioPlayerNode({
                           Processing failed
                         </span>
                       </div>
-                    ) : aiResponse ? (
+                    ) : aiResponse?.title ? ( // Use aiResponse.title
                       <div className="flex items-center gap-2">
                         <Lightbulb className="w-4 h-4 text-yellow-300" />
                         <span className="text-sm font-medium truncate">
@@ -864,6 +993,7 @@ export default function AudioPlayerNode({
                       </div>
                     )}
                   </div>
+                  {/* ... rest of header buttons (connect, remove, dropdown) ... */}
                   <div className="flex items-center gap-2">
                     {canConnect && (
                       <Tooltip>
@@ -957,7 +1087,7 @@ export default function AudioPlayerNode({
                     // Recorded Audio - Cool Alternative UI without progress bar
                     <div className="space-y-4">
                       {/* Waveform-style Visualization */}
-                      <div className="bg-gradient-to-r from-purple-100 to-purple-200 p-4 rounded-lg">
+                      <div className="bg-gradient-to-r from-purple-100 to-purple-200 p-4 rounded-lg mb-4">
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center gap-3">
                             <Button
@@ -1157,6 +1287,44 @@ export default function AudioPlayerNode({
                       )}
                     </Button>
                   </div>
+                  {/* AI Analysis Summary */}
+                  {aiResponse && aiResponse.summary && (
+                    <div className="mt-4 p-4 bg-purple-50 rounded-lg border border-purple-200">
+                      <h3 className="text-purple-700 font-semibold mb-2">
+                        AI Summary:
+                      </h3>
+                      <p className="text-sm text-purple-800">
+                        {aiResponse.summary}
+                      </p>
+                      {aiResponse.tags && aiResponse.tags.length > 0 && (
+                        <div className="mt-2">
+                          <h4 className="text-purple-600 font-medium text-xs mb-1">
+                            Key Topics:
+                          </h4>
+                          <div className="flex flex-wrap gap-1">
+                            {aiResponse.tags.map((topic, index) => (
+                              <span
+                                key={index}
+                                className="bg-purple-100 text-purple-700 text-xs px-2 py-0.5 rounded-full"
+                              >
+                                {topic}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {aiResponse.transcription && (
+                        <div className="mt-2">
+                          <h4 className="text-purple-600 font-medium text-xs mb-1">
+                            Transcription Excerpt:
+                          </h4>
+                          <p className="text-sm text-purple-800 italic">
+                            "{aiResponse.transcription.substring(0, 200)}..."
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             )}

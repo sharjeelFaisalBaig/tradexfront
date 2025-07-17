@@ -1119,7 +1119,7 @@ export default function ChatBoxNode({
                       </DropdownMenu>
                     )}
                     {/* Predefined Prompts */}
-                    {!isLoadingTemplates ? (
+                    {isLoadingTemplates ? (
                       <Loader2 className="w-4 h-4 mr-2 animate-spin text-blue-600" />
                     ) : (
                       predefinedPrompts?.map((prompt) => (
