@@ -1,5 +1,4 @@
 "use client";
-
 import type React from "react";
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { Handle, Position, useReactFlow } from "@xyflow/react";
@@ -175,7 +174,7 @@ export default function ChatBoxNode({
   );
 
   const isLoading = activeConversation?.isLoading || false;
-  const canConnect = !isLoading;
+  const canConnect = !isLoading; // This controls if new connections can be made to the handle
 
   // Helper functions
   const parseTimestamp = useCallback((val: string | undefined): Date => {
@@ -227,7 +226,6 @@ export default function ChatBoxNode({
       setConversations([]);
       setActiveConversationId(null);
     }
-
     setIsInitialized(true); // Mark as initialized
   }, [
     isHydrated,
@@ -293,14 +291,10 @@ export default function ChatBoxNode({
     }
   }, [message]);
 
-  // Remove connections when not connectable
-  useEffect(() => {
-    if (!canConnect) {
-      setEdges((edges) =>
-        edges.filter((edge) => edge.source !== id && edge.target !== id)
-      );
-    }
-  }, [canConnect, id, setEdges]);
+  // REMOVED: The useEffect that was disconnecting edges based on `canConnect`.
+  // This was causing connections to drop during chat loading.
+  // The `isConnectable` prop on `Handle` will still prevent new connections
+  // from being made when the node is in a loading state.
 
   // Conversation management functions
   const updateConversationState = useCallback(
@@ -336,7 +330,7 @@ export default function ChatBoxNode({
       updateConversationState(conversationId, {
         hasError: true,
         errorMessage: error,
-        isLoading: false,
+        isLoading: false, // Ensure loading is false on error
       });
     },
     [updateConversationState]
@@ -364,7 +358,7 @@ export default function ChatBoxNode({
     const userMessageText = message.trim();
     const timestamp = new Date();
     const optimisticUserId = generateOptimisticId();
-    const optimisticAiId = generateOptimisticId();
+    // const optimisticAiId = generateOptimisticId(); // Not needed if AI message is only added on success
 
     // Clear input and draft
     setMessage("");
@@ -390,8 +384,8 @@ export default function ChatBoxNode({
           conversation_id: activeConversationId,
         },
       });
-      const aiMessageContent = response?.response;
 
+      const aiMessageContent = response?.response;
       if (!aiMessageContent) {
         throw new Error("No response received from AI");
       }
@@ -451,7 +445,7 @@ export default function ChatBoxNode({
         error?.response?.data?.message ||
         error?.message ||
         "Failed to send message";
-      setConversationError(activeConversationId, errorMessage);
+      setConversationError(activeConversationId, errorMessage); // This will trigger the Alert display
       // Show error toast
       toast({
         title: "Message Failed",
@@ -490,8 +484,8 @@ export default function ChatBoxNode({
           ai_thread_peer_id: data?.id ?? "",
         },
       });
-      const conv = response?.conversation;
 
+      const conv = response?.conversation;
       if (!conv) throw new Error("No conversation returned from API");
 
       const model =
@@ -628,7 +622,6 @@ export default function ChatBoxNode({
   const handlePredefinedPromptClick = useCallback(
     (prompt: PredefinedPrompt) => {
       if (isLoading) return;
-
       const newMessage = message
         ? `${message}\n\n${prompt.prompt}`
         : prompt.prompt;
