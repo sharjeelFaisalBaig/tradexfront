@@ -139,9 +139,7 @@ export default function ChatBoxNode({
     string | null
   >(null);
   const [editingTitle, setEditingTitle] = useState("");
-  const [isInitialized, setIsInitialized] = useState(true);
-
-  // Add this state to track hydration
+  const [isInitialized, setIsInitialized] = useState(false); // Changed to false
   const [isHydrated, setIsHydrated] = useState(false);
 
   // Refs
@@ -191,8 +189,19 @@ export default function ChatBoxNode({
   );
 
   const isAnyConversationLoading = useMemo(
-    () => conversations.some((conv) => conv.isLoading),
-    [conversations]
+    () =>
+      conversations.some((conv) => conv.isLoading) ||
+      createConversationLoading ||
+      updateConversationLoading ||
+      deleteConversationLoading ||
+      updateModelLoading,
+    [
+      conversations,
+      createConversationLoading,
+      updateConversationLoading,
+      deleteConversationLoading,
+      updateModelLoading,
+    ]
   );
 
   const isLoading = activeConversation?.isLoading || false;
@@ -206,7 +215,6 @@ export default function ChatBoxNode({
   }, []);
 
   const generateOptimisticId = useCallback(() => {
-    // Use a more deterministic approach for hydration safety
     return `temp_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
   }, []);
 
@@ -215,55 +223,46 @@ export default function ChatBoxNode({
     setIsHydrated(true);
   }, []);
 
-  // Replace the initialization useEffect with this improved version:
+  // Initialization useEffect: Populates conversations from props or starts empty
   useEffect(() => {
-    console.log("ChatBox Debug:", {
-      dataConversations: data?.conversations,
-      isArray: Array.isArray(data?.conversations),
-      type: typeof data?.conversations,
-      availableModelsLength: availableModels.length,
-      isHydrated,
-      isInitialized,
-    });
+    // Only run if hydrated, models are loaded, and not yet initialized
+    if (!isHydrated || isLoadingModels || isInitialized) {
+      return;
+    }
 
-    if (!isHydrated || availableModels?.length > 0 || isInitialized) return;
-
-    // Ensure data.conversations is an array
     const rawConversations = data?.conversations;
-    const initialConversations = Array.isArray(rawConversations)
-      ? rawConversations
+    const initialConversationsFromProps = Array.isArray(rawConversations)
+      ? rawConversations.filter(
+          (conv) => conv && typeof conv === "object" && conv.id
+        )
       : [];
 
-    if (initialConversations.length === 0) {
-      // Create initial conversation if none exist
-      const initialConversation: Conversation = {
-        id: `conv_${Date.now()}_initial`, // Use deterministic ID for hydration
-        title: "New Conversation",
-        ai_model_id: availableModels[0]?.id || "",
+    if (initialConversationsFromProps.length > 0) {
+      // If conversations are provided via props, use them
+      const mappedConversations = initialConversationsFromProps.map((conv) => ({
+        ...conv,
+        selectedModel:
+          availableModels.find((m) => m.id === conv.ai_model_id) ||
+          availableModels[0],
         isLoading: false,
-        draftMessage: "",
-        selectedModel: availableModels[0],
-      };
-      setConversations([initialConversation]);
-      setActiveConversationId(initialConversation.id);
-    } else {
-      // Map existing conversations with models - with proper validation
-      const mappedConversations = initialConversations
-        .filter((conv) => conv && typeof conv === "object" && conv.id) // Filter out invalid entries
-        .map((conv) => ({
-          ...conv,
-          selectedModel:
-            availableModels.find((m) => m.id === conv.ai_model_id) ||
-            availableModels[0],
-          isLoading: false,
-          hasError: false,
-        }));
-
+        hasError: false,
+      }));
       setConversations(mappedConversations);
       setActiveConversationId(mappedConversations[0]?.id || null);
+    } else {
+      // If no conversations from props, the list starts empty.
+      // A new conversation will be created when the user clicks "New Conversation".
+      setConversations([]);
+      setActiveConversationId(null);
     }
-    setIsInitialized(false);
-  }, [isHydrated, availableModels, data?.conversations, isInitialized]);
+    setIsInitialized(true); // Mark as initialized
+  }, [
+    isHydrated,
+    isLoadingModels,
+    availableModels,
+    data?.conversations,
+    isInitialized,
+  ]);
 
   // Load messages when active conversation changes
   useEffect(() => {
@@ -447,7 +446,7 @@ export default function ChatBoxNode({
         ];
       });
 
-      // Update conversation title if it's the first message
+      // Update conversation title if it's the first message && still "New Conversation"
       if (
         messages.length === 0 &&
         activeConversation?.title === "New Conversation"
@@ -505,6 +504,7 @@ export default function ChatBoxNode({
     updateConversationMutation,
     removeOptimisticMessage,
     setConversationError,
+    activeConversation?.title,
   ]);
 
   const createNewConversation = useCallback(async () => {
@@ -562,18 +562,6 @@ export default function ChatBoxNode({
   const deleteConversation = useCallback(
     async (conversationId: string) => {
       if (isAnyConversationLoading) return;
-
-      const conversationIndex = conversations.findIndex(
-        (conv) => conv.id === conversationId
-      );
-      if (conversationIndex === 0) {
-        toast({
-          title: "Cannot delete",
-          description: "Cannot delete the first conversation",
-          variant: "destructive",
-        });
-        return;
-      }
 
       try {
         await deleteConversationMutation({ strategyId, conversationId });
@@ -755,8 +743,8 @@ export default function ChatBoxNode({
     [editingTitle, saveConversationTitle]
   );
 
-  // Loading states
-  if (isLoadingModels || !isInitialized) {
+  // Show loading spinner for initial load
+  if (!isHydrated || isLoadingModels || !isInitialized) {
     return (
       <NodeWrapper
         id={id}
@@ -766,27 +754,8 @@ export default function ChatBoxNode({
       >
         <div className="w-[1100px] h-[700px] bg-white rounded-lg shadow-lg flex items-center justify-center">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <Loader2 className="w-8 h-8 mx-auto mb-4 animate-spin text-blue-600" />
             <p className="text-gray-500">Loading chat interface...</p>
-          </div>
-        </div>
-      </NodeWrapper>
-    );
-  }
-
-  // Add this right after the loading check and before the main return
-  if (!isHydrated) {
-    return (
-      <NodeWrapper
-        id={id}
-        strategyId={strategyId}
-        type="chatbox"
-        className="bg-white"
-      >
-        <div className="w-[1100px] h-[700px] bg-white rounded-lg shadow-lg flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-500">Initializing...</p>
           </div>
         </div>
       </NodeWrapper>
@@ -876,7 +845,6 @@ export default function ChatBoxNode({
                           }`}
                           onClick={() => switchToConversation(conversation.id)}
                         >
-                          {/* Rest of the conversation item JSX remains the same */}
                           <div className="flex-1 truncate flex items-center gap-2">
                             <div className="flex flex-col min-w-0 flex-1">
                               {isEditing ? (
@@ -906,7 +874,7 @@ export default function ChatBoxNode({
                                     );
                                   }}
                                   title="Double click to edit"
-                                  className="truncate cursor-text"
+                                  className="truncate cursor-pointer text-left"
                                 >
                                   {conversation.title ||
                                     "Untitled Conversation"}
@@ -946,25 +914,24 @@ export default function ChatBoxNode({
                             )}
 
                             {/* Delete button */}
-                            {conversations.length > 1 &&
-                              conversations.indexOf(conversation) !== 0 && (
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  disabled={isAnyConversationLoading}
-                                  className="opacity-0 group-hover:opacity-100 h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 disabled:opacity-0"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    deleteConversation(conversation.id);
-                                  }}
-                                >
-                                  {deleteConversationLoading ? (
-                                    <Loader2 className="w-3 h-3" />
-                                  ) : (
-                                    <Trash2 className="w-3 h-3" />
-                                  )}
-                                </Button>
-                              )}
+                            {conversations.length > 0 && ( // Allow deleting the last conversation
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                disabled={isAnyConversationLoading}
+                                className="opacity-0 group-hover:opacity-100 h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 disabled:opacity-0"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  deleteConversation(conversation.id);
+                                }}
+                              >
+                                {deleteConversationLoading ? (
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                ) : (
+                                  <Trash2 className="w-3 h-3" />
+                                )}
+                              </Button>
+                            )}
                           </div>
                         </div>
                       );
