@@ -37,6 +37,7 @@ import {
   updateConversationAiModel,
   analyzeVideoPeer,
   analyzeDocumentPeer,
+  analyzeAudioPeer,
 } from "@/services/strategy/strategy_Mutation";
 import { IStrategy } from "@/lib/types";
 import { QUERY_KEYS } from "@/lib/queryKeys";
@@ -271,7 +272,10 @@ export const useUploadAudioContent = () => {
     }: {
       strategyId: string;
       peerId: string;
-      data: any;
+      data: {
+        file: any;
+        title: string;
+      };
     }) => uploadAudioContent({ strategyId, peerId, data }),
     onSuccess: (_data, { strategyId }) => {
       queryClient.invalidateQueries({
@@ -559,6 +563,27 @@ export const useAnalyzeDocumentPeer = () => {
       peerId: string;
       data: { ai_notes?: string };
     }) => analyzeDocumentPeer({ strategyId, peerId, data }),
+    onSuccess: (_data, { strategyId }) => {
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.STRATEGY, strategyId],
+      });
+    },
+  });
+};
+
+export const useAnalyzeAudioPeer = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      strategyId,
+      peerId,
+      data,
+    }: {
+      strategyId: string;
+      peerId: string;
+      data: { ai_notes?: string };
+    }) => analyzeAudioPeer({ strategyId, peerId, data }),
     onSuccess: (_data, { strategyId }) => {
       queryClient.invalidateQueries({
         queryKey: [QUERY_KEYS.STRATEGY, strategyId],

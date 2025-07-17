@@ -1,4 +1,5 @@
 "use client";
+
 import {
   useState,
   useRef,
@@ -39,16 +40,10 @@ import {
   RotateCcw,
   Shield,
   CheckCircle,
-  ArrowRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import NodeWrapper from "./common/NodeWrapper";
 import { useParams } from "next/navigation";
-import {
-  useAnalyzeAudioPeer,
-  useUploadAudioContent,
-} from "@/hooks/strategy/useStrategyMutations";
-import { useGetPeerAnalysisStatus } from "@/hooks/strategy/useGetPeerAnalysisStatus";
 
 // Types for AI integration
 interface AIProcessingResponse {
@@ -81,32 +76,9 @@ export default function AudioPlayerNode({
   targetPosition = Position.Right,
   data,
 }: any) {
-  console.log("AudioPlayerNode", { data });
-
   const strategyId = useParams()?.slug as string;
 
-  // mutations
-  const {
-    mutate: uploadAudio,
-    isPending: isUploading,
-    isError: uploadError,
-    error: uploadErrorMessage,
-    data: uploadData,
-    isSuccess: uploadSuccess,
-  } = useUploadAudioContent();
-  const {
-    mutate: analyzeAudioContent,
-    isPending: isAnalyzing,
-    isSuccess: isAnalyzeSuccess,
-  } = useAnalyzeAudioPeer();
-  const { isPollingLoading: isStatusPollingLoading } = useGetPeerAnalysisStatus(
-    {
-      strategyId,
-      peerId: data?.id,
-      peerType: "audio",
-      enabled: isAnalyzeSuccess,
-    }
-  );
+  // 
 
   const nodeControlRef = useRef(null);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -121,7 +93,6 @@ export default function AudioPlayerNode({
   // Audio upload states
   const [uploadedAudio, setUploadedAudio] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string>("");
-  const [currentFile, setCurrentFile] = useState<File | null>(null); // Store the actual File object
   const [isDragOver, setIsDragOver] = useState(false);
 
   // Audio player states
@@ -129,7 +100,7 @@ export default function AudioPlayerNode({
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
-  const [isLoading, setIsLoading] = useState(false); // For audio player loading
+  const [isLoading, setIsLoading] = useState(false);
 
   // Recording states
   const [recordingState, setRecordingState] = useState<RecordingState>({
@@ -141,7 +112,7 @@ export default function AudioPlayerNode({
   const [recordedChunks, setRecordedChunks] = useState<Blob[]>([]);
   const [showRecordingInterface, setShowRecordingInterface] = useState(false);
 
-  // Processing states (tied to mutation)
+  // Processing states
   const [processingState, setProcessingState] = useState<ProcessingState>({
     isProcessing: false,
     isComplete: false,
@@ -153,63 +124,17 @@ export default function AudioPlayerNode({
     null
   );
   const [userNotes, setUserNotes] = useState<string>("");
+
   const speeds = [1, 1.5, 2];
 
-  // Handle pasted audio data from props
+  // Handle pasted audio data from props (if needed)
   useEffect(() => {
     if (data?.pastedAudio && data?.pastedFileName) {
-      const fetchAndUploadPastedAudio = async () => {
-        try {
-          const response = await fetch(data.pastedAudio);
-          const blob = await response.blob();
-          const pastedFile = new File([blob], data.pastedFileName, {
-            type: blob.type,
-          });
-          setCurrentFile(pastedFile);
-          setUploadedAudio(data.pastedAudio);
-          setFileName(data.pastedFileName);
-          setIsLoading(true); // Audio player loading
-
-          const formData: any = new FormData();
-          formData.append("file", pastedFile);
-          formData.append("title", data.pastedFileName);
-
-          uploadAudio({
-            strategyId,
-            peerId: data?.id,
-            data: formData,
-          });
-        } catch (e) {
-          console.error("Error processing pasted audio:", e);
-          setProcessingState({
-            isProcessing: false,
-            isComplete: false,
-            error:
-              e instanceof Error ? e.message : "Failed to process pasted audio",
-          });
-        }
-      };
-      fetchAndUploadPastedAudio();
+      setUploadedAudio(data.pastedAudio);
+      setFileName(data.pastedFileName);
+      processAudioWithAI(data.pastedAudio, data.pastedFileName);
     }
-  }, [data, strategyId, uploadAudio]);
-
-  // Update processing state based on mutation status
-  useEffect(() => {
-    setProcessingState((prev) => ({
-      ...prev,
-      isProcessing: isUploading,
-      error: uploadError
-        ? uploadErrorMessage?.message || "Upload failed"
-        : null,
-      isComplete: uploadSuccess,
-    }));
-
-    if (uploadSuccess && uploadData) {
-      setAiResponse(uploadData); // Assuming uploadData contains AIProcessingResponse
-      // If the audio player needs to load the uploaded audio from a URL provided by the backend, uncomment below:
-      // setUploadedAudio(uploadData.audioUrl);
-    }
-  }, [isUploading, uploadError, uploadErrorMessage, uploadSuccess, uploadData]);
+  }, [data]);
 
   // Audio level monitoring for recording
   useEffect(() => {
@@ -221,17 +146,22 @@ export default function AudioPlayerNode({
       const updateAudioLevel = () => {
         const analyser = analyserRef.current;
         if (!analyser) return;
+
         const dataArray = new Uint8Array(analyser.frequencyBinCount);
         analyser.getByteFrequencyData(dataArray);
+
         // Calculate average audio level
         const average =
           dataArray.reduce((sum, value) => sum + value, 0) / dataArray.length;
         const normalizedLevel = Math.min(average / 128, 1); // Normalize to 0-1
+
         setRecordingState((prev) => ({ ...prev, audioLevel: normalizedLevel }));
         animationFrameRef.current = requestAnimationFrame(updateAudioLevel);
       };
+
       updateAudioLevel();
     }
+
     return () => {
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
@@ -242,6 +172,7 @@ export default function AudioPlayerNode({
   // Recording duration timer
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
+
     if (recordingState.isRecording && !recordingState.isPaused) {
       interval = setInterval(() => {
         setRecordingState((prev) => ({
@@ -250,6 +181,7 @@ export default function AudioPlayerNode({
         }));
       }, 100);
     }
+
     return () => {
       if (interval) clearInterval(interval);
     };
@@ -261,37 +193,51 @@ export default function AudioPlayerNode({
     if (!audio || !uploadedAudio) return;
 
     const handleLoadedMetadata = () => {
+      // console.log("Audio metadata loaded, duration:", audio.duration);
       setDuration(audio.duration);
       setIsLoading(false);
     };
+
     const handleTimeUpdate = () => {
       const newCurrentTime = audio.currentTime;
+      // console.log("Time update:", newCurrentTime, "Duration:", audio.duration);
       setCurrentTime(newCurrentTime);
+
+      // Double-check duration if it's not set
       if (audio.duration && !isNaN(audio.duration) && duration === 0) {
         setDuration(audio.duration);
       }
     };
+
     const handleEnded = () => {
       setIsPlaying(false);
       setCurrentTime(0);
     };
+
     const handleLoadStart = () => {
+      // console.log("Audio loading started");
       setIsLoading(true);
     };
+
     const handleCanPlay = () => {
+      // console.log("Audio can play");
       setIsLoading(false);
     };
+
     const handleError = (e: any) => {
-      console.error("Audio error:", e);
+      // console.error("Audio error:", e);
       setIsLoading(false);
     };
+
     const handleLoadedData = () => {
+      // console.log("Audio data loaded");
       if (audio.duration && !isNaN(audio.duration)) {
         setDuration(audio.duration);
         setIsLoading(false);
       }
     };
 
+    // Add more event listeners for better compatibility
     audio.addEventListener("loadedmetadata", handleLoadedMetadata);
     audio.addEventListener("loadeddata", handleLoadedData);
     audio.addEventListener("timeupdate", handleTimeUpdate);
@@ -300,6 +246,7 @@ export default function AudioPlayerNode({
     audio.addEventListener("canplay", handleCanPlay);
     audio.addEventListener("error", handleError);
 
+    // Force load if audio source is set
     if (uploadedAudio) {
       audio.load();
     }
@@ -315,6 +262,61 @@ export default function AudioPlayerNode({
     };
   }, [uploadedAudio, duration]);
 
+  // AI responses for different audio types
+  const processAudio = (filename: string): AIProcessingResponse => {
+    return {
+      title: "Voice Recording Session",
+      peerId: "peer_audio_rec_001",
+      transcription:
+        "This is a live recording session. I'm testing the audio quality and making sure everything sounds clear and professional.",
+      summary:
+        "Live voice recording with focus on audio quality testing and professional sound capture.",
+      confidence: 0.96,
+      tags: ["recording", "voice", "live", "quality test"],
+      duration: recordingState.duration,
+      language: "English",
+    };
+  };
+
+  // AI Processing Function
+  const processAudioWithAI = async (audioData: string, filename: string) => {
+    setProcessingState({
+      isProcessing: true,
+      isComplete: false,
+      error: null,
+    });
+
+    try {
+      // Simulate API processing time (3-6 seconds for audio)
+      const processingTime = Math.random() * 3000 + 3000;
+
+      await new Promise((resolve) => setTimeout(resolve, processingTime));
+
+      // Simulate occasional API errors (10% chance)
+      // throw new Error("Audio transcription service temporarily unavailable")
+
+      // Get AI response
+      const result = processAudio(filename);
+
+      // Update states with API response
+      setAiResponse(result);
+      setProcessingState({
+        isProcessing: false,
+        isComplete: true,
+        error: null,
+      });
+
+      console.log("🎵 Audio AI Response:", result);
+    } catch (error) {
+      console.error("Audio AI Processing Error:", error);
+      setProcessingState({
+        isProcessing: false,
+        isComplete: false,
+        error: error instanceof Error ? error.message : "Processing failed",
+      });
+    }
+  };
+
   // Recording functions
   const startRecording = async () => {
     try {
@@ -325,8 +327,10 @@ export default function AudioPlayerNode({
           sampleRate: 44100,
         },
       });
+
       streamRef.current = stream;
 
+      // Set up audio context for level monitoring
       audioContextRef.current = new AudioContext();
       const source = audioContextRef.current.createMediaStreamSource(stream);
       analyserRef.current = audioContextRef.current.createAnalyser();
@@ -336,6 +340,7 @@ export default function AudioPlayerNode({
       const mediaRecorder = new MediaRecorder(stream, {
         mimeType: "audio/webm;codecs=opus",
       });
+
       mediaRecorderRef.current = mediaRecorder;
       setRecordedChunks([]);
 
@@ -344,6 +349,7 @@ export default function AudioPlayerNode({
           setRecordedChunks((prev) => [...prev, event.data]);
         }
       };
+
       mediaRecorder.onstop = () => {
         stream.getTracks().forEach((track) => track.stop());
       };
@@ -369,6 +375,8 @@ export default function AudioPlayerNode({
         isRecording: false,
         isPaused: false,
       }));
+
+      // Clean up audio context
       if (audioContextRef.current) {
         audioContextRef.current.close();
       }
@@ -390,30 +398,31 @@ export default function AudioPlayerNode({
   const saveRecording = () => {
     if (recordedChunks.length > 0) {
       const blob = new Blob(recordedChunks, { type: "audio/webm" });
-      const filename = `recording-${Date.now()}.webm`;
-      const recordedFile = new File([blob], filename, { type: "audio/webm" });
+      const reader = new FileReader();
 
-      setCurrentFile(recordedFile); // Store the actual file
+      reader.onload = (e) => {
+        const audioData = e.target?.result as string;
+        const filename = `recording-${Date.now()}.webm`;
 
-      // Reset all audio states first
-      setIsPlaying(false);
-      setCurrentTime(0);
-      setDuration(0);
-      setIsLoading(true); // For audio player loading
-      setUploadedAudio(URL.createObjectURL(blob)); // Use object URL for playback
-      setFileName(filename);
-      setShowRecordingInterface(false);
+        // Reset all audio states first
+        setIsPlaying(false);
+        setCurrentTime(0);
+        setDuration(0);
+        setIsLoading(true);
 
-      // Trigger the actual upload mutation
-      const formData: any = new FormData();
-      formData.append("file", recordedFile);
-      formData.append("title", filename);
+        // Set the audio data
+        setUploadedAudio(audioData);
+        setFileName(filename);
+        setShowRecordingInterface(false);
 
-      uploadAudio({
-        strategyId,
-        peerId: data?.id,
-        data: formData,
-      });
+        // For recorded audio, we'll use a different approach - no duration needed
+        setIsLoading(false);
+
+        // Auto-process recorded audio
+        processAudioWithAI(audioData, filename);
+      };
+
+      reader.readAsDataURL(blob);
     }
   };
 
@@ -430,23 +439,13 @@ export default function AudioPlayerNode({
 
   const handleFileSelect = (file: File) => {
     if (file && file.type.startsWith("audio/")) {
-      setCurrentFile(file); // Store the actual file
       const reader = new FileReader();
       reader.onload = (e) => {
         const audioData = e.target?.result as string;
-        setUploadedAudio(audioData); // For playback
+        setUploadedAudio(audioData);
         setFileName(file.name);
-        setIsLoading(true); // For audio player loading
-        // Trigger the actual upload mutation
-        const formData: any = new FormData();
-        formData.append("file", file);
-        formData.append("title", file.name);
-
-        uploadAudio({
-          strategyId,
-          peerId: data?.id,
-          data: formData,
-        });
+        // Auto-process uploaded audio
+        processAudioWithAI(audioData, file.name);
       };
       reader.readAsDataURL(file);
     }
@@ -497,7 +496,6 @@ export default function AudioPlayerNode({
   const handleRemoveAudio = () => {
     setUploadedAudio(null);
     setFileName("");
-    setCurrentFile(null); // Clear the stored file
     setAiResponse(null);
     setProcessingState({
       isProcessing: false,
@@ -519,16 +517,8 @@ export default function AudioPlayerNode({
   };
 
   const handleReprocess = () => {
-    if (currentFile) {
-      const formData: any = new FormData();
-      formData.append("file", currentFile);
-      formData.append("title", currentFile.name);
-
-      uploadAudio({
-        strategyId,
-        peerId: data?.id,
-        data: formData,
-      });
+    if (uploadedAudio && fileName) {
+      processAudioWithAI(uploadedAudio, fileName);
     }
   };
 
@@ -537,13 +527,22 @@ export default function AudioPlayerNode({
     const audio = audioRef.current;
     if (!audio) return;
 
+    console.log(
+      "Toggle play/pause. Current time:",
+      audio.currentTime,
+      "Duration:",
+      audio.duration
+    );
+
     if (isPlaying) {
       audio.pause();
       setIsPlaying(false);
     } else {
+      // Ensure we have duration before playing
       if (!duration && audio.duration && !isNaN(audio.duration)) {
         setDuration(audio.duration);
       }
+
       audio
         .play()
         .then(() => {
@@ -603,8 +602,8 @@ export default function AudioPlayerNode({
   const progressValue = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   // Determine if connection should be allowed
-  // const canConnect: any = processingState.isComplete && aiResponse && !processingState.error;
-  const canConnect = data?.is_ready_to_interact;
+  const canConnect: any =
+    processingState.isComplete && aiResponse && !processingState.error;
 
   // Remove connections when node becomes not connectable
   useEffect(() => {
@@ -628,16 +627,7 @@ export default function AudioPlayerNode({
       <div className="react-flow__node">
         <div ref={nodeControlRef} className={`nodrag`} />
         <TooltipProvider>
-          <div className="w-[1000px] max-w-md mx-auto bg-white rounded-lg shadow-sm border overflow-hidden relative">
-            {/* Full node loader overlay when status is polling/loading */}
-            {isStatusPollingLoading && (
-              <div className="absolute inset-0 z-50 bg-white bg-opacity-80 flex flex-col items-center justify-center">
-                <Loader2 className="w-10 h-10 animate-spin text-purple-600 mb-2" />
-                <span className="text-base font-medium text-gray-700">
-                  Checking analysis status...
-                </span>
-              </div>
-            )}
+          <div className="w-[1000px] max-w-md mx-auto bg-white rounded-lg shadow-sm border overflow-hidden">
             {!uploadedAudio && !showRecordingInterface ? (
               // Upload/Record Interface
               <div
@@ -661,6 +651,7 @@ export default function AudioPlayerNode({
                   onChange={handleFileInputChange}
                   className="hidden"
                 />
+
                 <div className="text-center">
                   <div className="mb-6 space-y-3">
                     <Button
@@ -673,6 +664,7 @@ export default function AudioPlayerNode({
                       <Plus className="w-5 h-5 mr-2" />
                       Select an audio file
                     </Button>
+
                     <Button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -685,16 +677,20 @@ export default function AudioPlayerNode({
                       Record audio
                     </Button>
                   </div>
+
                   <div className="text-gray-500 mb-4">
                     <span className="text-lg">or</span>
                   </div>
+
                   <div className="text-gray-600 text-lg">
                     Drag and drop an audio file here
                   </div>
+
                   <div className="text-sm text-gray-500 mt-4">
                     Supports: MP3, WAV, M4A, OGG
                   </div>
                 </div>
+
                 {isDragOver && (
                   <div className="absolute inset-0 bg-purple-100 bg-opacity-70 rounded-2xl flex items-center justify-center z-10">
                     <div className="bg-white p-6 rounded-xl shadow-lg flex flex-col items-center">
@@ -736,12 +732,14 @@ export default function AudioPlayerNode({
                     <X className="w-4 h-4" />
                   </Button>
                 </div>
+
                 <div className="p-6 text-center space-y-6">
                   {/* Audio Level Visualization */}
                   <div className="space-y-4">
                     <div className="text-2xl font-bold text-gray-800 tabular-nums">
                       {formatTime(recordingState.duration)}
                     </div>
+
                     {/* Audio Level Bars */}
                     <div className="flex items-center justify-center gap-1 h-16">
                       {Array.from({ length: 20 }, (_, i) => (
@@ -764,6 +762,7 @@ export default function AudioPlayerNode({
                       ))}
                     </div>
                   </div>
+
                   {/* Recording Controls */}
                   <div className="flex items-center justify-center gap-4">
                     {!recordingState.isRecording ? (
@@ -788,6 +787,7 @@ export default function AudioPlayerNode({
                             <Pause className="w-6 h-6" />
                           )}
                         </Button>
+
                         <Button
                           onClick={stopRecording}
                           size="lg"
@@ -798,6 +798,7 @@ export default function AudioPlayerNode({
                       </>
                     )}
                   </div>
+
                   {/* Save/Discard Controls */}
                   {recordedChunks.length > 0 && !recordingState.isRecording && (
                     <div className="flex gap-3 pt-4">
@@ -831,6 +832,7 @@ export default function AudioPlayerNode({
                   crossOrigin="anonymous"
                   controls={false}
                 />
+
                 {/* Header with AI Title or Processing State */}
                 <div className="bg-gradient-to-r from-purple-500 to-purple-600 px-4 py-3 flex items-center justify-between text-white">
                   <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -864,6 +866,7 @@ export default function AudioPlayerNode({
                       </div>
                     )}
                   </div>
+
                   <div className="flex items-center gap-2">
                     {canConnect && (
                       <Tooltip>
@@ -877,6 +880,7 @@ export default function AudioPlayerNode({
                         </TooltipContent>
                       </Tooltip>
                     )}
+
                     {!canConnect &&
                       !processingState.isProcessing &&
                       uploadedAudio && (
@@ -891,6 +895,7 @@ export default function AudioPlayerNode({
                           </TooltipContent>
                         </Tooltip>
                       )}
+
                     <Button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -903,6 +908,7 @@ export default function AudioPlayerNode({
                     >
                       <X className="w-4 h-4" />
                     </Button>
+
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
@@ -940,6 +946,7 @@ export default function AudioPlayerNode({
                     </DropdownMenu>
                   </div>
                 </div>
+
                 {/* Processing Overlay */}
                 {processingState.isProcessing && (
                   <div className="bg-purple-50 p-4 flex items-center justify-center">
@@ -951,6 +958,7 @@ export default function AudioPlayerNode({
                     </div>
                   </div>
                 )}
+
                 {/* Player Controls - Different UI for Recorded vs Uploaded */}
                 <div className="p-4">
                   {fileName.includes("recording") ? (
@@ -994,6 +1002,7 @@ export default function AudioPlayerNode({
                             </div>
                           </div>
                         </div>
+
                         {/* Cool Waveform-style Animation */}
                         <div className="flex items-center justify-center gap-1 h-12 bg-white/50 rounded-lg p-2">
                           {Array.from({ length: 40 }, (_, i) => (
@@ -1018,6 +1027,7 @@ export default function AudioPlayerNode({
                             />
                           ))}
                         </div>
+
                         {/* Recording Info */}
                         <div className="flex items-center justify-between mt-3 text-xs text-purple-600">
                           <span>🎙️ Recorded Audio</span>
@@ -1084,6 +1094,7 @@ export default function AudioPlayerNode({
                       </Button>
                     </div>
                   )}
+
                   {/* Error State */}
                   {processingState.error && (
                     <div className="mb-4">
@@ -1105,62 +1116,39 @@ export default function AudioPlayerNode({
                       </div>
                     </div>
                   )}
+
                   {/* Notes Input */}
-                  <div className="flex items-center gap-2">
-                    <div className="relative flex-1 flex items-center gap-2">
-                      <Input
-                        placeholder="Add notes for AI to use..."
-                        value={userNotes}
-                        onChange={handleNotesChange}
-                        className="pr-8 border-gray-200 focus:border-purple-500 focus:ring-purple-500"
-                        disabled={processingState.isProcessing}
-                      />
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="absolute right-4 top-1/2 -translate-y-1/2 h-6 w-6 text-gray-400 hover:text-gray-600"
-                          >
-                            <HelpCircle className="w-4 h-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p className="text-sm">
-                            Add notes that will be used by AI to provide better
-                            context and insights
-                          </p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </div>
-                    <Button
-                      size="sm"
-                      type="button"
-                      disabled={
-                        processingState.isProcessing ||
-                        isAnalyzing ||
-                        !userNotes
-                      }
-                      onClick={() => {
-                        analyzeAudioContent({
-                          data: { ai_notes: userNotes },
-                          strategyId: strategyId,
-                          peerId: data?.id,
-                        });
-                      }}
-                      className="bg-purple-500 hover:bg-purple-600 text-white rounded-full w-8 h-8 p-0 disabled:opacity-50"
-                    >
-                      {isAnalyzing ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <ArrowRight className="w-4 h-4" />
-                      )}
-                    </Button>
+                  <div className="relative">
+                    <Input
+                      placeholder="Add notes for AI to use..."
+                      value={userNotes}
+                      onChange={handleNotesChange}
+                      className="pr-8 border-gray-200 focus:border-purple-500 focus:ring-purple-500"
+                      disabled={processingState.isProcessing}
+                    />
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 text-gray-400 hover:text-gray-600"
+                        >
+                          <HelpCircle className="w-4 h-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="text-sm">
+                          Add notes that will be used by AI to provide better
+                          context and insights
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
                   </div>
                 </div>
               </div>
             )}
           </div>
+
           <Handle
             position={sourcePosition}
             type="source"

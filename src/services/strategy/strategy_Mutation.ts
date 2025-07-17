@@ -154,11 +154,15 @@ export const uploadAudioContent = async ({
 }: {
   strategyId: string;
   peerId: string;
-  data: any;
+  data: {
+    file: any;
+    title: string;
+  };
 }) => {
   const res = await axiosInstance.post(
     endpoints.STRATEGY.UPLOAD_AUDIO_CONTENT({ strategyId, peerId }),
-    data
+    data,
+    { headers: { "Content-Type": "multipart/form-data" } }
   );
   return res.data;
 };
@@ -398,6 +402,28 @@ export const analyzeDocumentPeer = async ({
       peerId,
       id: strategyId,
       peerType: "document",
+    }),
+    data
+  );
+  return res.data;
+};
+
+export const analyzeAudioPeer = async ({
+  strategyId,
+  peerId,
+  data,
+}: {
+  strategyId: string;
+  peerId: string;
+  data: {
+    ai_notes?: string;
+  };
+}) => {
+  const res = await axiosInstance.post(
+    endpoints.STRATEGY.ANALYZE_PEER({
+      peerId,
+      id: strategyId,
+      peerType: "audio",
     }),
     data
   );
