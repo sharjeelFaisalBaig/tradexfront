@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, type ChangeEvent, use } from "react";
+import { useState, useRef, useEffect, type ChangeEvent } from "react";
 import { useAnalyzeSocialPeer } from "@/hooks/strategy/useStrategyMutations";
 import { Handle, Position, useReactFlow } from "@xyflow/react";
 import {
@@ -21,7 +21,12 @@ import {
   Play,
   ExternalLink,
 } from "lucide-react";
-import { cn, extractVideoInfoFromUrl } from "@/lib/utils";
+import {
+  cn,
+  extractSocialVideoDetails,
+  validateSocialMediaUrl,
+  SUPPORTED_PLATFORMS,
+} from "@/lib/utils"; // Import updated helpers
 import NodeWrapper from "./common/NodeWrapper";
 import { useParams } from "next/navigation";
 import { useGetPeerAnalysisStatus } from "@/hooks/strategy/useGetPeerAnalysisStatus";
@@ -58,75 +63,8 @@ interface ProcessingState {
   error: string | null;
 }
 
-export interface SocialMediaData {
-  url: string;
-  platform: string;
-  videoId: string;
-  thumbnail: string;
-  title: string;
-  author?: string;
-  duration?: string;
-}
-
-interface URLValidationResult {
-  isValid: boolean;
-  platform?: string;
-  error?: string;
-  warning?: string;
-}
-
-// Supported platforms with their URL patterns and branding
-const SUPPORTED_PLATFORMS = {
-  instagram: {
-    name: "Instagram",
-    icon: "📷",
-    // icon: "src/icons/instagram.svg",
-    color: "from-purple-500 to-pink-500",
-    textColor: "text-purple-600",
-    patterns: [
-      /^https?:\/\/(www\.)?instagram\.com\/(p|reel|tv)\/[a-zA-Z0-9_-]+/,
-      /^https?:\/\/(www\.)?instagram\.com\/stories\/[a-zA-Z0-9_.]+\/[0-9]+/,
-      /^https?:\/\/(www\.)?instagram\.com\/s\/[a-zA-Z0-9_-]+/,
-    ],
-  },
-  youtube: {
-    name: "YouTube",
-    icon: "🎥",
-    // icon: "src/icons/youtube.svg",
-    color: "from-red-500 to-red-600",
-    textColor: "text-red-600",
-    patterns: [
-      /^https?:\/\/(www\.)?youtube\.com\/watch\?v=[a-zA-Z0-9_-]{11}/,
-      /^https?:\/\/(www\.)?youtu\.be\/[a-zA-Z0-9_-]{11}/,
-      /^https?:\/\/(www\.)?youtube\.com\/shorts\/[a-zA-Z0-9_-]{11}/,
-    ],
-  },
-  tiktok: {
-    name: "TikTok",
-    icon: "🎵",
-    // icon: "src/icons/tiktok.svg",
-    color: "from-black to-gray-800",
-    textColor: "text-gray-800",
-    patterns: [
-      /^https?:\/\/(www\.)?tiktok\.com\/@[a-zA-Z0-9_.]+\/video\/[0-9]+/,
-      /^https?:\/\/(vm\.)?tiktok\.com\/[a-zA-Z0-9]+/,
-      /^https?:\/\/(www\.)?tiktok\.com\/[a-zA-Z0-9_.]+\/video\/[0-9]+/,
-    ],
-  },
-  facebook: {
-    name: "Facebook",
-    icon: "📘",
-    // icon: "src/icons/facebook.svg",
-    color: "from-blue-600 to-blue-700",
-    textColor: "text-blue-600",
-    patterns: [
-      /^https?:\/\/(www\.)?facebook\.com\/watch\/?v=[0-9]+/,
-      /^https?:\/\/(www\.)?facebook\.com\/[a-zA-Z0-9.]+\/videos\/[0-9]+/,
-      /^https?:\/\/(www\.)?fb\.watch\/[a-zA-Z0-9_-]+/,
-      /^https?:\/\/(www\.)?facebook\.com\/share\/r\/[a-zA-Z0-9_-]+\/?$/,
-    ],
-  },
-};
+// Re-import SocialMediaData and URLValidationResult types if they are exported from utils.ts
+import type { SocialMediaData, URLValidationResult } from "@/lib/utils";
 
 export default function SocialMediaNode({
   id,
@@ -135,9 +73,7 @@ export default function SocialMediaNode({
   data,
 }: any) {
   console.log("SocialMediaNode data:", { data });
-
   const strategyId = useParams()?.slug as string;
-
   const nodeControlRef = useRef(null);
   const { setEdges } = useReactFlow();
 
@@ -146,7 +82,6 @@ export default function SocialMediaNode({
   const [urlValidation, setUrlValidation] = useState<URLValidationResult>({
     isValid: false,
   });
-
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   // Video data states
@@ -169,16 +104,18 @@ export default function SocialMediaNode({
   // Sync state with incoming data props (like VideoUploadNode)
   useEffect(() => {
     if (data && data.video) {
-      // Validate and extract platform
       const validation = validateSocialMediaUrl(data.video);
       setSocialUrl(data.video);
       setUrlValidation(validation);
-      // Extract video data for preview
-      if (validation.isValid && validation.platform) {
-        setSocialMediaData(extractVideoData(data.video, validation.platform));
+
+      if (validation.isValid) {
+        // Use the new helper to extract details including initial thumbnail
+        const extractedData = extractSocialVideoDetails(data.video);
+        setSocialMediaData(extractedData);
       } else {
         setSocialMediaData(null);
       }
+
       // Set AI response if present
       if (data.ai_title || data.ai_summary) {
         setAiResponse({
@@ -197,8 +134,10 @@ export default function SocialMediaNode({
       } else {
         setAiResponse(null);
       }
+
       // Set user notes if present
       setUserNotes(data.ai_notes || "");
+
       // If video is present and ready, mark processing as complete (for connectability)
       if (data.is_ready_to_interact) {
         setProcessingState((prev) => ({
@@ -227,196 +166,36 @@ export default function SocialMediaNode({
     }
   }, [data]);
 
-  // URL validation function
-  const validateSocialMediaUrl = (url: string): URLValidationResult => {
-    if (!url.trim()) {
-      return { isValid: false, error: "Please enter a URL" };
+  // TikTok oEmbed thumbnail fetcher (remains in component as it's async and updates state)
+  // [^2][^3]
+  useEffect(() => {
+    if (
+      socialMediaData &&
+      socialMediaData.platform === "tiktok" &&
+      socialMediaData.url &&
+      socialMediaData.thumbnail.includes("TikTok+Video") // Check if thumbnail is still the generic one
+    ) {
+      fetch(
+        `https://www.tiktok.com/oembed?url=${encodeURIComponent(
+          socialMediaData.url
+        )}`
+      )
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.thumbnail_url) {
+            setSocialMediaData((prev) =>
+              prev ? { ...prev, thumbnail: data.thumbnail_url } : prev
+            );
+          }
+        })
+        .catch((error) => {
+          console.error("Failed to fetch TikTok oEmbed thumbnail:", error);
+          // fallback: do nothing, keep placeholder
+        });
     }
+  }, [socialMediaData]);
 
-    // Check if it's a valid URL format
-    try {
-      new URL(url);
-    } catch {
-      return { isValid: false, error: "Please enter a valid URL" };
-    }
-
-    // Check against supported platforms
-    for (const [platform, config] of Object.entries(SUPPORTED_PLATFORMS)) {
-      if (config.patterns.some((pattern) => pattern.test(url))) {
-        return { isValid: true, platform };
-      }
-    }
-
-    return {
-      isValid: false,
-      error:
-        "Unsupported platform. Please use Instagram, YouTube, TikTok, or Facebook video URLs.",
-    };
-  };
-
-  // Extract real video data for YouTube, fallback for others
-  const extractVideoData = (url: string, platform: string): SocialMediaData => {
-    const platformConfig =
-      SUPPORTED_PLATFORMS[platform as keyof typeof SUPPORTED_PLATFORMS];
-    let videoId = "";
-    let thumbnail = "https://placehold.co/640x360?text=No+Preview";
-    if (platform === "youtube") {
-      // Robustly extract videoId from all common YouTube URL formats
-      try {
-        const parsedUrl = new URL(url);
-        if (parsedUrl.searchParams.get("v")) {
-          videoId = parsedUrl.searchParams.get("v")!;
-        } else if (parsedUrl.hostname.includes("youtu.be")) {
-          videoId = parsedUrl.pathname.split("/")[1];
-        } else if (parsedUrl.pathname.startsWith("/shorts/")) {
-          videoId = parsedUrl.pathname.split("/")[2];
-        } else if (parsedUrl.pathname.startsWith("/embed/")) {
-          videoId = parsedUrl.pathname.split("/")[2];
-        } else {
-          const match =
-            url.match(/[?&]v=([a-zA-Z0-9_-]{11})/) ||
-            url.match(/([a-zA-Z0-9_-]{11})/);
-          if (match) videoId = match[1];
-        }
-        if (videoId && videoId.includes("?")) {
-          videoId = videoId.split("?")[0];
-        }
-      } catch {
-        const match =
-          url.match(/[?&]v=([a-zA-Z0-9_-]{11})/) ||
-          url.match(/([a-zA-Z0-9_-]{11})/);
-        if (match) videoId = match[1];
-      }
-      if (videoId) {
-        // Try maxresdefault, fallback to hqdefault
-        thumbnail = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
-      }
-      return {
-        url,
-        platform,
-        videoId,
-        thumbnail,
-        title: `YouTube Video (${videoId})`,
-        author: "",
-        duration: "",
-      };
-    }
-    if (platform === "facebook") {
-      // Try to extract videoId from various Facebook video/reel URLs
-      // 1. Reel: https://www.facebook.com/reel/VIDEOID
-      // 2. Watch: https://www.facebook.com/watch/?v=VIDEOID
-      // 3. Videos: https://www.facebook.com/{user}/videos/VIDEOID
-      try {
-        const parsedUrl = new URL(url);
-        if (parsedUrl.pathname.startsWith("/reel/")) {
-          videoId = parsedUrl.pathname.split("/")[2];
-        } else if (parsedUrl.pathname.startsWith("/watch")) {
-          videoId = parsedUrl.searchParams.get("v") || "";
-        } else if (parsedUrl.pathname.includes("/videos/")) {
-          videoId =
-            parsedUrl.pathname.split("/videos/")[1]?.split("/")[0] || "";
-        }
-      } catch {}
-      // Facebook Graph API thumbnail (public videos only, reels may not work)
-      if (videoId) {
-        thumbnail = `https://graph.facebook.com/${videoId}/picture`;
-      }
-      return {
-        url,
-        platform,
-        videoId,
-        thumbnail,
-        title: `Facebook Video (${videoId})`,
-        author: "",
-        duration: "",
-      };
-    }
-    if (platform === "instagram") {
-      // Try to extract shortcode from Instagram URL
-      // 1. Post/Reel/TV: https://www.instagram.com/p/SHORTCODE, /reel/SHORTCODE, /tv/SHORTCODE
-      let shortcode = "";
-      try {
-        const parsedUrl = new URL(url);
-        const parts = parsedUrl.pathname.split("/").filter(Boolean);
-        if (["p", "reel", "tv"].includes(parts[0]) && parts[1]) {
-          shortcode = parts[1];
-        }
-      } catch {}
-      // Instagram does not provide a public thumbnail endpoint, use placeholder
-      thumbnail = "https://placehold.co/640x360?text=Instagram+Preview";
-      return {
-        url,
-        platform,
-        videoId: shortcode,
-        thumbnail,
-        title: `Instagram Video (${shortcode})`,
-        author: "",
-        duration: "",
-      };
-    }
-    if (platform === "tiktok") {
-      // Try to extract videoId from TikTok URL
-      // 1. https://www.tiktok.com/@user/video/VIDEOID
-      // 2. https://vm.tiktok.com/xxxx
-      try {
-        const parsedUrl = new URL(url);
-        if (parsedUrl.hostname.includes("tiktok.com")) {
-          const match = url.match(/video\/(\d+)/);
-          if (match) videoId = match[1];
-        }
-      } catch {}
-      // Set placeholder, will fetch real thumbnail in useEffect
-      thumbnail = "https://placehold.co/640x360?text=TikTok+Preview";
-      return {
-        url,
-        platform,
-        videoId,
-        thumbnail,
-        title: `TikTok Video (${videoId})`,
-        author: "",
-        duration: "",
-      };
-    }
-    // TikTok oEmbed thumbnail fetcher
-    useEffect(() => {
-      if (
-        socialMediaData &&
-        socialMediaData.platform === "tiktok" &&
-        socialMediaData.url &&
-        socialMediaData.thumbnail &&
-        socialMediaData.thumbnail.includes("TikTok+Preview")
-      ) {
-        fetch(
-          `https://www.tiktok.com/oembed?url=${encodeURIComponent(
-            socialMediaData.url
-          )}`
-        )
-          .then((res) => res.json())
-          .then((data) => {
-            if (data.thumbnail_url) {
-              setSocialMediaData((prev) =>
-                prev ? { ...prev, thumbnail: data.thumbnail_url } : prev
-              );
-            }
-          })
-          .catch(() => {
-            // fallback: do nothing, keep placeholder
-          });
-      }
-    }, [socialMediaData?.platform, socialMediaData?.url]);
-    // Fallback for unsupported or unknown platforms
-    return {
-      url,
-      platform,
-      videoId: "",
-      thumbnail,
-      title: `${platformConfig.name} Video`,
-      author: "",
-      duration: "",
-    };
-  };
-
-  // Mock AI processing function
+  // Mock AI processing function (assuming this is for internal dev/testing)
   const processVideoContent = (
     videoData: SocialMediaData
   ): AIProcessingResponse => {
@@ -424,7 +203,6 @@ export default function SocialMediaNode({
       SUPPORTED_PLATFORMS[
         videoData.platform as keyof typeof SUPPORTED_PLATFORMS
       ];
-
     return {
       title: videoData.title,
       peerId: `peer_${Math.random().toString(36).substr(2, 12)}`,
@@ -512,7 +290,7 @@ export default function SocialMediaNode({
     setUrlValidation(validateSocialMediaUrl(url));
   };
 
-  // Handle URL input change
+  // Handle URL input change [^1]
   const handleUrlChange = (e: ChangeEvent<HTMLInputElement>) => {
     const url = e.target.value;
     setSocialUrl(url);
@@ -525,11 +303,18 @@ export default function SocialMediaNode({
     setIsLoading(true);
     setProcessingState({ isProcessing: true, isComplete: false, error: null });
     setAiResponse(null);
-    setSocialMediaData(null);
+    setSocialMediaData(null); // Reset socialMediaData before processing
+
     resetAnalyze();
+
     try {
-      const videoData = extractVideoData(socialUrl, urlValidation.platform);
-      setSocialMediaData(videoData);
+      const videoData = extractSocialVideoDetails(socialUrl); // Use the new helper
+      if (videoData) {
+        setSocialMediaData(videoData);
+      } else {
+        throw new Error("Could not extract video details.");
+      }
+
       // Initial analyze request (no polling, just one request)
       analyzeSocialPeer({
         strategyId,
@@ -539,11 +324,11 @@ export default function SocialMediaNode({
           ai_notes: userNotes,
         },
       });
-    } catch (error) {
+    } catch (error: any) {
       setProcessingState({
         isProcessing: false,
         isComplete: false,
-        error: "Failed to process URL. Please try again.",
+        error: error.message || "Failed to process URL. Please try again.",
       });
     } finally {
       setIsLoading(false);
@@ -613,15 +398,6 @@ export default function SocialMediaNode({
     }
   }, [status]);
 
-  useEffect(() => {
-    if (data?.video) {
-      const extracted = extractVideoInfoFromUrl(data.video);
-      if (extracted) {
-        setSocialMediaData(extracted);
-      }
-    }
-  }, [data]);
-
   // Memoize current platform config
   const currentPlatform = socialMediaData
     ? SUPPORTED_PLATFORMS[
@@ -650,7 +426,7 @@ export default function SocialMediaNode({
                 <div className="absolute inset-0 z-50 bg-white bg-opacity-80 flex flex-col items-center justify-center">
                   <Loader2 className="w-10 h-10 animate-spin text-purple-600 mb-2" />
                   <span className="text-base font-medium text-gray-700">
-                    Checking analysis status...
+                    {"Checking analysis status..."}
                   </span>
                 </div>
               )}
@@ -668,13 +444,14 @@ export default function SocialMediaNode({
                       )}
                     </div>
                     <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                      Add Social Media Video
+                      {"Add Social Media Video"}
                     </h3>
                     <p className="text-sm text-gray-600">
-                      Enter a URL from Instagram, YouTube, TikTok, or Facebook
+                      {
+                        "Enter a URL from Instagram, YouTube, TikTok, or Facebook"
+                      }
                     </p>
                   </div>
-
                   <div className="space-y-4">
                     <div className="relative">
                       <Input
@@ -737,25 +514,23 @@ export default function SocialMediaNode({
                         </TooltipTrigger>
                         <TooltipContent>
                           <p className="text-sm">
-                            Add notes that will be used by AI to provide better
-                            context and insights
+                            {
+                              "Add notes that will be used by AI to provide better context and insights"
+                            }
                           </p>
                         </TooltipContent>
                       </Tooltip>
                     </div>
-
                     {urlValidation.error && (
                       <div className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">
                         {urlValidation.error}
                       </div>
                     )}
-
                     {urlValidation.warning && (
                       <div className="text-sm text-yellow-600 bg-yellow-50 p-3 rounded-lg">
                         {urlValidation.warning}
                       </div>
                     )}
-
                     <Button
                       onClick={handleProcessUrl}
                       disabled={!urlValidation.isValid || isLoading}
@@ -764,17 +539,16 @@ export default function SocialMediaNode({
                       {isLoading || isAnalyzing ? (
                         <>
                           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Processing URL...
+                          {"Processing URL..."}
                         </>
                       ) : (
                         <>
                           <ArrowRight className="w-4 h-4 mr-2" />
-                          Process Video
+                          {"Process Video"}
                         </>
                       )}
                     </Button>
                   </div>
-
                   <div className="text-xs text-gray-500 space-y-1">
                     <div className="font-medium">Supported platforms:</div>
                     <div className="grid grid-cols-2 gap-2">
@@ -806,14 +580,14 @@ export default function SocialMediaNode({
                         <div className="flex items-center gap-2">
                           <Loader2 className="w-4 h-4 animate-spin" />
                           <span className="text-sm font-medium">
-                            AI is analyzing your video...
+                            {"AI is analyzing your video..."}
                           </span>
                         </div>
                       ) : processingState.error ? (
                         <div className="flex items-center gap-2">
                           <X className="w-4 h-4 text-red-500" />
                           <span className="text-sm font-medium text-red-700">
-                            Processing failed
+                            {"Processing failed"}
                           </span>
                         </div>
                       ) : aiResponse ? (
@@ -836,7 +610,6 @@ export default function SocialMediaNode({
                         </div>
                       )}
                     </div>
-
                     <div className="flex items-center gap-2">
                       {canConnect && (
                         <Tooltip>
@@ -845,12 +618,11 @@ export default function SocialMediaNode({
                           </TooltipTrigger>
                           <TooltipContent>
                             <p className="text-sm">
-                              Ready to connect to other nodes
+                              {"Ready to connect to other nodes"}
                             </p>
                           </TooltipContent>
                         </Tooltip>
                       )}
-
                       {!canConnect &&
                         !processingState.isProcessing &&
                         socialMediaData && (
@@ -860,19 +632,18 @@ export default function SocialMediaNode({
                             </TooltipTrigger>
                             <TooltipContent>
                               <p className="text-sm">
-                                Complete analysis to enable connections
+                                {"Complete analysis to enable connections"}
                               </p>
                             </TooltipContent>
                           </Tooltip>
                         )}
                     </div>
                   </div>
-
                   {/* Video Preview */}
                   <div className="px-4">
                     <div className="relative bg-gray-900 rounded-lg overflow-hidden aspect-video">
                       <img
-                        src={socialMediaData.thumbnail}
+                        src={socialMediaData.thumbnail || "/placeholder.svg"}
                         alt="Video thumbnail"
                         className="w-full h-full object-cover"
                         onError={(e) => {
@@ -887,7 +658,6 @@ export default function SocialMediaNode({
                               : "linear-gradient(135deg, #6366f1, #8b5cf6)";
                         }}
                       />
-
                       {/* Play overlay */}
                       <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center">
                         <Button
@@ -904,13 +674,12 @@ export default function SocialMediaNode({
                           <div className="bg-white p-4 rounded-lg shadow-lg flex flex-col items-center">
                             <Loader2 className="w-8 h-8 animate-spin text-purple-600 mb-2" />
                             <span className="text-sm font-medium text-gray-700">
-                              Processing...
+                              {"Processing..."}
                             </span>
                           </div>
                         </div>
                       )}
                     </div>
-
                     {/* Video metadata */}
                     <div className="mt-4 space-y-3">
                       {/* Action buttons */}
@@ -921,19 +690,19 @@ export default function SocialMediaNode({
                               onClick={handleOpenOriginal}
                               size="sm"
                               variant="outline"
-                              className="flex-1"
+                              className="flex-1 bg-transparent"
                             >
                               <ExternalLink className="w-4 h-4 mr-2" />
-                              Open Original
+                              {"Open Original"}
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent>
                             <p className="text-sm">
-                              View on {currentPlatform?.name}
+                              {"View on "}
+                              {currentPlatform?.name}
                             </p>
                           </TooltipContent>
                         </Tooltip>
-
                         <Button
                           onClick={handleReset}
                           size="sm"
@@ -946,13 +715,12 @@ export default function SocialMediaNode({
                       </div>
                     </div>
                   </div>
-
                   {/* Error State */}
                   {processingState.error && (
                     <div className="px-4">
                       <div className="bg-red-50 p-3 rounded-lg">
                         <div className="text-xs text-red-600 font-medium mb-1">
-                          Processing Error
+                          {"Processing Error"}
                         </div>
                         <div className="text-sm text-red-700 mb-2">
                           {processingState.error}
@@ -963,7 +731,7 @@ export default function SocialMediaNode({
                           variant="outline"
                           className="text-red-600 border-red-200 hover:bg-red-50 bg-transparent"
                         >
-                          Retry Processing
+                          {"Retry Processing"}
                         </Button>
                       </div>
                     </div>
@@ -972,7 +740,6 @@ export default function SocialMediaNode({
               )}
             </div>
           </TooltipProvider>
-
           <Handle
             position={sourcePosition}
             type="source"

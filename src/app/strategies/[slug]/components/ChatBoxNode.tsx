@@ -1002,17 +1002,18 @@ export default function ChatBoxNode({
                         className={`flex items-start gap-3 mb-4 text-left ${
                           msg.isOptimistic ? "opacity-70" : ""
                         }`}
+                        style={{ justifySelf: "end" }}
                       >
-                        <div className="w-7 h-7 bg-green-500 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
-                          U
-                        </div>
                         <div className="flex-1 min-w-0">
-                          <div className="text-sm font-semibold text-green-600 mb-1">
+                          <div className="text-right text-sm font-semibold text-green-600 mb-1">
                             You
                           </div>
                           <div className="text-gray-800 text-sm whitespace-pre-wrap break-words">
                             {msg.content}
                           </div>
+                        </div>
+                        <div className="w-7 h-7 bg-green-500 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                          U
                         </div>
                       </div>
                     ) : (
