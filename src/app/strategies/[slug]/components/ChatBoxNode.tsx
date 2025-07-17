@@ -70,6 +70,7 @@ interface PredefinedPrompt {
 interface Message {
   id: string;
   content: string;
+  name: string;
   sender: "user" | "ai";
   timestamp: Date;
   isOptimistic?: boolean;
@@ -265,6 +266,7 @@ export default function ChatBoxNode({
             id: `${chat.id}_user`,
             content: chat.prompt,
             sender: "user" as const,
+            name: "You",
             timestamp: parseTimestamp(chat.created_at),
             isOptimistic: false,
           },
@@ -272,6 +274,7 @@ export default function ChatBoxNode({
             id: `${chat.id}_ai`,
             content: chat.response,
             sender: "ai" as const,
+            name: chat?.ai_model,
             timestamp: parseTimestamp(chat.updated_at),
             isOptimistic: false,
           },
@@ -393,6 +396,7 @@ export default function ChatBoxNode({
       id: optimisticUserId,
       content: userMessageText,
       sender: "user",
+      name: "You",
       timestamp,
       isOptimistic: true,
     };
@@ -424,6 +428,7 @@ export default function ChatBoxNode({
             content: userMessageText,
             sender: "user",
             timestamp,
+            name: "You",
             isOptimistic: false,
           },
           {
@@ -431,6 +436,7 @@ export default function ChatBoxNode({
             content: aiMessageContent,
             sender: "ai",
             timestamp: new Date(),
+            name: response.ai_model,
             isOptimistic: false,
           },
         ];
@@ -1006,7 +1012,7 @@ export default function ChatBoxNode({
                       >
                         <div className="flex-1 min-w-0">
                           <div className="text-right text-sm font-semibold text-green-600 mb-1">
-                            You
+                            {msg.name}
                           </div>
                           <div className="text-gray-800 text-sm whitespace-pre-wrap break-words">
                             {msg.content}
@@ -1028,7 +1034,7 @@ export default function ChatBoxNode({
                         </div>
                         <div className="flex-1 text-left min-w-0">
                           <div className="text-sm font-semibold text-blue-600 mb-2">
-                            AI
+                            {msg.name}
                           </div>
                           <div className="ai-message-content text-gray-700 text-sm leading-relaxed prose prose-sm max-w-none">
                             <ReactMarkdown>{msg.content}</ReactMarkdown>
