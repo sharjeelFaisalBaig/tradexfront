@@ -1,5 +1,4 @@
 "use client";
-
 import {
   useState,
   useRef,
@@ -133,7 +132,6 @@ export default function DocumentUploadNode({
   data,
 }: any) {
   console.log("DocumentUploadNode data:", data);
-
   const strategyId = useParams()?.slug as string;
   const { mutate: uploadDocContent } = useUploadDocumentContent();
   const {
@@ -158,7 +156,7 @@ export default function DocumentUploadNode({
   const { setEdges } = useReactFlow();
 
   // Document states
-  const [uploadedDocument, setUploadedDocument] = useState<string | null>(null);
+  const [uploadedDocument, setUploadedDocument] = useState<string | null>(null); // Stores base64 or URL
   const [documentInfo, setDocumentInfo] = useState<DocumentInfo | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
 
@@ -181,7 +179,6 @@ export default function DocumentUploadNode({
       peerId: data?.id,
       strategyId,
       peerType: "docs",
-      // peerType: "document",
       enabled: isAnalyzeSuccess,
     }
   );
@@ -211,7 +208,7 @@ export default function DocumentUploadNode({
 
       setDocumentInfo({
         name: data.title || "Document",
-        size: 0, // Size unknown
+        size: 0, // Size unknown when loaded from URL
         type,
         lastModified: Date.now(),
       });
@@ -246,13 +243,12 @@ export default function DocumentUploadNode({
     }
   }, [data]);
 
-  // Mock AI processing function
+  // Mock AI processing function (not used in actual upload flow, but kept for context)
   const processDocument = (docInfo: DocumentInfo): AIProcessingResponse => {
     const documentType =
       SUPPORTED_DOCUMENT_TYPES[
         docInfo.type as keyof typeof SUPPORTED_DOCUMENT_TYPES
       ]?.label || "Unknown Document";
-
     return {
       title: docInfo.name.replace(/\.[^/.]+$/, ""), // Remove file extension
       peerId: `peer_${Math.random().toString(36).substr(2, 12)}`,
@@ -285,12 +281,11 @@ export default function DocumentUploadNode({
 
   // API Integration Function
   const processDocumentWithAI = async (
-    documentData: string,
+    documentData: string, // This will be a base64 string
     docInfo: DocumentInfo
   ) => {
     setUploadState({ isUploading: true, isSuccess: false, error: null });
     try {
-      // Prepare upload
       const formData: any = new FormData();
       // Convert base64 to Blob for upload
       if (documentData && docInfo) {
@@ -298,12 +293,11 @@ export default function DocumentUploadNode({
         const mimeMatch = arr[0].match(/:(.*?);/);
         const mime = mimeMatch ? mimeMatch[1] : "application/octet-stream";
         const bstr = atob(arr[1]);
-        let n = bstr.length;
+        const n = bstr.length;
         const u8arr = new Uint8Array(n);
         for (let i = 0; i < n; i++) {
           u8arr[i] = bstr.charCodeAt(i);
         }
-        // File constructor: new File(bits: BlobPart[], name: string, options?: FilePropertyBag)
         const file = new window.File([u8arr], docInfo.name, { type: mime });
         formData.append("file", file);
         formData.append("title", docInfo.name.replace(/\.[^/.]+$/, ""));
@@ -324,6 +318,9 @@ export default function DocumentUploadNode({
                 isSuccess: true,
                 error: null,
               });
+              // If the backend returns the URL, update uploadedDocument here.
+              // For now, we assume data.document_peer_media will be updated
+              // by the parent component or a global state after successful upload.
             },
             onError: (error: any) => {
               setUploadState({
@@ -362,7 +359,9 @@ export default function DocumentUploadNode({
     const k = 1024;
     const sizes = ["Bytes", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+    return (
+      Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i]
+    );
   };
 
   const getDocumentIcon = (type: string) => {
@@ -391,14 +390,13 @@ export default function DocumentUploadNode({
     if (file && isDocumentSupported(file.type)) {
       const reader = new FileReader();
       reader.onload = (e) => {
-        const documentData = e.target?.result as string;
+        const documentData = e.target?.result as string; // This will be a data URL (e.g., data:application/pdf;base64,...)
         const docInfo: DocumentInfo = {
           name: file.name,
           size: file.size,
           type: file.type,
           lastModified: file.lastModified,
         };
-
         setUploadedDocument(documentData);
         setDocumentInfo(docInfo);
         // Auto-process uploaded documents
@@ -480,51 +478,127 @@ export default function DocumentUploadNode({
 
   const handleReprocess = () => {
     if (uploadedDocument && documentInfo) {
-      processDocumentWithAI(uploadedDocument, documentInfo);
+      if (uploadedDocument.startsWith("data:")) {
+        // If it's a base64 string, it means the initial upload failed or needs retry
+        processDocumentWithAI(uploadedDocument, documentInfo);
+      } else {
+        // If it's a URL, it means the document is already uploaded, but analysis might have failed.
+        // Trigger re-analysis if possible, or just reset state to allow user to trigger via notes.
+        setProcessingState({
+          isProcessing: true,
+          isComplete: false,
+          error: null,
+        });
+        analyzeVideoContent(
+          {
+            data: { ai_notes: userNotes }, // Use existing notes or empty
+            strategyId: strategyId,
+            peerId: data?.id,
+          },
+          {
+            onSuccess: () => {
+              setProcessingState({
+                isProcessing: false,
+                isComplete: true,
+                error: null,
+              });
+              toast({
+                title: "Analysis Retried",
+                description: "Document analysis re-triggered successfully.",
+              });
+            },
+            onError: (error: any) => {
+              setProcessingState({
+                isProcessing: false,
+                isComplete: false,
+                error: error?.message || "Failed to re-analyze document.",
+              });
+              toast({
+                title: error?.message || "Error",
+                description:
+                  error?.response?.data?.message ||
+                  "Failed to re-analyze document.",
+                variant: "destructive",
+              });
+            },
+          }
+        );
+      }
     }
+    // Reset upload state regardless, as reprocess is for processing/upload errors
     setUploadState({ isUploading: false, isSuccess: false, error: null });
   };
 
   const handlePreview = () => {
-    if (uploadedDocument) {
-      // If uploadedDocument is a URL (from backend), open directly
-      if (uploadedDocument.startsWith("/storage/")) {
-        window.open(uploadedDocument, "_blank");
-      } else {
-        // Otherwise, treat as base64
-        const byteCharacters = atob(uploadedDocument.split(",")[1]);
-        const byteNumbers = new Array(byteCharacters.length);
-        for (let i = 0; i < byteCharacters.length; i++) {
-          byteNumbers[i] = byteCharacters.charCodeAt(i);
+    if (uploadedDocument && documentInfo) {
+      if (uploadedDocument.startsWith("data:")) {
+        // For base64 data URLs, create a Blob and then an object URL for reliable preview
+        const parts = uploadedDocument.split(",");
+        const mimeMatch = parts[0].match(/:(.*?);/);
+        const mime = mimeMatch
+          ? mimeMatch[1]
+          : documentInfo.type || "application/octet-stream";
+        const bstr = atob(parts[1]);
+        let n = bstr.length;
+        const u8arr = new Uint8Array(n);
+        while (n--) {
+          u8arr[n] = bstr.charCodeAt(n);
         }
-        const byteArray = new Uint8Array(byteNumbers);
-        const blob = new Blob([byteArray], {
-          type: documentInfo?.type || "application/octet-stream",
-        });
+        const blob = new Blob([u8arr], { type: mime });
         const url = URL.createObjectURL(blob);
         window.open(url, "_blank");
+        // Note: object URLs created with createObjectURL should be revoked when no longer needed
+        // However, for a new window/tab, the browser manages its lifecycle.
+      } else if (uploadedDocument.startsWith("/storage")) {
+        let baseUrl = process.env.NEXT_PUBLIC_API_URL!;
+        // Ensure /api is removed if present
+        if (baseUrl.endsWith("/api")) {
+          baseUrl = baseUrl.replace(/\/api$/, "");
+        }
+
+        // Now safely append the path
+        const docUrl = `${baseUrl}${uploadedDocument}`;
+        window.open(docUrl, "_blank");
+      } else {
+        window.open(uploadedDocument, "_blank");
       }
     }
   };
 
-  const handleDownload = () => {
-    if (uploadedDocument && documentInfo) {
-      const link = document.createElement("a");
-      // If uploadedDocument is a URL, use it directly
-      if (uploadedDocument.startsWith("/storage/")) {
-        link.href = uploadedDocument;
-      } else {
-        link.href = uploadedDocument;
+  const handleDownload = async () => {
+    if (!uploadedDocument || !documentInfo) return;
+
+    let fileUrl = uploadedDocument;
+
+    // For /storage URLs, prepend base API URL
+    if (uploadedDocument.startsWith("/storage")) {
+      let baseUrl = process.env.NEXT_PUBLIC_API_URL || "";
+      if (baseUrl.endsWith("/api")) {
+        baseUrl = baseUrl.replace(/\/api$/, "");
       }
-      link.download = documentInfo.name;
+      fileUrl = `${baseUrl}${uploadedDocument}`;
+    }
+
+    try {
+      const response = await fetch(fileUrl);
+      if (!response.ok) throw new Error("Failed to fetch file");
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = documentInfo.name || "document";
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      URL.revokeObjectURL(url); // Clean up
+    } catch (error) {
+      console.error("Download failed:", error);
     }
   };
 
   // Determine if connection should be allowed
-  // const canConnect: boolean | undefined =(processingState.isComplete && aiResponse && !processingState.error) ||undefined;
   const canConnect = data?.is_ready_to_interact;
 
   // Remove connections when node becomes not connectable
@@ -546,11 +620,11 @@ export default function DocumentUploadNode({
         id={id}
         type="documentUploadNode"
         strategyId={strategyId}
-        className={cn("bg-white", uploadedDocument ? "h-[1px]" : "h-[2px]")}
+        // FIX: Removed problematic height classes. Let content define height.
+        className={cn("bg-white")}
       >
         <div className="react-flow__node">
           <div ref={nodeControlRef} className={`nodrag`} />
-
           <TooltipProvider>
             <div
               className="w-[1000px] max-w-md mx-auto bg-white rounded-lg shadow-sm border overflow-hidden relative"
@@ -589,7 +663,6 @@ export default function DocumentUploadNode({
                     onChange={handleFileInputChange}
                     className="hidden"
                   />
-
                   <div className="text-center">
                     <div className="mb-6">
                       <Button
@@ -603,20 +676,16 @@ export default function DocumentUploadNode({
                         Select a document
                       </Button>
                     </div>
-
                     <div className="text-gray-500 mb-4">
                       <span className="text-lg">or</span>
                     </div>
-
                     <div className="text-gray-600 text-lg">
                       Drag and drop a document here
                     </div>
-
                     <div className="text-sm text-gray-500 mt-4">
                       Supports: PDF, Word, Excel, PowerPoint, Text, RTF, CSV
                     </div>
                   </div>
-
                   {isDragOver && (
                     <div className="absolute inset-0 bg-blue-100 bg-opacity-70 rounded-2xl flex items-center justify-center z-10">
                       <div className="bg-white p-6 rounded-xl shadow-lg flex flex-col items-center">
@@ -663,7 +732,6 @@ export default function DocumentUploadNode({
                         </div>
                       )}
                     </div>
-
                     <div className="flex items-center gap-2">
                       {canConnect && (
                         <Tooltip>
@@ -677,7 +745,6 @@ export default function DocumentUploadNode({
                           </TooltipContent>
                         </Tooltip>
                       )}
-
                       {!canConnect &&
                         !processingState.isProcessing &&
                         uploadedDocument && (
@@ -694,7 +761,6 @@ export default function DocumentUploadNode({
                         )}
                     </div>
                   </div>
-
                   {/* Document Preview */}
                   <div className="px-4">
                     <div className="relative bg-gray-50 rounded-lg border-2 border-dashed border-gray-200 p-6">
@@ -723,7 +789,6 @@ export default function DocumentUploadNode({
                             </div>
                           </div>
                         </div>
-
                         <div className="flex items-center gap-2">
                           <Tooltip>
                             <TooltipTrigger asChild>
@@ -744,7 +809,6 @@ export default function DocumentUploadNode({
                               <p className="text-sm">Preview document</p>
                             </TooltipContent>
                           </Tooltip>
-
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Button
@@ -764,7 +828,6 @@ export default function DocumentUploadNode({
                               <p className="text-sm">Download document</p>
                             </TooltipContent>
                           </Tooltip>
-
                           <Button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -779,7 +842,6 @@ export default function DocumentUploadNode({
                           </Button>
                         </div>
                       </div>
-
                       {/* Processing Overlay */}
                       {processingState.isProcessing && (
                         <div className="absolute inset-0 bg-black bg-opacity-50 rounded-lg flex items-center justify-center">
@@ -793,7 +855,6 @@ export default function DocumentUploadNode({
                       )}
                     </div>
                   </div>
-
                   {/* Error State */}
                   {processingState.error && (
                     <div className="px-4">
@@ -815,7 +876,6 @@ export default function DocumentUploadNode({
                       </div>
                     </div>
                   )}
-
                   {/* Upload State */}
                   {uploadState.isUploading && (
                     <div className="px-4">
@@ -857,7 +917,6 @@ export default function DocumentUploadNode({
                       </div>
                     </div>
                   )}
-
                   {/* Notes Input */}
                   <div className="px-4 pb-4 flex items-center gap-2">
                     <div className="relative flex-1 flex items-center gap-2">
@@ -927,7 +986,6 @@ export default function DocumentUploadNode({
               )}
             </div>
           </TooltipProvider>
-
           <Handle
             position={sourcePosition}
             type="source"
