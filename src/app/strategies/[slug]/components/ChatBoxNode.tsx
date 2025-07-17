@@ -52,11 +52,13 @@ interface Conversation {
   id: string;
   title: string;
   ai_model_id: string;
-  isLoading?: boolean;
+  isLoading?: boolean; // For chat message sending
   draftMessage?: string;
   selectedModel?: AIModel;
   hasError?: boolean;
   errorMessage?: string;
+  isDeleting?: boolean; // New: for delete operation
+  isUpdatingTitle?: boolean; // New: for title update operation
 }
 
 interface PredefinedPrompt {
@@ -139,7 +141,7 @@ export default function ChatBoxNode({
     string | null
   >(null);
   const [editingTitle, setEditingTitle] = useState("");
-  const [isInitialized, setIsInitialized] = useState(false); // Changed to false
+  const [isInitialized, setIsInitialized] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
 
   // Refs
@@ -153,14 +155,8 @@ export default function ChatBoxNode({
     mutateAsync: createConversationMutation,
     isPending: createConversationLoading,
   } = useCreateConversation();
-  const {
-    mutateAsync: updateConversationMutation,
-    isPending: updateConversationLoading,
-  } = useUpdateConversation();
-  const {
-    mutateAsync: deleteConversationMutation,
-    isPending: deleteConversationLoading,
-  } = useDeleteConversation();
+  const { mutateAsync: updateConversationMutation } = useUpdateConversation();
+  const { mutateAsync: deleteConversationMutation } = useDeleteConversation();
   const {
     mutateAsync: updateConversationAiModelMutation,
     isPending: updateModelLoading,
@@ -176,32 +172,25 @@ export default function ChatBoxNode({
     () => getFilteredAiModels(aiModelsData?.models) || [],
     [aiModelsData]
   );
-
   const activeConversation = useMemo(
     () =>
       conversations.find((conv) => conv.id === activeConversationId) || null,
     [conversations, activeConversationId]
   );
-
   const selectedModel = useMemo(
     () => activeConversation?.selectedModel || availableModels[0] || null,
     [activeConversation, availableModels]
   );
 
+  // MODIFIED: isAnyConversationLoading now checks per-item loading states
   const isAnyConversationLoading = useMemo(
     () =>
-      conversations.some((conv) => conv.isLoading) ||
+      conversations.some(
+        (conv) => conv.isLoading || conv.isDeleting || conv.isUpdatingTitle
+      ) ||
       createConversationLoading ||
-      updateConversationLoading ||
-      deleteConversationLoading ||
       updateModelLoading,
-    [
-      conversations,
-      createConversationLoading,
-      updateConversationLoading,
-      deleteConversationLoading,
-      updateModelLoading,
-    ]
+    [conversations, createConversationLoading, updateModelLoading]
   );
 
   const isLoading = activeConversation?.isLoading || false;
@@ -246,6 +235,8 @@ export default function ChatBoxNode({
           availableModels[0],
         isLoading: false,
         hasError: false,
+        isDeleting: false, // Initialize new state
+        isUpdatingTitle: false, // Initialize new state
       }));
       setConversations(mappedConversations);
       setActiveConversationId(mappedConversations[0]?.id || null);
@@ -255,6 +246,7 @@ export default function ChatBoxNode({
       setConversations([]);
       setActiveConversationId(null);
     }
+
     setIsInitialized(true); // Mark as initialized
   }, [
     isHydrated,
@@ -404,7 +396,6 @@ export default function ChatBoxNode({
       timestamp,
       isOptimistic: true,
     };
-
     setMessages((prev) => [...prev, optimisticUserMessage]);
 
     try {
@@ -415,7 +406,6 @@ export default function ChatBoxNode({
           conversation_id: activeConversationId,
         },
       });
-
       const aiMessageContent = response?.response;
 
       if (!aiMessageContent) {
@@ -455,7 +445,6 @@ export default function ChatBoxNode({
           userMessageText.slice(0, 30) +
           (userMessageText.length > 30 ? "..." : "");
         updateConversationState(activeConversationId, { title: newTitle });
-
         // Update title on server
         try {
           await updateConversationMutation({
@@ -469,17 +458,14 @@ export default function ChatBoxNode({
       }
     } catch (error: any) {
       console.error("Send message error:", error);
-
       // Remove optimistic user message
       removeOptimisticMessage(optimisticUserId);
-
       // Set conversation error state
       const errorMessage =
         error?.response?.data?.message ||
         error?.message ||
         "Failed to send message";
       setConversationError(activeConversationId, errorMessage);
-
       // Show error toast
       toast({
         title: "Message Failed",
@@ -518,13 +504,14 @@ export default function ChatBoxNode({
           ai_thread_peer_id: data?.id ?? "",
         },
       });
-
       const conv = response?.conversation;
+
       if (!conv) throw new Error("No conversation returned from API");
 
       const model =
         availableModels.find((m) => m.id === conv.ai_model_id) ||
         availableModels[0];
+
       const newConversation: Conversation = {
         id: conv.id,
         title: conv.title,
@@ -533,13 +520,14 @@ export default function ChatBoxNode({
         draftMessage: "",
         selectedModel: model,
         hasError: false,
+        isDeleting: false, // Initialize new state
+        isUpdatingTitle: false, // Initialize new state
       };
 
       setConversations((prev) => {
         const exists = prev.some((c) => c.id === newConversation.id);
         return exists ? prev : [newConversation, ...prev];
       });
-
       setActiveConversationId(newConversation.id);
     } catch (error: any) {
       toast({
@@ -559,17 +547,19 @@ export default function ChatBoxNode({
     data?.id,
   ]);
 
+  // MODIFIED: deleteConversation to use per-item loading
   const deleteConversation = useCallback(
     async (conversationId: string) => {
-      if (isAnyConversationLoading) return;
+      if (isAnyConversationLoading) return; // Still prevent if other global operations are pending
+
+      // Set optimistic loading state for the specific conversation
+      updateConversationState(conversationId, { isDeleting: true });
 
       try {
         await deleteConversationMutation({ strategyId, conversationId });
-
         setConversations((prev) =>
           prev.filter((conv) => conv.id !== conversationId)
         );
-
         if (activeConversationId === conversationId) {
           const remainingConversations = conversations.filter(
             (conv) => conv.id !== conversationId
@@ -585,14 +575,18 @@ export default function ChatBoxNode({
             "Unknown error occurred",
           variant: "destructive",
         });
+      } finally {
+        // Ensure loading state is reset even on error
+        updateConversationState(conversationId, { isDeleting: false });
       }
     },
     [
-      isAnyConversationLoading,
+      isAnyConversationLoading, // Keep this to prevent deletion if other global operations are pending
       conversations,
       deleteConversationMutation,
       strategyId,
       activeConversationId,
+      updateConversationState,
     ]
   );
 
@@ -625,7 +619,6 @@ export default function ChatBoxNode({
               (m) => m.id === activeConversation?.ai_model_id
             ) || availableModels[0],
         });
-
         toast({
           title: "Failed to update model",
           description:
@@ -654,11 +647,9 @@ export default function ChatBoxNode({
         ? `${message}\n\n${prompt.prompt}`
         : prompt.prompt;
       setMessage(newMessage);
-
       if (activeConversationId) {
         saveDraftMessage(activeConversationId, newMessage);
       }
-
       setTimeout(() => textareaRef.current?.focus(), 0);
     },
     [isLoading, message, activeConversationId, saveDraftMessage]
@@ -684,6 +675,7 @@ export default function ChatBoxNode({
     [isAnyConversationLoading]
   );
 
+  // MODIFIED: saveConversationTitle to use per-item loading
   const saveConversationTitle = useCallback(
     async (conversation: Conversation, newTitle: string) => {
       if (conversation.title === newTitle) {
@@ -691,9 +683,12 @@ export default function ChatBoxNode({
         return;
       }
 
-      // Optimistically update UI
-      updateConversationState(conversation.id, { title: newTitle });
-      setEditingConversationId(null);
+      // Optimistically update UI and set loading state for the specific conversation
+      updateConversationState(conversation.id, {
+        title: newTitle,
+        isUpdatingTitle: true,
+      });
+      setEditingConversationId(null); // Hide the input immediately
 
       try {
         await updateConversationMutation({
@@ -702,9 +697,15 @@ export default function ChatBoxNode({
           data: { title: newTitle },
         });
       } catch (error: any) {
-        // Revert optimistic update
-        updateConversationState(conversation.id, { title: conversation.title });
-
+        // Revert optimistic update and show error
+        updateConversationState(conversation.id, {
+          title: conversation.title,
+          hasError: true,
+          errorMessage:
+            error?.response?.data?.message ||
+            error?.message ||
+            "Failed to update title",
+        });
         toast({
           title: "Failed to update title",
           description:
@@ -713,6 +714,8 @@ export default function ChatBoxNode({
             "Unknown error occurred",
           variant: "destructive",
         });
+      } finally {
+        updateConversationState(conversation.id, { isUpdatingTitle: false });
       }
     },
     [updateConversationState, updateConversationMutation, strategyId]
@@ -792,7 +795,6 @@ export default function ChatBoxNode({
               )}
             </div>
           </div>
-
           <div className="flex h-[calc(100%-64px)]">
             {/* Left Sidebar - Conversations */}
             <div className="w-72 bg-gray-50 border-r border-gray-200 p-4 flex-shrink-0">
@@ -808,11 +810,9 @@ export default function ChatBoxNode({
                 )}
                 New Conversation
               </Button>
-
               <h3 className="text-sm font-medium text-gray-500 mb-3">
                 Conversations
               </h3>
-
               <div className="space-y-2">
                 {conversations.length === 0 ? (
                   <div className="text-sm text-gray-400 text-center py-4">
@@ -830,7 +830,6 @@ export default function ChatBoxNode({
                       const isEditing =
                         editingConversationId === conversation.id;
                       const isActive = activeConversationId === conversation.id;
-
                       return (
                         <div
                           key={conversation.id}
@@ -839,7 +838,7 @@ export default function ChatBoxNode({
                               ? "bg-blue-100 text-blue-700"
                               : "hover:bg-gray-100 text-gray-700"
                           } ${
-                            isAnyConversationLoading
+                            isAnyConversationLoading // This now correctly includes per-item loading
                               ? "cursor-not-allowed opacity-50"
                               : "cursor-pointer"
                           }`}
@@ -864,6 +863,7 @@ export default function ChatBoxNode({
                                   }
                                   onClick={(e) => e.stopPropagation()}
                                   maxLength={60}
+                                  disabled={conversation.isUpdatingTitle} // Disable input while saving
                                 />
                               ) : (
                                 <span
@@ -874,13 +874,16 @@ export default function ChatBoxNode({
                                     );
                                   }}
                                   title="Double click to edit"
-                                  className="truncate cursor-pointer text-left"
+                                  className="truncate cursor-pointer text-left flex items-center gap-2" // Added flex for loader
                                 >
                                   {conversation.title ||
                                     "Untitled Conversation"}
+                                  {/* MODIFIED: Show loader for title update */}
+                                  {conversation.isUpdatingTitle && (
+                                    <Loader2 className="w-3 h-3 animate-spin text-blue-500" />
+                                  )}
                                 </span>
                               )}
-
                               {/* Show draft indicator */}
                               {conversation.draftMessage &&
                                 conversation.draftMessage.trim() && (
@@ -889,7 +892,6 @@ export default function ChatBoxNode({
                                     {conversation.draftMessage.slice(0, 20)}...
                                   </span>
                                 )}
-
                               {/* Show error indicator */}
                               {conversation.hasError && (
                                 <span className="text-xs text-red-500 italic truncate">
@@ -898,12 +900,10 @@ export default function ChatBoxNode({
                                 </span>
                               )}
                             </div>
-
                             {conversation.isLoading && (
                               <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse flex-shrink-0" />
                             )}
                           </div>
-
                           <div className="flex items-center gap-1 flex-shrink-0">
                             {/* Model indicator */}
                             {model && (
@@ -912,20 +912,24 @@ export default function ChatBoxNode({
                                 style={{ backgroundColor: model.color }}
                               />
                             )}
-
                             {/* Delete button */}
-                            {conversations.length > 0 && ( // Allow deleting the last conversation
+                            {conversations.length > 0 && (
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                disabled={isAnyConversationLoading}
-                                className="opacity-0 group-hover:opacity-100 h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 disabled:opacity-0"
+                                disabled={isAnyConversationLoading} // Disabled if any global operation is pending
+                                className={`h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 ${
+                                  conversation.isDeleting
+                                    ? "opacity-100" // Always show loader when deleting
+                                    : "opacity-0 group-hover:opacity-100" // Hide normally, show on hover
+                                } disabled:opacity-50`} // General disabled opacity
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   deleteConversation(conversation.id);
                                 }}
                               >
-                                {deleteConversationLoading ? (
+                                {/* MODIFIED: Show loader for delete operation */}
+                                {conversation.isDeleting ? (
                                   <Loader2 className="w-3 h-3 animate-spin" />
                                 ) : (
                                   <Trash2 className="w-3 h-3" />
@@ -939,7 +943,6 @@ export default function ChatBoxNode({
                 )}
               </div>
             </div>
-
             {/* Main Content Area */}
             <div className="flex-1 flex flex-col">
               {/* Content Header */}
@@ -964,7 +967,6 @@ export default function ChatBoxNode({
                   </div>
                 )}
               </div>
-
               {/* Error Alert */}
               {activeConversation?.hasError && (
                 <div className="p-4 border-b border-gray-200">
@@ -976,7 +978,6 @@ export default function ChatBoxNode({
                   </Alert>
                 </div>
               )}
-
               {/* Messages Area */}
               <div className="flex-1 overflow-y-auto p-4 space-y-6">
                 {!activeConversationId ? (
@@ -1047,7 +1048,6 @@ export default function ChatBoxNode({
                     )
                   )
                 )}
-
                 {isLoading && (
                   <div className="flex items-start gap-3 mb-6">
                     <div className="w-7 h-7 bg-gradient-to-r from-blue-500 to-pink-500 rounded-full flex items-center justify-center text-white text-xs flex-shrink-0">
@@ -1061,10 +1061,8 @@ export default function ChatBoxNode({
                     </div>
                   </div>
                 )}
-
                 <div ref={messagesEndRef} />
               </div>
-
               {/* Bottom Input Area */}
               {activeConversationId && (
                 <div className="border-t border-gray-200 p-4">
@@ -1093,7 +1091,6 @@ export default function ChatBoxNode({
                       </Button>
                     </div>
                   </div>
-
                   {/* Action Buttons */}
                   <div className="flex items-center gap-2 text-xs flex-wrap">
                     {/* Model Selector */}
@@ -1134,7 +1131,6 @@ export default function ChatBoxNode({
                         </DropdownMenuContent>
                       </DropdownMenu>
                     )}
-
                     {/* Predefined Prompts */}
                     {predefinedPrompts.map((prompt) => (
                       <Button
@@ -1154,7 +1150,6 @@ export default function ChatBoxNode({
             </div>
           </div>
         </div>
-
         <Handle
           position={targetPosition}
           type="target"
