@@ -1,6 +1,90 @@
 "use client";
 
-// Predefined prompts state
+import type React from "react";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
+import { Handle, Position, useReactFlow } from "@xyflow/react";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  ChevronDown,
+  Plus,
+  MessageSquare,
+  Copy,
+  ArrowUp,
+  Trash2,
+  AlertCircle,
+  Loader2,
+} from "lucide-react";
+import AIResponseLoader from "@/components/common/ai-response-loader";
+import NodeWrapper from "./common/NodeWrapper";
+import { useParams } from "next/navigation";
+import {
+  useCreateConversation,
+  useDeleteConversation,
+  useSendChatMessage,
+  useUpdateConversation,
+  useUpdateConversationAiModel,
+} from "@/hooks/strategy/useStrategyMutations";
+import {
+  useGetAiModels,
+  useGetConversationById,
+} from "@/hooks/strategy/useStrategyQueries";
+import { getFilteredAiModels } from "@/lib/utils";
+import ReactMarkdown from "react-markdown";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "@/hooks/use-toast";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+
+// Types
+interface AIModel {
+  id: string;
+  name: string;
+  color: string;
+}
+
+interface Conversation {
+  id: string;
+  title: string;
+  ai_model_id: string;
+  isLoading?: boolean;
+  draftMessage?: string;
+  selectedModel?: AIModel;
+  hasError?: boolean;
+  errorMessage?: string;
+}
+
+interface PredefinedPrompt {
+  id: string;
+  label: string;
+  prompt: string;
+}
+
+interface Message {
+  id: string;
+  content: string;
+  sender: "user" | "ai";
+  timestamp: Date;
+  isOptimistic?: boolean;
+  hasError?: boolean;
+}
+
+interface ChatBoxNodeProps {
+  id: string;
+  sourcePosition?: Position;
+  targetPosition?: Position;
+  data?: {
+    conversations?: Conversation[];
+    id?: string;
+  };
+}
+
+// Predefined prompts
 const predefinedPrompts: PredefinedPrompt[] = [
   {
     id: "summarize",
@@ -34,361 +118,194 @@ const predefinedPrompts: PredefinedPrompt[] = [
   },
 ];
 
-import type React from "react";
-import { useEffect, useState, useRef, useCallback, useMemo } from "react";
-import { Handle, Position, useReactFlow } from "@xyflow/react";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  ChevronDown,
-  Plus,
-  MessageSquare,
-  Copy,
-  ArrowUp,
-  Trash2,
-} from "lucide-react";
-import AIResponseLoader from "@/components/common/ai-response-loader";
-import NodeWrapper from "./common/NodeWrapper";
-import { useParams } from "next/navigation";
-import {
-  useCreateConversation,
-  useDeleteConversation,
-  useSendChatMessage,
-  useUpdateConversation,
-  useUpdateConversationAiModel,
-} from "@/hooks/strategy/useStrategyMutations";
-import {
-  useGetAiModels,
-  useGetConversationById,
-} from "@/hooks/strategy/useStrategyQueries";
-import { getFilteredAiModels } from "@/lib/utils";
-import ReactMarkdown from "react-markdown";
-import { QUERY_KEYS } from "@/lib/queryKeys";
-import { useQueryClient } from "@tanstack/react-query";
-import { toast } from "@/hooks/use-toast";
-
-// Model type definition
-type AIModel = {
-  id: string;
-  name: string;
-  color: string;
-};
-
-// Conversation type definition (main data only)
-type Conversation = {
-  id: string;
-  title: string;
-  ai_model_id: string;
-  isLoading?: boolean;
-  draftMessage?: string;
-  selectedModel?: AIModel;
-};
-
-// Predefined prompt type definition
-type PredefinedPrompt = {
-  id: string;
-  label: string;
-  prompt: string;
-};
-
 export default function ChatBoxNode({
   id,
   sourcePosition = Position.Left,
   targetPosition = Position.Right,
   data,
-}: any) {
-  console.log("ChatBoxNode rendered with data:", { data, sourcePosition });
-
+}: ChatBoxNodeProps) {
   const strategyId = useParams()?.slug as string;
   const queryClient = useQueryClient();
+  const { setEdges } = useReactFlow();
 
+  // State
   const [activeConversationId, setActiveConversationId] = useState<
     string | null
   >(null);
-
-  const { mutateAsync: sendChatMessageMutation } = useSendChatMessage();
-  const { mutateAsync: createConversationMutation } = useCreateConversation();
-  const { mutateAsync: updateConversationMutation } = useUpdateConversation();
-  const { mutateAsync: deleteConversationMutation } = useDeleteConversation();
-  const { mutateAsync: updateConversationAiModelMutation } =
-    useUpdateConversationAiModel();
-
-  const { data: aiModelsData } = useGetAiModels();
-  const { data: activeConversationData } = useGetConversationById(
-    strategyId,
-    activeConversationId ?? ""
-  );
-
-  // Helper: parse ISO or fallback to now
-  const parseTimestamp = (val: string | undefined) => {
-    if (!val) return new Date();
-    const d = new Date(val);
-    return isNaN(d.getTime()) ? new Date() : d;
-  };
-
-  // Available models
-  const availableModels: AIModel[] = useMemo(
-    () => getFilteredAiModels(aiModelsData?.models),
-    [aiModelsData]
-  );
-
-  // Conversations state
-  const [conversations, setConversations] = useState<Conversation[]>(
-    data?.conversations || []
-  );
-
-  // Inline editing state
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [message, setMessage] = useState("");
+  const [messages, setMessages] = useState<Message[]>([]);
   const [editingConversationId, setEditingConversationId] = useState<
     string | null
   >(null);
-  const [editingTitle, setEditingTitle] = useState<string>("");
+  const [editingTitle, setEditingTitle] = useState("");
+  const [isInitialized, setIsInitialized] = useState(true);
 
-  // Active conversation
-  const activeConversation = conversations?.find(
-    (conv) => conv?.id === activeConversationId
-  );
+  // Add this state to track hydration
+  const [isHydrated, setIsHydrated] = useState(false);
 
-  console.log({ conversations });
-
-  // setEdges from reactflow
-  const { setEdges } = useReactFlow();
-
-  // message state
-  const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState<
-    { id: string; content: string; sender: "user" | "ai"; timestamp: Date }[]
-  >([]);
-
-  // refs
-  const nodeControlRef = useRef(null);
+  // Refs
+  const nodeControlRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // isLoading for active conversation
-  const isLoading = activeConversation?.isLoading || false;
+  // Mutations
+  const { mutateAsync: sendChatMessageMutation } = useSendChatMessage();
+  const {
+    mutateAsync: createConversationMutation,
+    isPending: createConversationLoading,
+  } = useCreateConversation();
+  const {
+    mutateAsync: updateConversationMutation,
+    isPending: updateConversationLoading,
+  } = useUpdateConversation();
+  const {
+    mutateAsync: deleteConversationMutation,
+    isPending: deleteConversationLoading,
+  } = useDeleteConversation();
+  const {
+    mutateAsync: updateConversationAiModelMutation,
+    isPending: updateModelLoading,
+  } = useUpdateConversationAiModel();
 
-  // All messages come from API (activeConversationData)
-  // const messagesToShow = useMemo(() => {
-  //   const aiChats = activeConversationData?.conversation?.aiChats;
-  //   if (!aiChats || !Array.isArray(aiChats)) return [];
-  //   return aiChats
-  //     .map((chat: any) => [
-  //       {
-  //         id: chat.id + "_user",
-  //         content: chat.prompt,
-  //         sender: "user" as const,
-  //         timestamp: parseTimestamp(chat.created_at),
-  //       },
-  //       {
-  //         id: chat.id + "_ai",
-  //         content: chat.response,
-  //         sender: "ai" as const,
-  //         timestamp: parseTimestamp(chat.updated_at),
-  //       },
-  //     ])
-  //     .flat();
-  // }, [activeConversationData]);
+  // Queries
+  const { data: aiModelsData, isLoading: isLoadingModels } = useGetAiModels();
+  const { data: activeConversationData, isLoading: isLoadingConversation } =
+    useGetConversationById(strategyId, activeConversationId ?? "");
 
-  // Get current selected model (conversation-specific or default)
+  // Memoized values
+  const availableModels: AIModel[] = useMemo(
+    () => getFilteredAiModels(aiModelsData?.models) || [],
+    [aiModelsData]
+  );
+
+  const activeConversation = useMemo(
+    () =>
+      conversations.find((conv) => conv.id === activeConversationId) || null,
+    [conversations, activeConversationId]
+  );
+
   const selectedModel = useMemo(
-    () => activeConversation?.selectedModel || availableModels[0],
-    [availableModels, activeConversation]
+    () => activeConversation?.selectedModel || availableModels[0] || null,
+    [activeConversation, availableModels]
   );
 
-  // Check if any conversation is loading (to disable switching)
-  const isAnyConversationLoading = conversations.some(
-    (conv) => conv?.isLoading
+  const isAnyConversationLoading = useMemo(
+    () => conversations.some((conv) => conv.isLoading),
+    [conversations]
   );
 
-  // Determine if connection should be allowed
-  const canConnect: any = true;
+  const isLoading = activeConversation?.isLoading || false;
+  const canConnect = !isLoading;
 
+  // Helper functions
+  const parseTimestamp = useCallback((val: string | undefined): Date => {
+    if (!val) return new Date();
+    const d = new Date(val);
+    return isNaN(d.getTime()) ? new Date() : d;
+  }, []);
+
+  const generateOptimisticId = useCallback(() => {
+    // Use a more deterministic approach for hydration safety
+    return `temp_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+  }, []);
+
+  // Add hydration effect
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
+
+  // Replace the initialization useEffect with this improved version:
+  useEffect(() => {
+    console.log("ChatBox Debug:", {
+      dataConversations: data?.conversations,
+      isArray: Array.isArray(data?.conversations),
+      type: typeof data?.conversations,
+      availableModelsLength: availableModels.length,
+      isHydrated,
+      isInitialized,
+    });
+
+    if (!isHydrated || availableModels?.length > 0 || isInitialized) return;
+
+    // Ensure data.conversations is an array
+    const rawConversations = data?.conversations;
+    const initialConversations = Array.isArray(rawConversations)
+      ? rawConversations
+      : [];
+
+    if (initialConversations.length === 0) {
+      // Create initial conversation if none exist
+      const initialConversation: Conversation = {
+        id: `conv_${Date.now()}_initial`, // Use deterministic ID for hydration
+        title: "New Conversation",
+        ai_model_id: availableModels[0]?.id || "",
+        isLoading: false,
+        draftMessage: "",
+        selectedModel: availableModels[0],
+      };
+      setConversations([initialConversation]);
+      setActiveConversationId(initialConversation.id);
+    } else {
+      // Map existing conversations with models - with proper validation
+      const mappedConversations = initialConversations
+        .filter((conv) => conv && typeof conv === "object" && conv.id) // Filter out invalid entries
+        .map((conv) => ({
+          ...conv,
+          selectedModel:
+            availableModels.find((m) => m.id === conv.ai_model_id) ||
+            availableModels[0],
+          isLoading: false,
+          hasError: false,
+        }));
+
+      setConversations(mappedConversations);
+      setActiveConversationId(mappedConversations[0]?.id || null);
+    }
+    setIsInitialized(false);
+  }, [isHydrated, availableModels, data?.conversations, isInitialized]);
+
+  // Load messages when active conversation changes
   useEffect(() => {
     if (activeConversationData?.conversation?.aiChats) {
-      const initialMessages =
+      const loadedMessages: Message[] =
         activeConversationData.conversation.aiChats.flatMap((chat: any) => [
           {
             id: `${chat.id}_user`,
             content: chat.prompt,
             sender: "user" as const,
             timestamp: parseTimestamp(chat.created_at),
+            isOptimistic: false,
           },
           {
             id: `${chat.id}_ai`,
             content: chat.response,
             sender: "ai" as const,
             timestamp: parseTimestamp(chat.updated_at),
+            isOptimistic: false,
           },
         ]);
-
-      setMessages(initialMessages);
-    } else {
+      setMessages(loadedMessages);
+    } else if (activeConversationId && !isLoadingConversation) {
       setMessages([]);
     }
-  }, [activeConversationData]);
-
-  // Remove connections when node becomes not connectable
-  useEffect(() => {
-    if (!canConnect) {
-      setEdges((edges) =>
-        edges.filter((edge) => edge.source !== id && edge.target !== id)
-      );
-    }
-  }, [canConnect, id, setEdges]);
-
-  // Create memoized functions to prevent re-renders
-  const saveDraftMessage = useCallback(
-    (conversationId: string, draftMessage: string) => {
-      setConversations((prev) =>
-        prev.map((conv) =>
-          conv.id === conversationId
-            ? { ...conv, draftMessage, updatedAt: new Date() }
-            : conv
-        )
-      );
-    },
-    []
-  );
-
-  const saveSelectedModel = useCallback(
-    (conversationId: string, model: AIModel) => {
-      setConversations((prev) =>
-        prev.map((conv) =>
-          conv.id === conversationId
-            ? { ...conv, selectedModel: model, updatedAt: new Date() }
-            : conv
-        )
-      );
-    },
-    []
-  );
-
-  // Update the message change handler to save draft directly
-  const handleMessageChange = useCallback(
-    (newMessage: string) => {
-      setMessage(newMessage);
-      if (activeConversationId) {
-        saveDraftMessage(activeConversationId, newMessage);
-      }
-    },
-    [activeConversationId, saveDraftMessage]
-  );
-
-  const createNewConversation = useCallback(async () => {
-    if (isAnyConversationLoading) return;
-    try {
-      const response = await createConversationMutation({
-        strategyId,
-        data: {
-          title: "New Conversation",
-          ai_thread_peer_id: data?.id,
-        },
-      });
-      const conv = response?.conversation;
-      if (!conv) throw new Error("No conversation returned from API");
-      const model =
-        availableModels.find((m) => m.id === conv.ai_model_id) ||
-        availableModels[0];
-      const newConversation: Conversation = {
-        id: conv.id,
-        title: conv.title,
-        ai_model_id: conv.ai_model_id,
-        isLoading: false,
-        draftMessage: "",
-        selectedModel: model,
-      };
-      setConversations((prev) => {
-        const exists = prev.some((c) => c.id === newConversation.id);
-        if (exists) return prev;
-        return [newConversation, ...prev];
-      });
-      setActiveConversationId(newConversation.id);
-    } catch (error: any) {
-      toast({
-        title: error?.message || "Error",
-        description:
-          error?.response?.data?.message || "Failed to update Ai-Model.",
-        variant: "destructive",
-      });
-    }
   }, [
-    isAnyConversationLoading,
-    availableModels,
-    createConversationMutation,
-    strategyId,
+    activeConversationData,
+    activeConversationId,
+    isLoadingConversation,
+    parseTimestamp,
   ]);
 
-  // Delete conversation
-  const deleteConversation = useCallback(
-    async (conversationId: string) => {
-      if (isAnyConversationLoading) return;
-      const conversationIndex = conversations.findIndex(
-        (conv) => conv.id === conversationId
-      );
-      if (conversationIndex === 0) {
-        console.log("Cannot delete the first conversation");
-        return;
-      }
-      try {
-        await deleteConversationMutation({
-          strategyId,
-          conversationId,
-        });
-        setConversations((prev) =>
-          prev?.filter((conv) => conv?.id !== conversationId)
-        );
-        if (activeConversationId === conversationId) {
-          const remainingConversations = conversations?.filter(
-            (conv) => conv?.id !== conversationId
-          );
-          if (remainingConversations?.length > 0) {
-            setActiveConversationId(remainingConversations[0].id);
-          }
-        }
-      } catch (error: any) {
-        toast({
-          title: error?.message || "Error",
-          description:
-            error?.response?.data?.message || "Failed to update Ai-Model.",
-          variant: "destructive",
-        });
-      }
-    },
-    [
-      isAnyConversationLoading,
-      activeConversationId,
-      conversations,
-      deleteConversationMutation,
-      strategyId,
-    ]
-  );
+  // Load draft message when switching conversations
+  useEffect(() => {
+    if (activeConversation?.draftMessage !== undefined) {
+      setMessage(activeConversation.draftMessage);
+    }
+  }, [activeConversation?.draftMessage]);
 
-  // Initialize with first conversation - fix to prevent multiple calls
-  // useEffect(() => {
-  //   if (conversations?.length === 0) {
-  //     const initialConversation: Conversation = {
-  //       id: `conv_${Date.now()}_initial`,
-  //       title: "New Conversation",
-  //       ai_model_id: availableModels[0]?.id || "",
-  //       isLoading: false,
-  //       draftMessage: "",
-  //       selectedModel: availableModels[0],
-  //     };
-  //     setConversations([initialConversation]);
-  //     setActiveConversationId(initialConversation.id);
-  //   }
-  // }, []);
-
-  // Scroll to bottom when messages change
+  // Auto-scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    // }, [messagesToShow]);
   }, [messages]);
 
   // Auto-resize textarea
@@ -402,111 +319,94 @@ export default function ChatBoxNode({
     }
   }, [message]);
 
-  // Load conversation-specific draft message and model when switching conversations
+  // Remove connections when not connectable
   useEffect(() => {
-    if (activeConversation) {
-      const draftMessage = activeConversation.draftMessage || "";
-      if (message !== draftMessage) {
-        setMessage(draftMessage);
-      }
+    if (!canConnect) {
+      setEdges((edges) =>
+        edges.filter((edge) => edge.source !== id && edge.target !== id)
+      );
     }
-  }, [activeConversationId]);
+  }, [canConnect, id, setEdges]);
 
-  // Switch to conversation
-  const switchToConversation = (conversationId: string) => {
-    if (isAnyConversationLoading) return;
-    setActiveConversationId(conversationId);
-  };
+  // Conversation management functions
+  const updateConversationState = useCallback(
+    (conversationId: string, updates: Partial<Conversation>) => {
+      setConversations((prev) =>
+        prev.map((conv) =>
+          conv.id === conversationId ? { ...conv, ...updates } : conv
+        )
+      );
+    },
+    []
+  );
 
-  // Update conversation title based on first user message
-  const updateConversationTitle = (
-    conversationId: string,
-    firstMessage: string
-  ) => {
-    setConversations((prev) =>
-      prev?.map((conv) =>
-        conv?.id === conversationId
-          ? {
-              ...conv,
-              title:
-                firstMessage.slice(0, 30) +
-                (firstMessage?.length > 30 ? "..." : ""),
-            }
-          : conv
-      )
-    );
-  };
+  const saveDraftMessage = useCallback(
+    (conversationId: string, draftMessage: string) => {
+      updateConversationState(conversationId, { draftMessage });
+    },
+    [updateConversationState]
+  );
 
-  // ...removed local message state...
+  const setConversationLoading = useCallback(
+    (conversationId: string, loading: boolean) => {
+      updateConversationState(conversationId, {
+        isLoading: loading,
+        hasError: loading ? false : undefined, // Clear error when starting new request
+      });
+    },
+    [updateConversationState]
+  );
 
-  // Set loading state for specific conversation
-  const setConversationLoading = (conversationId: string, loading: boolean) => {
-    setConversations((prev) =>
-      prev?.map((conv) =>
-        conv?.id === conversationId ? { ...conv, isLoading: loading } : conv
-      )
-    );
-  };
+  const setConversationError = useCallback(
+    (conversationId: string, error: string) => {
+      updateConversationState(conversationId, {
+        hasError: true,
+        errorMessage: error,
+        isLoading: false,
+      });
+    },
+    [updateConversationState]
+  );
 
-  // Handle predefined prompt click
-  const handlePredefinedPromptClick = (prompt: PredefinedPrompt) => {
-    if (isLoading) return;
-
-    const newMessage = message
-      ? `${message}\n\n${prompt.prompt}`
-      : prompt.prompt;
-    setMessage(newMessage);
-
-    // Focus textarea after adding prompt
-    setTimeout(() => {
-      textareaRef.current?.focus();
-    }, 0);
-  };
-
-  // Handle model selection - Save to current conversation
-  const handleModelSelect = async (model: AIModel) => {
-    if (activeConversationId) {
-      // Optimistically update UI
-      saveSelectedModel(activeConversationId, model);
-      try {
-        await updateConversationAiModelMutation({
-          strategyId,
-          conversationId: activeConversationId,
-          data: {
-            ai_model_id: model.id,
-          },
-        });
-      } catch (error: any) {
-        toast({
-          title: error?.message || "Error",
-          description:
-            error?.response?.data?.message || "Failed to update Ai-Model.",
-          variant: "destructive",
-        });
+  // Message handling
+  const handleMessageChange = useCallback(
+    (newMessage: string) => {
+      setMessage(newMessage);
+      if (activeConversationId) {
+        saveDraftMessage(activeConversationId, newMessage);
       }
-    }
-  };
+    },
+    [activeConversationId, saveDraftMessage]
+  );
 
-  const handleSendMessage = async () => {
-    if (!message.trim() || !activeConversationId || isLoading) return;
+  const removeOptimisticMessage = useCallback((messageId: string) => {
+    setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
+  }, []);
+
+  const handleSendMessage = useCallback(async () => {
+    if (!message.trim() || !activeConversationId || isLoading || !selectedModel)
+      return;
 
     const userMessageText = message.trim();
     const timestamp = new Date();
+    const optimisticUserId = generateOptimisticId();
+    const optimisticAiId = generateOptimisticId();
 
+    // Clear input and draft
     setMessage("");
     saveDraftMessage(activeConversationId, "");
     setConversationLoading(activeConversationId, true);
 
-    // Append user message locally
-    setMessages((prevMessages) => [
-      ...prevMessages,
-      {
-        id: `user_${Date.now()}`,
-        content: userMessageText,
-        sender: "user",
-        timestamp,
-      },
-    ]);
+    // Add optimistic user message
+    const optimisticUserMessage: Message = {
+      id: optimisticUserId,
+      content: userMessageText,
+      sender: "user",
+      timestamp,
+      isOptimistic: true,
+    };
+
+    setMessages((prev) => [...prev, optimisticUserMessage]);
 
     try {
       const response = await sendChatMessageMutation({
@@ -517,364 +417,689 @@ export default function ChatBoxNode({
         },
       });
 
-      console.log({ response });
-
       const aiMessageContent = response?.response;
 
-      // Append AI response locally
-      setMessages((prevMessages) => [
-        ...prevMessages,
-        {
-          id: `ai_${Date.now()}`,
-          content: aiMessageContent,
-          sender: "ai",
-          timestamp: new Date(),
-          // id: `ai_${Date.now()}`,
-          // content: aiMessageContent,
-          // sender: "ai",
-          // timestamp: new Date(),
-        },
-      ]);
+      if (!aiMessageContent) {
+        throw new Error("No response received from AI");
+      }
 
-      // Update conversation title if it's first message
-      const currentConv = conversations.find(
-        (c) => c.id === activeConversationId
-      );
-      if (currentConv && messages.length === 0) {
-        updateConversationTitle(activeConversationId, userMessageText);
+      // Remove optimistic user message and add real messages
+      setMessages((prev) => {
+        const withoutOptimistic = prev.filter(
+          (msg) => msg.id !== optimisticUserId
+        );
+        return [
+          ...withoutOptimistic,
+          {
+            id: `user_${Date.now()}`,
+            content: userMessageText,
+            sender: "user",
+            timestamp,
+            isOptimistic: false,
+          },
+          {
+            id: `ai_${Date.now()}`,
+            content: aiMessageContent,
+            sender: "ai",
+            timestamp: new Date(),
+            isOptimistic: false,
+          },
+        ];
+      });
+
+      // Update conversation title if it's the first message
+      if (
+        messages.length === 0 &&
+        activeConversation?.title === "New Conversation"
+      ) {
+        const newTitle =
+          userMessageText.slice(0, 30) +
+          (userMessageText.length > 30 ? "..." : "");
+        updateConversationState(activeConversationId, { title: newTitle });
+
+        // Update title on server
+        try {
+          await updateConversationMutation({
+            strategyId,
+            conversationId: activeConversationId,
+            data: { title: newTitle },
+          });
+        } catch (titleError) {
+          console.warn("Failed to update conversation title:", titleError);
+        }
       }
     } catch (error: any) {
+      console.error("Send message error:", error);
+
+      // Remove optimistic user message
+      removeOptimisticMessage(optimisticUserId);
+
+      // Set conversation error state
+      const errorMessage =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Failed to send message";
+      setConversationError(activeConversationId, errorMessage);
+
+      // Show error toast
       toast({
-        title: error?.message || "Error",
-        description:
-          error?.response?.data?.message || "Failed to send message.",
+        title: "Message Failed",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
       setConversationLoading(activeConversationId, false);
     }
-  };
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
-    }
-  };
+  }, [
+    message,
+    activeConversationId,
+    isLoading,
+    selectedModel,
+    generateOptimisticId,
+    saveDraftMessage,
+    setConversationLoading,
+    messages.length,
+    sendChatMessageMutation,
+    strategyId,
+    updateConversationState,
+    updateConversationMutation,
+    removeOptimisticMessage,
+    setConversationError,
+  ]);
 
-  // Handle double click to edit conversation title
-  const handleConversationTitleDoubleClick = (conversation: Conversation) => {
-    if (isAnyConversationLoading) return;
-    setEditingConversationId(conversation.id);
-    setEditingTitle(conversation.title);
-  };
+  const createNewConversation = useCallback(async () => {
+    if (isAnyConversationLoading || !availableModels.length) return;
 
-  // Handle title input change
-  const handleEditingTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setEditingTitle(e.target.value);
-  };
-
-  // Handle Enter key or blur to save title
-  const handleEditingTitleKeyDown = async (
-    e: React.KeyboardEvent<HTMLInputElement>,
-    conversation: Conversation
-  ) => {
-    if (e.key === "Enter" && editingTitle.trim() && editingConversationId) {
-      await saveConversationTitle(conversation, editingTitle.trim());
-    } else if (e.key === "Escape") {
-      setEditingConversationId(null);
-    }
-  };
-
-  const handleEditingTitleBlur = async (conversation: Conversation) => {
-    if (editingTitle.trim() && editingConversationId) {
-      await saveConversationTitle(conversation, editingTitle.trim());
-    } else {
-      setEditingConversationId(null);
-    }
-  };
-
-  // Save conversation title
-  const saveConversationTitle = async (
-    conversation: Conversation,
-    newTitle: string
-  ) => {
-    if (conversation.title === newTitle) {
-      setEditingConversationId(null);
-      return;
-    }
-    setConversations((prev) =>
-      prev.map((conv) =>
-        conv.id === conversation.id ? { ...conv, title: newTitle } : conv
-      )
-    );
-    setEditingConversationId(null);
     try {
-      await updateConversationMutation({
+      const response = await createConversationMutation({
         strategyId,
-        conversationId: conversation.id,
-        data: { title: newTitle },
+        data: {
+          title: "New Conversation",
+          ai_thread_peer_id: data?.id ?? "",
+        },
       });
+
+      const conv = response?.conversation;
+      if (!conv) throw new Error("No conversation returned from API");
+
+      const model =
+        availableModels.find((m) => m.id === conv.ai_model_id) ||
+        availableModels[0];
+      const newConversation: Conversation = {
+        id: conv.id,
+        title: conv.title,
+        ai_model_id: conv.ai_model_id,
+        isLoading: false,
+        draftMessage: "",
+        selectedModel: model,
+        hasError: false,
+      };
+
+      setConversations((prev) => {
+        const exists = prev.some((c) => c.id === newConversation.id);
+        return exists ? prev : [newConversation, ...prev];
+      });
+
+      setActiveConversationId(newConversation.id);
     } catch (error: any) {
       toast({
-        title: error?.message || "Error",
+        title: "Failed to create conversation",
         description:
           error?.response?.data?.message ||
-          "Failed to update conversation title.",
+          error?.message ||
+          "Unknown error occurred",
         variant: "destructive",
       });
     }
-  };
+  }, [
+    isAnyConversationLoading,
+    availableModels,
+    createConversationMutation,
+    strategyId,
+    data?.id,
+  ]);
 
-  return (
-    <>
+  const deleteConversation = useCallback(
+    async (conversationId: string) => {
+      if (isAnyConversationLoading) return;
+
+      const conversationIndex = conversations.findIndex(
+        (conv) => conv.id === conversationId
+      );
+      if (conversationIndex === 0) {
+        toast({
+          title: "Cannot delete",
+          description: "Cannot delete the first conversation",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      try {
+        await deleteConversationMutation({ strategyId, conversationId });
+
+        setConversations((prev) =>
+          prev.filter((conv) => conv.id !== conversationId)
+        );
+
+        if (activeConversationId === conversationId) {
+          const remainingConversations = conversations.filter(
+            (conv) => conv.id !== conversationId
+          );
+          setActiveConversationId(remainingConversations[0]?.id || null);
+        }
+      } catch (error: any) {
+        toast({
+          title: "Failed to delete conversation",
+          description:
+            error?.response?.data?.message ||
+            error?.message ||
+            "Unknown error occurred",
+          variant: "destructive",
+        });
+      }
+    },
+    [
+      isAnyConversationLoading,
+      conversations,
+      deleteConversationMutation,
+      strategyId,
+      activeConversationId,
+    ]
+  );
+
+  const switchToConversation = useCallback(
+    (conversationId: string) => {
+      if (isAnyConversationLoading) return;
+      setActiveConversationId(conversationId);
+    },
+    [isAnyConversationLoading]
+  );
+
+  const handleModelSelect = useCallback(
+    async (model: AIModel) => {
+      if (!activeConversationId) return;
+
+      // Optimistically update UI
+      updateConversationState(activeConversationId, { selectedModel: model });
+
+      try {
+        await updateConversationAiModelMutation({
+          strategyId,
+          conversationId: activeConversationId,
+          data: { ai_model_id: model.id },
+        });
+      } catch (error: any) {
+        // Revert optimistic update
+        updateConversationState(activeConversationId, {
+          selectedModel:
+            availableModels.find(
+              (m) => m.id === activeConversation?.ai_model_id
+            ) || availableModels[0],
+        });
+
+        toast({
+          title: "Failed to update model",
+          description:
+            error?.response?.data?.message ||
+            error?.message ||
+            "Unknown error occurred",
+          variant: "destructive",
+        });
+      }
+    },
+    [
+      activeConversationId,
+      updateConversationState,
+      updateConversationAiModelMutation,
+      strategyId,
+      availableModels,
+      activeConversation?.ai_model_id,
+    ]
+  );
+
+  const handlePredefinedPromptClick = useCallback(
+    (prompt: PredefinedPrompt) => {
+      if (isLoading) return;
+
+      const newMessage = message
+        ? `${message}\n\n${prompt.prompt}`
+        : prompt.prompt;
+      setMessage(newMessage);
+
+      if (activeConversationId) {
+        saveDraftMessage(activeConversationId, newMessage);
+      }
+
+      setTimeout(() => textareaRef.current?.focus(), 0);
+    },
+    [isLoading, message, activeConversationId, saveDraftMessage]
+  );
+
+  const handleKeyPress = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        handleSendMessage();
+      }
+    },
+    [handleSendMessage]
+  );
+
+  // Title editing functions
+  const handleConversationTitleDoubleClick = useCallback(
+    (conversation: Conversation) => {
+      if (isAnyConversationLoading) return;
+      setEditingConversationId(conversation.id);
+      setEditingTitle(conversation.title);
+    },
+    [isAnyConversationLoading]
+  );
+
+  const saveConversationTitle = useCallback(
+    async (conversation: Conversation, newTitle: string) => {
+      if (conversation.title === newTitle) {
+        setEditingConversationId(null);
+        return;
+      }
+
+      // Optimistically update UI
+      updateConversationState(conversation.id, { title: newTitle });
+      setEditingConversationId(null);
+
+      try {
+        await updateConversationMutation({
+          strategyId,
+          conversationId: conversation.id,
+          data: { title: newTitle },
+        });
+      } catch (error: any) {
+        // Revert optimistic update
+        updateConversationState(conversation.id, { title: conversation.title });
+
+        toast({
+          title: "Failed to update title",
+          description:
+            error?.response?.data?.message ||
+            error?.message ||
+            "Unknown error occurred",
+          variant: "destructive",
+        });
+      }
+    },
+    [updateConversationState, updateConversationMutation, strategyId]
+  );
+
+  const handleEditingTitleKeyDown = useCallback(
+    async (
+      e: React.KeyboardEvent<HTMLInputElement>,
+      conversation: Conversation
+    ) => {
+      if (e.key === "Enter" && editingTitle.trim()) {
+        await saveConversationTitle(conversation, editingTitle.trim());
+      } else if (e.key === "Escape") {
+        setEditingConversationId(null);
+      }
+    },
+    [editingTitle, saveConversationTitle]
+  );
+
+  const handleEditingTitleBlur = useCallback(
+    async (conversation: Conversation) => {
+      if (editingTitle.trim()) {
+        await saveConversationTitle(conversation, editingTitle.trim());
+      } else {
+        setEditingConversationId(null);
+      }
+    },
+    [editingTitle, saveConversationTitle]
+  );
+
+  // Loading states
+  if (isLoadingModels || !isInitialized) {
+    return (
       <NodeWrapper
         id={id}
         strategyId={strategyId}
         type="chatbox"
         className="bg-white"
       >
-        <div className="react-flow__node nowheel">
-          <div ref={nodeControlRef} className={`nodrag`} />
+        <div className="w-[1100px] h-[700px] bg-white rounded-lg shadow-lg flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-500">Loading chat interface...</p>
+          </div>
+        </div>
+      </NodeWrapper>
+    );
+  }
 
-          <div className="w-[1100px] h-[700px] bg-white rounded-lg shadow-lg overflow-hidden">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <MessageSquare className="w-5 h-5 text-white" />
-                <span className="text-white font-semibold">AI Chat</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div
-                  className="w-2 h-2 rounded-full"
-                  style={{ backgroundColor: selectedModel?.color }}
-                />
-                <span className="text-white text-sm">
-                  {selectedModel?.name}
-                </span>
+  // Add this right after the loading check and before the main return
+  if (!isHydrated) {
+    return (
+      <NodeWrapper
+        id={id}
+        strategyId={strategyId}
+        type="chatbox"
+        className="bg-white"
+      >
+        <div className="w-[1100px] h-[700px] bg-white rounded-lg shadow-lg flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-500">Initializing...</p>
+          </div>
+        </div>
+      </NodeWrapper>
+    );
+  }
+
+  return (
+    <NodeWrapper
+      id={id}
+      strategyId={strategyId}
+      type="chatbox"
+      className="bg-white"
+    >
+      <div className="react-flow__node nowheel">
+        <div ref={nodeControlRef} className="nodrag" />
+        <div className="w-[1100px] h-[700px] bg-white rounded-lg shadow-lg overflow-hidden">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <MessageSquare className="w-5 h-5 text-white" />
+              <span className="text-white font-semibold">AI Chat</span>
+            </div>
+            <div className="flex items-center gap-2">
+              {selectedModel && (
+                <>
+                  <div
+                    className="w-2 h-2 rounded-full"
+                    style={{ backgroundColor: selectedModel.color }}
+                  />
+                  <span className="text-white text-sm">
+                    {selectedModel.name}
+                  </span>
+                </>
+              )}
+            </div>
+          </div>
+
+          <div className="flex h-[calc(100%-64px)]">
+            {/* Left Sidebar - Conversations */}
+            <div className="w-72 bg-gray-50 border-r border-gray-200 p-4 flex-shrink-0">
+              <Button
+                onClick={createNewConversation}
+                disabled={createConversationLoading || isAnyConversationLoading}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white mb-4 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {createConversationLoading ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Plus className="w-4 h-4 mr-2" />
+                )}
+                New Conversation
+              </Button>
+
+              <h3 className="text-sm font-medium text-gray-500 mb-3">
+                Conversations
+              </h3>
+
+              <div className="space-y-2">
+                {conversations.length === 0 ? (
+                  <div className="text-sm text-gray-400 text-center py-4">
+                    No conversations yet
+                  </div>
+                ) : (
+                  conversations
+                    .filter((conversation) => conversation && conversation.id) // Add safety filter
+                    .map((conversation) => {
+                      const model =
+                        conversation.selectedModel ||
+                        availableModels.find(
+                          (m) => m.id === conversation.ai_model_id
+                        );
+                      const isEditing =
+                        editingConversationId === conversation.id;
+                      const isActive = activeConversationId === conversation.id;
+
+                      return (
+                        <div
+                          key={conversation.id}
+                          className={`group flex items-center justify-between p-3 rounded-lg text-sm font-medium transition-colors ${
+                            isActive
+                              ? "bg-blue-100 text-blue-700"
+                              : "hover:bg-gray-100 text-gray-700"
+                          } ${
+                            isAnyConversationLoading
+                              ? "cursor-not-allowed opacity-50"
+                              : "cursor-pointer"
+                          }`}
+                          onClick={() => switchToConversation(conversation.id)}
+                        >
+                          {/* Rest of the conversation item JSX remains the same */}
+                          <div className="flex-1 truncate flex items-center gap-2">
+                            <div className="flex flex-col min-w-0 flex-1">
+                              {isEditing ? (
+                                <input
+                                  type="text"
+                                  className="text-sm font-medium rounded px-1 py-0.5 border border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white text-blue-700 w-full"
+                                  value={editingTitle}
+                                  autoFocus
+                                  onChange={(e) =>
+                                    setEditingTitle(e.target.value)
+                                  }
+                                  onKeyDown={(e) =>
+                                    handleEditingTitleKeyDown(e, conversation)
+                                  }
+                                  onBlur={() =>
+                                    handleEditingTitleBlur(conversation)
+                                  }
+                                  onClick={(e) => e.stopPropagation()}
+                                  maxLength={60}
+                                />
+                              ) : (
+                                <span
+                                  onDoubleClick={(e) => {
+                                    e.stopPropagation();
+                                    handleConversationTitleDoubleClick(
+                                      conversation
+                                    );
+                                  }}
+                                  title="Double click to edit"
+                                  className="truncate cursor-text"
+                                >
+                                  {conversation.title ||
+                                    "Untitled Conversation"}
+                                </span>
+                              )}
+
+                              {/* Show draft indicator */}
+                              {conversation.draftMessage &&
+                                conversation.draftMessage.trim() && (
+                                  <span className="text-xs text-gray-500 italic truncate">
+                                    Draft:{" "}
+                                    {conversation.draftMessage.slice(0, 20)}...
+                                  </span>
+                                )}
+
+                              {/* Show error indicator */}
+                              {conversation.hasError && (
+                                <span className="text-xs text-red-500 italic truncate">
+                                  Error:{" "}
+                                  {conversation.errorMessage?.slice(0, 20)}...
+                                </span>
+                              )}
+                            </div>
+
+                            {conversation.isLoading && (
+                              <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse flex-shrink-0" />
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            {/* Model indicator */}
+                            {model && (
+                              <div
+                                className="w-2 h-2 rounded-full"
+                                style={{ backgroundColor: model.color }}
+                              />
+                            )}
+
+                            {/* Delete button */}
+                            {conversations.length > 1 &&
+                              conversations.indexOf(conversation) !== 0 && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  disabled={isAnyConversationLoading}
+                                  className="opacity-0 group-hover:opacity-100 h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 disabled:opacity-0"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    deleteConversation(conversation.id);
+                                  }}
+                                >
+                                  {deleteConversationLoading ? (
+                                    <Loader2 className="w-3 h-3" />
+                                  ) : (
+                                    <Trash2 className="w-3 h-3" />
+                                  )}
+                                </Button>
+                              )}
+                          </div>
+                        </div>
+                      );
+                    })
+                )}
               </div>
             </div>
 
-            <div className="flex h-[calc(100%-64px)]">
-              {/* Left Sidebar - Conversations */}
-              <div className="w-72 bg-gray-50 border-r border-gray-200 p-4 flex-shrink-0">
-                <Button
-                  onClick={createNewConversation}
-                  disabled={isAnyConversationLoading}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white mb-4 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  New Conversation
-                </Button>
-                <h3 className="text-sm font-medium text-gray-500 mb-3">
-                  Conversations
-                </h3>
-                <div className="space-y-2">
-                  {conversations?.length === 0 ? (
-                    <div className="text-sm text-gray-400 text-center py-4">
-                      No conversations yet
-                    </div>
-                  ) : (
-                    <>
-                      {conversations?.map((conversation) => {
-                        const model =
-                          conversation.selectedModel ||
-                          availableModels.find(
-                            (m) => m.id === conversation.ai_model_id
-                          );
-                        const isEditing =
-                          editingConversationId === conversation.id;
-                        return (
-                          <div
-                            key={conversation.id}
-                            className={`group flex items-center justify-between p-3 rounded-lg text-sm font-medium transition-colors ${
-                              activeConversationId === conversation.id
-                                ? "bg-blue-100 text-blue-700"
-                                : "hover:bg-gray-100 text-gray-700"
-                            } ${
-                              isAnyConversationLoading
-                                ? "cursor-not-allowed opacity-50"
-                                : "cursor-pointer"
-                            }`}
-                            onClick={() =>
-                              switchToConversation(conversation.id)
-                            }
-                          >
-                            <div className="flex-1 truncate flex items-center gap-2">
-                              <div className="flex flex-col">
-                                {isEditing ? (
-                                  <input
-                                    type="text"
-                                    className="text-sm font-medium rounded px-1 py-0.5 border border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white text-blue-700"
-                                    value={editingTitle}
-                                    autoFocus
-                                    onChange={handleEditingTitleChange}
-                                    onKeyDown={(e) =>
-                                      handleEditingTitleKeyDown(e, conversation)
-                                    }
-                                    onBlur={() =>
-                                      handleEditingTitleBlur(conversation)
-                                    }
-                                    onClick={(e) => e.stopPropagation()}
-                                    maxLength={60}
-                                    style={{ minWidth: 0, width: "100%" }}
-                                  />
-                                ) : (
-                                  <span
-                                    onDoubleClick={(e) => {
-                                      e.stopPropagation();
-                                      handleConversationTitleDoubleClick(
-                                        conversation
-                                      );
-                                    }}
-                                    title="Double click to edit"
-                                    className="truncate cursor-text"
-                                  >
-                                    {conversation.title}
-                                  </span>
-                                )}
-                                {/* Show draft indicator if conversation has unsent message */}
-                                {conversation.draftMessage &&
-                                  conversation.draftMessage.trim() && (
-                                    <span className="text-xs text-gray-500 italic">
-                                      Draft:{" "}
-                                      {conversation.draftMessage.slice(0, 20)}
-                                      ...
-                                    </span>
-                                  )}
-                              </div>
-                              {conversation?.isLoading && (
-                                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
-                              )}
-                            </div>
-                            <div className="flex items-center gap-1">
-                              {/* Show model indicator for each conversation */}
-                              {model && (
-                                <div
-                                  className="w-2 h-2 rounded-full"
-                                  style={{ backgroundColor: model.color }}
-                                />
-                              )}
-                              {/* Only show delete button if this is not the first conversation */}
-                              {conversations?.length > 1 &&
-                                conversations?.indexOf(conversation) !== 0 && (
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    disabled={isAnyConversationLoading}
-                                    className="opacity-0 group-hover:opacity-100 h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 disabled:opacity-0"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      deleteConversation(conversation.id);
-                                    }}
-                                  >
-                                    <Trash2 className="w-3 h-3" />
-                                  </Button>
-                                )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </>
+            {/* Main Content Area */}
+            <div className="flex-1 flex flex-col">
+              {/* Content Header */}
+              <div className="p-6 border-b border-gray-200 text-left">
+                <h1 className="text-xl font-semibold text-gray-800">
+                  {activeConversation?.title || "Select a conversation"}
+                  {isLoading && (
+                    <span className="ml-2 text-sm text-blue-500 font-normal">
+                      AI is thinking...
+                    </span>
                   )}
-                </div>
-              </div>
-              {/* Main Content Area */}
-              <div className="flex-1 flex flex-col">
-                {/* Content Header */}
-                <div className="p-6 border-b border-gray-200 text-left">
-                  <h1 className="text-xl font-semibold text-gray-800">
-                    {activeConversation?.title || "New Conversation"}
-                    {isLoading && (
-                      <span className="ml-2 text-sm text-blue-500 font-normal">
-                        AI is thinking...
-                      </span>
-                    )}
-                  </h1>
-                  {/* Show current model for active conversation */}
+                </h1>
+                {selectedModel && (
                   <div className="flex items-center gap-2 mt-1">
                     <div
                       className="w-2 h-2 rounded-full"
-                      style={{ backgroundColor: selectedModel?.color }}
+                      style={{ backgroundColor: selectedModel.color }}
                     />
                     <span className="text-sm text-gray-500">
-                      Using {selectedModel?.name}
+                      Using {selectedModel.name}
                     </span>
                   </div>
-                </div>
+                )}
+              </div>
 
-                {/* Messages Area */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-6">
-                  {messages.length === 0 ? (
-                    <div className="flex items-center justify-center h-full text-gray-400">
-                      <div className="text-center">
-                        <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                        <p>Start a conversation by typing a message below</p>
-                      </div>
+              {/* Error Alert */}
+              {activeConversation?.hasError && (
+                <div className="p-4 border-b border-gray-200">
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      {activeConversation.errorMessage || "An error occurred"}
+                    </AlertDescription>
+                  </Alert>
+                </div>
+              )}
+
+              {/* Messages Area */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-6">
+                {!activeConversationId ? (
+                  <div className="flex items-center justify-center h-full text-gray-400">
+                    <div className="text-center">
+                      <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                      <p>Select a conversation to start chatting</p>
                     </div>
-                  ) : (
-                    messages.map((msg) =>
-                      msg.sender === "user" ? (
-                        <div
-                          key={msg.id}
-                          className="flex items-start gap-3 mb-4 text-left"
-                        >
-                          <div className="w-7 h-7 bg-green-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                            U
+                  </div>
+                ) : messages.length === 0 && !isLoading ? (
+                  <div className="flex items-center justify-center h-full text-gray-400">
+                    <div className="text-center">
+                      <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                      <p>Start a conversation by typing a message below</p>
+                    </div>
+                  </div>
+                ) : (
+                  messages.map((msg) =>
+                    msg.sender === "user" ? (
+                      <div
+                        key={msg.id}
+                        className={`flex items-start gap-3 mb-4 text-left ${
+                          msg.isOptimistic ? "opacity-70" : ""
+                        }`}
+                      >
+                        <div className="w-7 h-7 bg-green-500 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                          U
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-semibold text-green-600 mb-1">
+                            You
                           </div>
-                          <div className="flex-1">
-                            <div className="text-sm font-semibold text-green-600 mb-1">
-                              You
-                            </div>
-                            <div className="text-gray-800 text-sm whitespace-pre-wrap">
-                              {msg.content}
-                            </div>
+                          <div className="text-gray-800 text-sm whitespace-pre-wrap break-words">
+                            {msg.content}
                           </div>
                         </div>
-                      ) : (
-                        <div
-                          key={msg.id}
-                          className="flex items-start gap-3 mb-6"
-                        >
-                          <div className="w-7 h-7 bg-gradient-to-r from-blue-500 to-pink-500 rounded-full flex items-center justify-center text-white text-xs">
-                            🤖
+                      </div>
+                    ) : (
+                      <div
+                        key={msg.id}
+                        className={`flex items-start gap-3 mb-6 ${
+                          msg.isOptimistic ? "opacity-70" : ""
+                        }`}
+                      >
+                        <div className="w-7 h-7 bg-gradient-to-r from-blue-500 to-pink-500 rounded-full flex items-center justify-center text-white text-xs flex-shrink-0">
+                          🤖
+                        </div>
+                        <div className="flex-1 text-left min-w-0">
+                          <div className="text-sm font-semibold text-blue-600 mb-2">
+                            AI
                           </div>
-                          <div className="flex-1 text-left">
-                            <div className="text-sm font-semibold text-blue-600 mb-2">
-                              AI
-                            </div>
-                            <div className="ai-message-content text-gray-700 text-sm leading-relaxed">
-                              <ReactMarkdown>{msg.content}</ReactMarkdown>
-                            </div>
-                            <div className="flex items-center gap-4 mt-3">
-                              <button className="flex items-center gap-1 text-xs text-blue-500 hover:text-blue-600">
-                                <Copy className="w-3 h-3" />
-                                Copy
-                              </button>
-                            </div>
+                          <div className="ai-message-content text-gray-700 text-sm leading-relaxed prose prose-sm max-w-none">
+                            <ReactMarkdown>{msg.content}</ReactMarkdown>
+                          </div>
+                          <div className="flex items-center gap-4 mt-3">
+                            <button
+                              className="flex items-center gap-1 text-xs text-blue-500 hover:text-blue-600 transition-colors"
+                              onClick={() =>
+                                navigator.clipboard.writeText(msg.content)
+                              }
+                            >
+                              <Copy className="w-3 h-3" />
+                              Copy
+                            </button>
                           </div>
                         </div>
-                      )
+                      </div>
                     )
-                  )}
+                  )
+                )}
 
-                  {isLoading && (
-                    <div className="flex items-start gap-3 mb-6">
-                      <div className="w-7 h-7 bg-gradient-to-r from-blue-500 to-pink-500 rounded-full flex items-center justify-center text-white text-xs">
-                        🤖
-                      </div>
-                      <div className="flex-1 text-left">
-                        <div className="text-sm font-semibold text-blue-600 mb-2">
-                          AI
-                        </div>
-                        <AIResponseLoader />
-                      </div>
+                {isLoading && (
+                  <div className="flex items-start gap-3 mb-6">
+                    <div className="w-7 h-7 bg-gradient-to-r from-blue-500 to-pink-500 rounded-full flex items-center justify-center text-white text-xs flex-shrink-0">
+                      🤖
                     </div>
-                  )}
+                    <div className="flex-1 text-left">
+                      <div className="text-sm font-semibold text-blue-600 mb-2">
+                        AI
+                      </div>
+                      <AIResponseLoader />
+                    </div>
+                  </div>
+                )}
 
-                  <div ref={messagesEndRef} />
-                </div>
+                <div ref={messagesEndRef} />
+              </div>
 
-                {/* Bottom Input Area */}
+              {/* Bottom Input Area */}
+              {activeConversationId && (
                 <div className="border-t border-gray-200 p-4">
                   {/* Input Field */}
                   <div className="relative mb-3">
@@ -889,11 +1114,6 @@ export default function ChatBoxNode({
                           className="w-full border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 text-sm resize-none min-h-[20px] max-h-[120px] scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100 hover:scrollbar-thumb-gray-500"
                           disabled={isLoading}
                           rows={1}
-                          style={{
-                            paddingRight: "8px",
-                            scrollbarWidth: "thin",
-                            scrollbarColor: "#9CA3AF #F3F4F6",
-                          }}
                         />
                       </div>
                       <Button
@@ -910,41 +1130,43 @@ export default function ChatBoxNode({
                   {/* Action Buttons */}
                   <div className="flex items-center gap-2 text-xs flex-wrap">
                     {/* Model Selector */}
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="flex items-center gap-1 text-xs h-7"
-                        >
-                          <div
-                            className="w-2 h-2 rounded-full"
-                            style={{ backgroundColor: selectedModel?.color }}
-                          />
-                          {selectedModel?.name}
-                          <ChevronDown className="w-3 h-3" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent>
-                        {availableModels.map((model) => (
-                          <DropdownMenuItem
-                            key={model.id}
-                            onClick={() => handleModelSelect(model)}
+                    {selectedModel && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="flex items-center gap-1 text-xs h-7"
                           >
-                            <div className="flex items-center gap-2">
-                              <div
-                                className="w-2 h-2 rounded-full"
-                                style={{ backgroundColor: model.color }}
-                              />
-                              {model.name}
-                              {selectedModel?.id === model?.id && (
-                                <span className="ml-auto">✓</span>
-                              )}
-                            </div>
-                          </DropdownMenuItem>
-                        ))}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                            <div
+                              className="w-2 h-2 rounded-full"
+                              style={{ backgroundColor: selectedModel.color }}
+                            />
+                            {selectedModel.name}
+                            <ChevronDown className="w-3 h-3" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                          {availableModels.map((model) => (
+                            <DropdownMenuItem
+                              key={model.id}
+                              onClick={() => handleModelSelect(model)}
+                            >
+                              <div className="flex items-center gap-2">
+                                <div
+                                  className="w-2 h-2 rounded-full"
+                                  style={{ backgroundColor: model.color }}
+                                />
+                                {model.name}
+                                {selectedModel.id === model.id && (
+                                  <span className="ml-auto">✓</span>
+                                )}
+                              </div>
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
 
                     {/* Predefined Prompts */}
                     {predefinedPrompts.map((prompt) => (
@@ -961,20 +1183,20 @@ export default function ChatBoxNode({
                     ))}
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
-
-          <Handle
-            position={targetPosition}
-            type="target"
-            isConnectableEnd={canConnect}
-            isConnectable={canConnect}
-            isConnectableStart={canConnect}
-            style={{ width: "30px", height: "30px" }}
-          />
         </div>
-      </NodeWrapper>
-    </>
+
+        <Handle
+          position={targetPosition}
+          type="target"
+          isConnectableEnd={canConnect}
+          isConnectable={canConnect}
+          isConnectableStart={canConnect}
+          style={{ width: "30px", height: "30px" }}
+        />
+      </div>
+    </NodeWrapper>
   );
 }
