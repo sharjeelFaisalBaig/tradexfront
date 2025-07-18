@@ -134,11 +134,11 @@ const Dashboard = () => {
           </div>
 
           {/* Pagination */}
-          <Pagination
+          {/* <Pagination
             totalPages={10}
             currentPage={currentPage}
             onPageChange={(page) => setCurrentPage(page)}
-          />
+          /> */}
         </main>
       </div>
     </div>
