@@ -62,8 +62,8 @@ function NewStrategyForm({
     e.preventDefault();
 
     const newErrors: { name?: string; desc?: string; tags?: string } = {};
-    if (!name.trim()) newErrors.name = "Strategy name is required.";
-    if (!desc.trim()) newErrors.desc = "Description is required.";
+    // if (!name.trim()) newErrors.name = "Strategy name is required.";
+    // if (!desc.trim()) newErrors.desc = "Description is required.";
     // if (tags.length === 0) newErrors.tags = "Please add at least one tag.";
 
     if (Object.keys(newErrors).length > 0) {
@@ -90,13 +90,12 @@ function NewStrategyForm({
       onClose();
     };
 
-    const onMutationError = (err: any) => {
+    const onMutationError = (error: any) => {
       toast({
         variant: "destructive",
-        title: "Error",
+        title: error?.response?.data?.message || "Error",
         description:
-          err?.response?.data?.message ||
-          err.message ||
+          `${error?.response?.data?.errors?.name[0]}\n${error?.response?.data?.errors?.description[0]}` ||
           "Unexpected error occurred.",
       });
     };

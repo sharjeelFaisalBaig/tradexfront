@@ -1,29 +1,21 @@
 "use client";
 
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
   BotMessageSquare,
-  Circle,
   CircleFadingPlus,
-  Diamond,
-  FileText,
-  Folder,
-  Globe,
+  SaveAllIcon,
   GlobeIcon,
   ImageIcon,
-  Key,
-  LayoutDashboard,
+  FileText,
   MicIcon,
   Play,
-  Plus,
-  SaveAllIcon,
-  Settings,
-  Type,
 } from "lucide-react";
 import { useNodeOperations } from "@/app/strategies/[slug]/hooks/useNodeOperations";
-import { useSavePeerPositions } from "@/hooks/strategy/useStrategyMutations";
+import { useSidebar } from "@/context/SidebarContext";
 import { toast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
+import { useEffect } from "react";
 
 const strategyTools = [
   { id: "image", icon: ImageIcon, label: "Images" },
@@ -47,10 +39,14 @@ interface StrategySidebarProps {
 
 const StrategySidebar = ({ strategyId }: StrategySidebarProps) => {
   const { addToolNode } = useNodeOperations();
-  // const { mutate: savePeersPositions, isPending: isSavingPositions } = useSavePeerPositions();
+  const { collapsed, setCollapsed } = useSidebar();
+
+  useEffect(() => {
+    setCollapsed(true);
+    return () => setCollapsed(false);
+  }, []);
 
   const handleSavePeersPositions = async () => {
-    // savePeersPositions({ strategyId, positions: [] });
     toast({
       title: "Peer Positions Saved",
       description: "All peer positions have been successfully saved.",
@@ -59,40 +55,40 @@ const StrategySidebar = ({ strategyId }: StrategySidebarProps) => {
 
   return (
     <div
-      className={
-        "bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 transition-all duration-300 strategy-sidebar w-16"
-      }
+      onMouseEnter={() => setCollapsed(false)}
+      onMouseLeave={() => setCollapsed(true)}
+      className={cn(
+        collapsed ? "w-16" : "w-40",
+        "bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 transition-all duration-300 strategy-sidebar"
+      )}
     >
       <div className="flex h-full flex-col items-center p-2 space-y-2">
-        <Link
-          href="/"
-          className={
-            "w-10 h-10 p-0 rounded-lg transition-all duration-200 flex items-center justify-center text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-          }
-        >
-          <LayoutDashboard className="w-5 h-5" />
-        </Link>
         {strategyTools?.map((item) => {
           const Icon = item.icon;
+
           return (
             <Button
               key={item.id}
               variant="ghost"
               size="sm"
-              className={
-                "w-10 h-10 p-0 rounded-lg transition-all duration-200 text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-              }
               title={item.label}
               onClick={
                 item.id === "Save Progress"
                   ? () => handleSavePeersPositions()
                   : () => addToolNode(item.id, strategyId)
               }
+              className={cn(
+                collapsed
+                  ? "w-10 p-0"
+                  : "px-2 w-full flex justify-start text-sm font-semibold",
+                "group h-10 rounded-lg transition-all duration-200 text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+              )}
             >
               <Icon
-                color={item?.color ?? "rgb(75 85 99)"}
+                {...(item?.color ? { color: item?.color } : {})}
                 className="w-5 h-5"
               />
+              {!collapsed && item.label}
             </Button>
           );
         })}
