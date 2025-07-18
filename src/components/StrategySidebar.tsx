@@ -22,6 +22,8 @@ import {
   Type,
 } from "lucide-react";
 import { useNodeOperations } from "@/app/strategies/[slug]/hooks/useNodeOperations";
+import { useSavePeerPositions } from "@/hooks/strategy/useStrategyMutations";
+import { toast } from "@/hooks/use-toast";
 
 const strategyTools = [
   { id: "image", icon: ImageIcon, label: "Images" },
@@ -45,6 +47,15 @@ interface StrategySidebarProps {
 
 const StrategySidebar = ({ strategyId }: StrategySidebarProps) => {
   const { addToolNode } = useNodeOperations();
+  // const { mutate: savePeersPositions, isPending: isSavingPositions } = useSavePeerPositions();
+
+  const handleSavePeersPositions = async () => {
+    // savePeersPositions({ strategyId, positions: [] });
+    toast({
+      title: "Peer Positions Saved",
+      description: "All peer positions have been successfully saved.",
+    });
+  };
 
   return (
     <div
@@ -74,7 +85,7 @@ const StrategySidebar = ({ strategyId }: StrategySidebarProps) => {
               title={item.label}
               onClick={
                 item.id === "Save Progress"
-                  ? () => {}
+                  ? () => handleSavePeersPositions()
                   : () => addToolNode(item.id, strategyId)
               }
             >

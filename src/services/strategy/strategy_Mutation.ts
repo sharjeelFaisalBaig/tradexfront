@@ -37,13 +37,14 @@ export const savePeerPositions = async ({
 }: {
   strategyId: string;
   positions: Array<{
+    type: string;
     peer_id: string;
     position_x: number;
     position_y: number;
   }>;
 }) => {
   const res = await axiosInstance.post(
-    endpoints.STRATEGY.SAVE_PEER_POSITIONS(strategyId),
+    endpoints.STRATEGY.BATCH_SAVE_PEER_POSITIONS(strategyId),
     { positions }
   );
   return res.data;

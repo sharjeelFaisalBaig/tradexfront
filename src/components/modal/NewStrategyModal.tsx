@@ -4,7 +4,6 @@ import { Dialog } from "@headlessui/react";
 import { useState, FormEvent, KeyboardEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
-import { useSession } from "next-auth/react";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";

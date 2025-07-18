@@ -31,13 +31,6 @@ import Loader from "@/components/common/Loader";
 import ChartNode from "./ChartNode";
 import {
   useSavePeerPositions,
-  useCreateImagePeer,
-  useCreateAudioPeer,
-  useCreateVideoPeer,
-  useCreateDocumentPeer,
-  useCreateSocialPeer,
-  useCreateThreadPeer,
-  useCreateRemotePeer,
   useUpdatePeerPosition,
   useConnectNodes,
 } from "@/hooks/strategy/useStrategyMutations";
@@ -47,78 +40,6 @@ const nodeDefaults = {
   sourcePosition: Position.Right,
   targetPosition: Position.Left,
 };
-
-// const initialNodes = [
-//   {
-//     id: "4",
-//     position: { x: -536.3887162260439, y: -807.6168221531623 },
-//     data: { label: "Url Search" },
-//     type: "remoteNode",
-//     ...nodeDefaults,
-//   },
-//   {
-//     id: "2",
-//     position: { x: -535.3098126574953, y: -416.71218936766786 },
-//     data: { label: "Image Upload" },
-//     type: "imageUploadNode",
-//     ...nodeDefaults,
-//   },
-//   {
-//     id: "3",
-//     position: { x: -535.2583827124738, y: -47.79763972050168 },
-//     data: { label: "Audio Player" },
-//     type: "audioPlayerNode",
-//     ...nodeDefaults,
-//   },
-//   {
-//     id: "5",
-//     position: { x: 24.569308041643296, y: -16.381814680330294 },
-//     data: { label: "Document Upload" },
-//     type: "documentUploadNode",
-//     ...nodeDefaults,
-//   },
-//   {
-//     id: "7",
-//     position: { x: 576.5473916470279, y: -8.984699488204 },
-//     data: { label: "Video Upload" },
-//     type: "videoUploadNode",
-//     ...nodeDefaults,
-//   },
-//   {
-//     id: "6",
-//     position: { x: 1197.838085675496, y: -803.2743598026047 },
-//     data: { label: "Social Media" },
-//     type: "socialMediaNode",
-//     ...nodeDefaults,
-//   },
-//   {
-//     id: "1",
-//     position: { x: 4.689513204926413, y: -803.7316620685999 },
-//     data: { label: "Chatbox" },
-//     type: "chatbox",
-//     ...nodeDefaults,
-//   },
-//   {
-//     id: "8",
-//     position: { x: 1212.8047809500401, y: -359.45483177740834 },
-//     data: {
-//       annotation: {
-//         content: "This is a sample annotation for collaborative notes!",
-//         author: "Demo User",
-//         createdAt: new Date().toISOString(),
-//         theme: "yellow",
-//       },
-//     },
-//     type: "annotationNode",
-//   },
-//   // {
-//   //   id: "9",
-//   //   position: { x: 0, y: 620 },
-//   //   data: { label: "Chart" },
-//   //   type: "chartNode",
-//   //   ...nodeDefaults,
-//   // },
-// ];
 
 const initialNodes: any = [];
 const initialEdges: any = [];
@@ -160,15 +81,6 @@ const Strategy = (props: StrategyProps) => {
   const { mutate: updatePeerPosition } = useUpdatePeerPosition();
   const { mutate: connectNodes } = useConnectNodes();
 
-  // Peer creation mutations
-  // const { mutate: createImagePeer } = useCreateImagePeer();
-  // const { mutate: createAudioPeer } = useCreateAudioPeer();
-  // const { mutate: createVideoPeer } = useCreateVideoPeer();
-  // const { mutate: createDocumentPeer } = useCreateDocumentPeer();
-  // const { mutate: createSocialPeer } = useCreateSocialPeer();
-  // const { mutate: createThreadPeer } = useCreateThreadPeer();
-  // const { mutate: createRemotePeer } = useCreateRemotePeer();
-
   const { data, isLoading, isError, error } = useGetStrategyById(slug);
   const strategy: IStrategy = useMemo(() => data?.data, [data]);
 
@@ -197,84 +109,6 @@ const Strategy = (props: StrategyProps) => {
 
     if (!flows || flows.length === 0 || isEmptyFlows) {
       console.log("Nodes not exists");
-
-      // Create all initial nodes as peers
-      // initialNodes.forEach((node) => {
-      //   switch (node.type) {
-      //     case "imageUploadNode":
-      //       createImagePeer({
-      //         strategyId: strategy.id,
-      //         data: {
-      //           title: node.data.label,
-      //           position_x: node.position.x,
-      //           position_y: node.position.y,
-      //         },
-      //       });
-      //       break;
-      //     case "audioPlayerNode":
-      //       createAudioPeer({
-      //         strategyId: strategy.id,
-      //         data: {
-      //           title: node.data.label,
-      //           position_x: node.position.x,
-      //           position_y: node.position.y,
-      //         },
-      //       });
-      //       break;
-      //     case "videoUploadNode":
-      //       createVideoPeer({
-      //         strategyId: strategy.id,
-      //         data: {
-      //           title: node.data.label,
-      //           position_x: node.position.x,
-      //           position_y: node.position.y,
-      //         },
-      //       });
-      //       break;
-      //     case "documentUploadNode":
-      //       createDocumentPeer({
-      //         strategyId: strategy.id,
-      //         data: {
-      //           title: node.data.label,
-      //           position_x: node.position.x,
-      //           position_y: node.position.y,
-      //         },
-      //       });
-      //       break;
-      //     case "socialMediaNode":
-      //       createSocialPeer({
-      //         strategyId: strategy.id,
-      //         data: {
-      //           title: node.data.label,
-      //           position_x: node.position.x,
-      //           position_y: node.position.y,
-      //         },
-      //       });
-      //       break;
-      //     case "chatbox":
-      //       createThreadPeer({
-      //         strategyId: strategy.id,
-      //         data: {
-      //           title: node.data?.label || "AI Assistant",
-      //           position_x: node.position.x,
-      //           position_y: node.position.y,
-      //         },
-      //       });
-      //       break;
-      //     case "remoteNode":
-      //       createRemotePeer({
-      //         strategyId: strategy.id,
-      //         data: {
-      //           title: node.data.label,
-      //           position_x: node.position.x,
-      //           position_y: node.position.y,
-      //         },
-      //       });
-      //       break;
-      //     default:
-      //       break;
-      //   }
-      // });
     } else {
       const flow = flows[0];
       if (!flow) return;

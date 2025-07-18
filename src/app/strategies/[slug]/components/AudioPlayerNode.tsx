@@ -5,6 +5,7 @@ import {
   useEffect,
   type DragEvent,
   type ChangeEvent,
+  useMemo,
 } from "react";
 import { Handle, Position, useReactFlow } from "@xyflow/react";
 import {
@@ -753,7 +754,7 @@ export default function AudioPlayerNode({
   const progressValue = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   // Determine if connection should be allowed based on data.is_ready_to_interact
-  const canConnect = data?.is_ready_to_interact;
+  const canConnect = useMemo(() => data?.is_ready_to_interact, [data]);
 
   // Remove connections when node becomes not connectable
   useEffect(() => {

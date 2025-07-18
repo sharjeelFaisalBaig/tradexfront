@@ -6,6 +6,7 @@ import {
   useEffect,
   type DragEvent,
   type ChangeEvent,
+  useMemo,
 } from "react";
 import { Handle, Position, useReactFlow } from "@xyflow/react";
 import {
@@ -387,9 +388,8 @@ export default function ImageUploadNode({
   }, [data?.imageUrl, data?.fileName]);
 
   // Determine if connection should be allowed
-  const canConnect: any =
-    (processingState.isComplete && !processingState.error) ||
-    data?.is_ready_to_interact;
+  // const canConnect: any = (processingState.isComplete && !processingState.error) || data?.is_ready_to_interact;
+  const canConnect = useMemo(() => data?.is_ready_to_interact, [data]);
 
   // Remove connections when node becomes not connectable
   useEffect(() => {
@@ -678,16 +678,16 @@ export default function ImageUploadNode({
             </div>
           </TooltipProvider>
 
-          {/* <Handle
+          <Handle
             type="source"
             position={sourcePosition}
             isConnectableEnd={canConnect}
             isConnectable={canConnect}
             isConnectableStart={canConnect}
             style={{ width: "30px", height: "30px" }}
-          /> */}
+          />
 
-          <Handle
+          {/* <Handle
             type="source"
             position={sourcePosition}
             isConnectable={canConnect}
@@ -701,7 +701,7 @@ export default function ImageUploadNode({
               transform: "translateY(-50%)",
               zIndex: 1000,
             }}
-          />
+          /> */}
         </div>
       </NodeWrapper>
     </>

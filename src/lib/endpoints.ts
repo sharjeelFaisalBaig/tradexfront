@@ -74,7 +74,7 @@ export const endpoints = {
       `/strategies/${id}/thread-context/disconnect`,
 
     // board batch save peer positions
-    SAVE_PEER_POSITIONS: (id: string) =>
+    BATCH_SAVE_PEER_POSITIONS: (id: string) =>
       `/strategies/${id}/peers/save-positions`,
 
     // update peer positions endpoint

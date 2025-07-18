@@ -58,8 +58,10 @@ export const useUpdateStrategy = () => {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<IStrategy> }) =>
       updateStrategy(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.STRATEGIES] });
+    onSuccess: (_, data) => {
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.STRATEGIES, QUERY_KEYS.STRATEGY, data.id],
+      });
     },
   });
 };
@@ -105,6 +107,7 @@ export const useSavePeerPositions = () => {
     }: {
       strategyId: string;
       positions: Array<{
+        type: string;
         peer_id: string;
         position_x: number;
         position_y: number;
