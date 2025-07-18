@@ -49,6 +49,7 @@ import {
 } from "@/hooks/strategy/useStrategyMutations";
 import { useGetPeerAnalysisStatus } from "@/hooks/strategy/useGetPeerAnalysisStatus";
 import { toast } from "@/hooks/use-toast";
+import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 
 // Types for AI integration
 interface AIProcessingResponse {
@@ -108,6 +109,7 @@ export default function VideoUploadNode({
   console.log("Video_node_data:", data);
 
   const strategyId = useParams()?.slug as string;
+  const successNote = useSuccessNotifier();
 
   // Upload state
   const [uploadState, setUploadState] = useState<{
@@ -605,7 +607,7 @@ export default function VideoUploadNode({
             fileInputRef.current.value = "";
           }
 
-          toast({
+          successNote({
             title: "Video removed",
             description: data?.message ?? "Video removed successfully",
           });

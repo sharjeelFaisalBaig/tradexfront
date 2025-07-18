@@ -19,9 +19,11 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { toast } from "@/hooks/use-toast";
 import { signIn } from "next-auth/react";
 import Loader from "@/components/common/Loader";
+import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 
 export default function LoginPage() {
   const router = useRouter();
+  const successNote = useSuccessNotifier();
 
   // Initialize Formik with initial values, validation schema, and submit handler
   const formik = useFormik({
@@ -54,10 +56,9 @@ export default function LoginPage() {
             router.replace(
               `/auth/otp?email=${encodeURIComponent(values.email)}&2fa=false`
             );
-            toast({
+            successNote({
               title: "Verification Required",
               description: "Please verify your email with the OTP.",
-              variant: "default",
             });
           } else if (res.error.startsWith("2faEnabled:")) {
             // 2FA is enabled – redirect with correct email
@@ -65,20 +66,18 @@ export default function LoginPage() {
             router.replace(
               `/auth/otp?email=${encodeURIComponent(emailFromError)}&2fa=true`
             );
-            toast({
+            successNote({
               title: "2FA Required",
               description: "Please enter the OTP from your authenticator app.",
-              variant: "default",
             });
           } else if (res.error === "Verification") {
             // General verification error – fallback for unknown OTP flow
             router.replace(
               `/auth/otp?email=${encodeURIComponent(values.email)}&2fa=true`
             );
-            toast({
+            successNote({
               title: "2FA Required",
               description: "Please verify your email with the OTP.",
-              variant: "default",
             });
           } else {
             // Invalid credentials
@@ -91,10 +90,9 @@ export default function LoginPage() {
         } else {
           // Successful login – redirect to dashboard
           router.push("/dashboard");
-          toast({
+          successNote({
             title: "Login Successful",
             description: "Navigating to dashboard.",
-            variant: "default",
           });
         }
       } catch (error) {

@@ -19,6 +19,7 @@ import StrategyCard from "@/components/StrategyCard";
 import { useRouter } from "next/navigation";
 import Loader from "@/components/common/Loader";
 import { Pagination } from "@/components/common/Pagination";
+import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 
 const Dashboard = () => {
   const router = useRouter();

@@ -68,6 +68,7 @@ interface ProcessingState {
 // Re-import SocialMediaData and URLValidationResult types if they are exported from utils.ts
 import type { SocialMediaData, URLValidationResult } from "@/lib/utils";
 import { getEmbedVideoByLink } from "@/hooks/useGetEmbedVideoByLink";
+import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 
 export default function SocialMediaNode({
   id,
@@ -79,6 +80,7 @@ export default function SocialMediaNode({
   const strategyId = useParams()?.slug as string;
   const nodeControlRef = useRef(null);
   const { setEdges } = useReactFlow();
+  const successNote = useSuccessNotifier();
 
   // URL and validation states
   const [socialUrl, setSocialUrl] = useState<string>("");
@@ -320,7 +322,7 @@ export default function SocialMediaNode({
           });
           setUserNotes("");
           setIsLoading(false);
-          toast({
+          successNote({
             title: "Social media link removed",
             description:
               data?.message ?? "Social media link removed successfully",

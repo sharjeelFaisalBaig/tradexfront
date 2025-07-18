@@ -12,9 +12,9 @@ import {
 } from "lucide-react";
 import { useNodeOperations } from "@/app/strategies/[slug]/hooks/useNodeOperations";
 import { useSidebar } from "@/context/SidebarContext";
-import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useEffect } from "react";
+import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 
 const strategyTools = [
   { id: "image", icon: ImageIcon, label: "Images" },
@@ -34,6 +34,7 @@ interface StrategySidebarProps {
 const StrategySidebar = ({ strategyId }: StrategySidebarProps) => {
   const { addToolNode } = useNodeOperations();
   const { collapsed, setCollapsed } = useSidebar();
+  const successNote = useSuccessNotifier();
 
   useEffect(() => {
     setCollapsed(true);
@@ -41,7 +42,7 @@ const StrategySidebar = ({ strategyId }: StrategySidebarProps) => {
   }, []);
 
   const handleSavePeersPositions = async () => {
-    toast({
+    successNote({
       title: "Peer Positions Saved",
       description: "All peer positions have been successfully saved.",
     });

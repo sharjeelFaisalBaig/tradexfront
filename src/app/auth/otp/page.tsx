@@ -11,10 +11,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { signIn } from "next-auth/react";
+import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 
 const OtpVerificationPage = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const successNote = useSuccessNotifier();
 
   // Get query params from URL
   const email = searchParams.get("email")?.replace(" ", "+");
@@ -60,7 +62,10 @@ const OtpVerificationPage = () => {
       }),
     onSuccess: (data) => {
       setVerifying(true);
-      toast({ title: "Success", description: "2FA verified successfully." });
+      successNote({
+        title: "Success",
+        description: "2FA verified successfully.",
+      });
 
       // Sign in using NextAuth custom provider (2fa)
       signIn("2fa", {
@@ -96,7 +101,7 @@ const OtpVerificationPage = () => {
       }),
     onSuccess: () => {
       setVerifying(true);
-      toast({
+      successNote({
         title: "Success",
         description: "OTP verified successfully. Please log in.",
       });
@@ -127,7 +132,7 @@ const OtpVerificationPage = () => {
       }),
     onSuccess: (data) => {
       setTimer(data.data.otp_expires_in);
-      toast({
+      successNote({
         title: "Success",
         description: "A new OTP has been sent to your email.",
       });
@@ -157,7 +162,7 @@ const OtpVerificationPage = () => {
       }),
     onSuccess: (data) => {
       setTimer(data.data.otp_expires_in);
-      toast({
+      successNote({
         title: "Success",
         description: "A new OTP has been sent to your email.",
       });

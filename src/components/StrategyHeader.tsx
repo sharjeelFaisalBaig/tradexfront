@@ -14,9 +14,9 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import BellIcon from "../icons/bell.svg";
 import { signOut } from "next-auth/react";
-import { useToast } from "@/hooks/use-toast";
 import { IStrategy } from "@/lib/types";
 import { useGetUser } from "@/hooks/auth/useAuth";
+import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 
 interface HeaderInterface {
   strategy?: IStrategy | null;
@@ -25,7 +25,7 @@ interface HeaderInterface {
 
 const StrategyHeader = ({ strategy, onEditStrategy }: HeaderInterface) => {
   const router = useRouter();
-  const { toast } = useToast();
+  const successNote = useSuccessNotifier();
   const [showNotifications, setShowNotifications] = useState(false);
 
   const { data } = useGetUser();
@@ -167,9 +167,8 @@ const StrategyHeader = ({ strategy, onEditStrategy }: HeaderInterface) => {
                 <DropdownMenuItem
                   onClick={() => {
                     signOut();
-                    toast({
+                    successNote({
                       title: "Logout successfully",
-                      variant: "default",
                     });
                   }}
                 >

@@ -15,9 +15,8 @@ import {
   useStripe,
   useElements,
 } from "@stripe/react-stripe-js";
-import Loader from "../common/Loader";
-import { toast } from "@/hooks/use-toast";
 import { useTheme } from "next-themes";
+import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 
 const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
@@ -30,6 +29,8 @@ function BuyCreditsForm({
   onSuccess: (data: any) => void;
   onClose: () => void;
 }) {
+  const successNote = useSuccessNotifier();
+
   const { data: session } = useSession();
   const stripe = useStripe();
   const elements = useElements();
@@ -143,7 +144,7 @@ function BuyCreditsForm({
         );
       }
 
-      toast({
+      successNote({
         title: "Purchase Successful",
         description: `${confirmResponse.data.credits_purchased} credits have been added to your account.`,
       });

@@ -37,6 +37,7 @@ import {
 } from "@/hooks/strategy/useStrategyMutations";
 import { getPeerTypeFromNodeType } from "@/lib/utils";
 import StrategyHeader from "@/components/StrategyHeader";
+import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 
 const nodeDefaults = {
   sourcePosition: Position.Right,
@@ -72,6 +73,7 @@ const Strategy = (props: StrategyProps) => {
   const { slug } = props;
 
   const store = useStoreApi();
+  const successNote = useSuccessNotifier();
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const { getInternalNode, getViewport } = useReactFlow();
@@ -266,10 +268,9 @@ const Strategy = (props: StrategyProps) => {
         },
         {
           onSuccess: () => {
-            toast({
+            successNote({
               title: "Nodes connected",
               description: "Successfully connected nodes.",
-              variant: "default",
             });
           },
           onError: (error: any) => {

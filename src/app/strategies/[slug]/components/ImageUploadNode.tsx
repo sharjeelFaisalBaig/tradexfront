@@ -38,6 +38,7 @@ import {
 import { useParams } from "next/navigation";
 import { useGetPeerAnalysisStatus } from "@/hooks/strategy/useGetPeerAnalysisStatus";
 import { toast } from "@/hooks/use-toast";
+import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 
 // Types for API integration
 interface AIProcessingResponse {
@@ -63,6 +64,8 @@ export default function ImageUploadNode({
   console.log("ImageUploadNode data:", data);
 
   const strategyId = useParams()?.slug as string;
+
+  const successNote = useSuccessNotifier();
 
   const { mutate: resetPeer, isPending: isReseting } = useResetPeer();
   const { mutate: uploadImageContent, isPending: isUploading } =
@@ -352,7 +355,8 @@ export default function ImageUploadNode({
           if (fileInputRef.current) {
             fileInputRef.current.value = "";
           }
-          toast({
+
+          successNote({
             title: "Image removed",
             description: data?.message ?? "Image removed successfully",
           });

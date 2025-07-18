@@ -40,6 +40,7 @@ import ReactMarkdown from "react-markdown";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 
 // Types
 interface AIModel {
@@ -96,6 +97,7 @@ export default function ChatBoxNode({
   const strategyId = useParams()?.slug as string;
   const queryClient = useQueryClient();
   const { setEdges } = useReactFlow();
+  const successNote = useSuccessNotifier();
 
   // State
   const [activeConversationId, setActiveConversationId] = useState<

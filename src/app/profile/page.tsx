@@ -28,8 +28,11 @@ import { endpoints, DOMAIN_ROOT } from "@/lib/endpoints";
 import { fetchWithAutoRefresh } from "@/lib/fetchWithAutoRefresh";
 import Loader from "@/components/common/Loader";
 import { toast } from "@/hooks/use-toast";
+import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 
 function ProfilePage() {
+  const successNote = useSuccessNotifier();
+
   const { data: session } = useSession();
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -128,7 +131,7 @@ function ProfilePage() {
       );
 
       if (data?.status) {
-        toast({
+        successNote({
           title: "Profile Updated",
           description: "Your profile has been updated successfully.",
         });
@@ -160,7 +163,7 @@ function ProfilePage() {
       );
 
       if (data?.status) {
-        toast({
+        successNote({
           title: "Subscription Cancelled",
           description: "Your subscription has been cancelled successfully.",
         });
@@ -201,7 +204,7 @@ function ProfilePage() {
       );
 
       if (data?.status) {
-        toast({
+        successNote({
           title: "Avatar Uploaded",
           description: "Your avatar has been updated successfully.",
         });
@@ -233,7 +236,7 @@ function ProfilePage() {
       );
 
       if (data?.status) {
-        toast({
+        successNote({
           title: "Avatar Deleted",
           description: "Your avatar has been deleted successfully.",
         });

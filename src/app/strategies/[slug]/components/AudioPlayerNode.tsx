@@ -52,6 +52,7 @@ import {
 } from "@/hooks/strategy/useStrategyMutations";
 import { useGetPeerAnalysisStatus } from "@/hooks/strategy/useGetPeerAnalysisStatus";
 import { toast } from "@/hooks/use-toast";
+import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 
 // Types for AI integration
 interface AIProcessingResponse {
@@ -89,6 +90,7 @@ export default function AudioPlayerNode({
 }: any) {
   console.log("AudioPlayerNode", { data });
   const strategyId = useParams()?.slug as string;
+  const successNote = useSuccessNotifier();
 
   // mutations
   const { mutate: resetPeer, isPending: isReseting } = useResetPeer();
@@ -638,7 +640,7 @@ export default function AudioPlayerNode({
             fileInputRef.current.value = "";
           }
 
-          toast({
+          successNote({
             title: "Audio removed",
             description: data?.message ?? "Audio removed successfully",
           });

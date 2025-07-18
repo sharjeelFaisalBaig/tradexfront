@@ -14,6 +14,7 @@ import {
   useCreateStrategy,
   useUpdateStrategy,
 } from "@/hooks/strategy/useStrategyMutations";
+import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 
 const MAX_TAGS = 4; // maximum allowed tags
 
@@ -26,6 +27,7 @@ function NewStrategyForm({
   onClose: () => void;
   strategy?: IStrategy | null;
 }) {
+  const successNote = useSuccessNotifier();
   const createMutation = useCreateStrategy();
   const updateMutation = useUpdateStrategy();
 
@@ -80,7 +82,7 @@ function NewStrategyForm({
     };
 
     const onMutationSuccess = (data: any) => {
-      toast({
+      successNote({
         title: strategy ? "Strategy Updated" : "Strategy Created",
         description: `Strategy "${name}" ${
           strategy ? "updated" : "created"

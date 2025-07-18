@@ -14,6 +14,7 @@ import { useDisconnectNodes } from "@/hooks/strategy/useStrategyMutations";
 import { toast } from "@/hooks/use-toast";
 import { useParams } from "next/navigation";
 import { getPeerTypeFromNodeType } from "@/lib/utils";
+import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 
 interface StyledEdgeProps {
   id: string;
@@ -46,6 +47,8 @@ export default function StyledEdge({
 }: StyledEdgeProps) {
   const { setEdges, getNode } = useReactFlow();
   const strategyId = useParams().slug as string;
+  const successNote = useSuccessNotifier();
+
   const { mutate: disconnectNodes, isPending } = useDisconnectNodes();
 
   const [edgePath, labelX, labelY] = getStraightPath({
@@ -75,7 +78,7 @@ export default function StyledEdge({
       {
         onSuccess: () => {
           setEdges((edges) => edges.filter((edge) => edge.id !== id));
-          toast({
+          successNote({
             title: "Disconnected",
             description: "The connection has been removed successfully.",
           });

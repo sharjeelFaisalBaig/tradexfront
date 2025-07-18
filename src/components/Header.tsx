@@ -16,14 +16,14 @@ import BellIcon from "../icons/bell.svg";
 import Affiliate from "../icons/affiliate.svg";
 import UnlockIcon from "../icons/unlock.svg";
 import { signOut } from "next-auth/react";
-import { useToast } from "@/hooks/use-toast";
 import { useGetUser } from "@/hooks/auth/useAuth";
+import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 
 interface HeaderInterface {}
 
 const Header = ({}: HeaderInterface) => {
   const router = useRouter();
-  const { toast } = useToast();
+  const successNote = useSuccessNotifier();
   const [showNotifications, setShowNotifications] = useState(false);
 
   const { data } = useGetUser();
@@ -169,9 +169,8 @@ const Header = ({}: HeaderInterface) => {
               <DropdownMenuItem
                 onClick={() => {
                   signOut();
-                  toast({
+                  successNote({
                     title: "Logout successfully",
-                    variant: "default",
                   });
                 }}
               >

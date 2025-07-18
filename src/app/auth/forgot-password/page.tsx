@@ -8,9 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Image from "next/image";
 import Loader from "@/components/common/Loader";
+import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 
 export default function ForgotPasswordPage() {
   const router = useRouter();
+  const successNote = useSuccessNotifier();
+
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -43,7 +46,7 @@ export default function ForgotPasswordPage() {
         setLoading(false);
         return;
       }
-      toast({
+      successNote({
         title: "OTP Sent",
         description: "Please check your email for the OTP.",
       });

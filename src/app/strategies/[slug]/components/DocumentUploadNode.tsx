@@ -42,6 +42,7 @@ import {
 } from "@/hooks/strategy/useStrategyMutations";
 import { useGetPeerAnalysisStatus } from "@/hooks/strategy/useGetPeerAnalysisStatus";
 import { toast } from "@/hooks/use-toast";
+import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 
 // Types for AI integration
 interface AIProcessingResponse {
@@ -136,6 +137,7 @@ export default function DocumentUploadNode({
   console.log("DocumentUploadNode data:", data);
 
   const strategyId = useParams()?.slug as string;
+  const successNote = useSuccessNotifier();
 
   // mutations
   const { mutate: resetPeer, isPending: isReseting } = useResetPeer();
@@ -481,7 +483,7 @@ export default function DocumentUploadNode({
             fileInputRef.current.value = "";
           }
 
-          toast({
+          successNote({
             title: "Document removed",
             description: data?.message ?? "Document removed successfully",
           });
@@ -528,7 +530,7 @@ export default function DocumentUploadNode({
                 isComplete: true,
                 error: null,
               });
-              toast({
+              successNote({
                 title: "Analysis Retried",
                 description: "Document analysis re-triggered successfully.",
               });

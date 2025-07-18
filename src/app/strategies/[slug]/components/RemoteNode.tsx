@@ -41,6 +41,7 @@ import {
 } from "@/hooks/strategy/useStrategyMutations";
 import { useGetPeerAnalysisStatus } from "@/hooks/strategy/useGetPeerAnalysisStatus";
 import { toast } from "@/hooks/use-toast";
+import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 
 // Types for AI integration
 interface AIProcessingResponse {
@@ -83,6 +84,7 @@ export default function RemoteNode({
   data,
 }: any) {
   const strategyId = useParams()?.slug as string;
+  const successNote = useSuccessNotifier();
 
   console.log("RemoteNode data:", { data });
 
@@ -365,7 +367,7 @@ export default function RemoteNode({
           setUserNotes("");
           setUrlValidation({ isValid: false });
 
-          toast({
+          successNote({
             title: "Link removed",
             description: data?.message ?? "Link removed successfully",
           });

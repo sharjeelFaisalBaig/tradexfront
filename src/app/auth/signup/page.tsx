@@ -17,6 +17,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { useSignup } from "@/services/auth/auth_Mutation";
 import { getCsrfToken } from "@/services/auth/csrf";
 import Loader from "@/components/common/Loader";
+import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 
 // Yup validation schema
 const validationSchema = Yup.object().shape({
@@ -38,6 +39,8 @@ const linkClass = "text-cyan-600 underline hover:underline";
 
 const Signup = () => {
   const router = useRouter();
+  const successNote = useSuccessNotifier();
+
   const { mutate, isPending } = useSignup();
 
   // Formik setup
@@ -70,7 +73,7 @@ const Signup = () => {
             router.replace(
               `/auth/otp?email=${user.email}&expires_in=${otp_expires_in}`
             );
-            toast({
+            successNote({
               title: "Account Created",
               description: "Please check your email for the OTP.",
             });
