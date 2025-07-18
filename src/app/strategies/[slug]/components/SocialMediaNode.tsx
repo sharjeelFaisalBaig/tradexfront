@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useRef, useEffect, type ChangeEvent } from "react";
 import {
   useAnalyzeSocialPeer,
@@ -21,7 +20,6 @@ import {
   Loader2,
   Shield,
   CheckCircle,
-  Play,
   ExternalLink,
 } from "lucide-react";
 import {
@@ -33,6 +31,7 @@ import {
 import NodeWrapper from "./common/NodeWrapper";
 import { useParams } from "next/navigation";
 import { useGetPeerAnalysisStatus } from "@/hooks/strategy/useGetPeerAnalysisStatus";
+import { toast } from "@/hooks/use-toast";
 
 // Types for AI integration
 interface AIProcessingResponse {
@@ -68,7 +67,7 @@ interface ProcessingState {
 
 // Re-import SocialMediaData and URLValidationResult types if they are exported from utils.ts
 import type { SocialMediaData, URLValidationResult } from "@/lib/utils";
-import { toast } from "@/hooks/use-toast";
+import { getEmbedVideoByLink } from "@/hooks/getEmbedVideoByLink";
 
 export default function SocialMediaNode({
   id,
@@ -111,7 +110,6 @@ export default function SocialMediaNode({
       const validation = validateSocialMediaUrl(data.video);
       setSocialUrl(data.video);
       setUrlValidation(validation);
-
       if (validation.isValid) {
         // Use the new helper to extract details including initial thumbnail
         const extractedData = extractSocialVideoDetails(data.video);
@@ -119,7 +117,6 @@ export default function SocialMediaNode({
       } else {
         setSocialMediaData(null);
       }
-
       // Set AI response if present
       if (data.ai_title || data.ai_summary) {
         setAiResponse({
@@ -138,10 +135,8 @@ export default function SocialMediaNode({
       } else {
         setAiResponse(null);
       }
-
       // Set user notes if present
       setUserNotes(data.ai_notes || "");
-
       // If video is present and ready, mark processing as complete (for connectability)
       if (data.is_ready_to_interact) {
         setProcessingState((prev) => ({
@@ -169,35 +164,6 @@ export default function SocialMediaNode({
       setUserNotes("");
     }
   }, [data]);
-
-  // TikTok oEmbed thumbnail fetcher (remains in component as it's async and updates state)
-  // [^2][^3]
-  useEffect(() => {
-    if (
-      socialMediaData &&
-      socialMediaData.platform === "tiktok" &&
-      socialMediaData.url &&
-      socialMediaData.thumbnail.includes("TikTok+Video") // Check if thumbnail is still the generic one
-    ) {
-      fetch(
-        `https://www.tiktok.com/oembed?url=${encodeURIComponent(
-          socialMediaData.url
-        )}`
-      )
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.thumbnail_url) {
-            setSocialMediaData((prev) =>
-              prev ? { ...prev, thumbnail: data.thumbnail_url } : prev
-            );
-          }
-        })
-        .catch((error) => {
-          console.error("Failed to fetch TikTok oEmbed thumbnail:", error);
-          // fallback: do nothing, keep placeholder
-        });
-    }
-  }, [socialMediaData]);
 
   // Mock AI processing function (assuming this is for internal dev/testing)
   const processVideoContent = (
@@ -309,9 +275,7 @@ export default function SocialMediaNode({
     setProcessingState({ isProcessing: true, isComplete: false, error: null });
     setAiResponse(null);
     setSocialMediaData(null); // Reset socialMediaData before processing
-
     resetAnalyze();
-
     try {
       const videoData = extractSocialVideoDetails(socialUrl); // Use the new helper
       if (videoData) {
@@ -319,7 +283,6 @@ export default function SocialMediaNode({
       } else {
         throw new Error("Could not extract video details.");
       }
-
       // Initial analyze request (no polling, just one request)
       analyzeSocialPeer({
         strategyId,
@@ -357,7 +320,6 @@ export default function SocialMediaNode({
           });
           setUserNotes("");
           setIsLoading(false);
-
           toast({
             title: "Social media link removed",
             description:
@@ -672,33 +634,21 @@ export default function SocialMediaNode({
                   {/* Video Preview */}
                   <div className="px-4">
                     <div className="relative bg-gray-900 rounded-lg overflow-hidden aspect-video">
-                      <img
-                        src={socialMediaData.thumbnail || "/placeholder.svg"}
-                        alt="Video thumbnail"
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          // Fallback to gradient background if thumbnail fails to load
-                          const target = e.target as HTMLImageElement;
-                          target.style.display = "none";
-                          target.parentElement!.style.background =
-                            currentPlatform
-                              ? `linear-gradient(135deg, ${currentPlatform.color
-                                  .replace("from-", "")
-                                  .replace(" to-", ", ")})`
-                              : "linear-gradient(135deg, #6366f1, #8b5cf6)";
-                        }}
-                      />
-                      {/* Play overlay */}
-                      <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center">
-                        <Button
-                          onClick={handleOpenOriginal}
-                          size="lg"
-                          className="bg-white bg-opacity-90 hover:bg-opacity-100 text-gray-900 rounded-full h-16 w-16 p-0"
-                        >
-                          <Play className="w-6 h-6 ml-1" />
-                        </Button>
+                      {/*
+                        WARNING: Directly using <video> tag with social media URLs (like YouTube, Instagram, TikTok, Facebook)
+                        will likely NOT work as these are typically page URLs, not direct video file links.
+                        Social media platforms require their own embed players (usually iframes) for proper embedding.
+                        If you need to embed the actual video, consider using platform-specific iframe embeds.
+                      */}
+
+                      <div className="relative w-full h-full aspect-video overflow-hidden">
+                        {socialMediaData &&
+                          getEmbedVideoByLink(
+                            socialMediaData.platform,
+                            socialMediaData.url
+                          )}
                       </div>
-                      {/* Processing Overlay */}
+
                       {processingState.isProcessing && (
                         <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
                           <div className="bg-white p-4 rounded-lg shadow-lg flex flex-col items-center">
@@ -711,7 +661,7 @@ export default function SocialMediaNode({
                       )}
                     </div>
                     {/* Video metadata */}
-                    <div className="mt-4 space-y-3">
+                    <div className="my-4 space-y-3">
                       {/* Action buttons */}
                       <div className="flex items-center gap-2">
                         <Tooltip>

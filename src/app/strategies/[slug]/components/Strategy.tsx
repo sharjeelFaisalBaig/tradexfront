@@ -10,6 +10,8 @@ import {
   useStoreApi,
   useReactFlow,
   Connection,
+  Controls,
+  MiniMap,
 } from "@xyflow/react";
 import { Position } from "@xyflow/react";
 import ChatBoxNode from "./ChatBoxNode";
@@ -483,6 +485,8 @@ const Strategy = (props: StrategyProps) => {
             maxZoom={2}
           >
             <Background />
+            <MiniMap />
+            <Controls />
           </ReactFlow>
         </main>
       </div>
