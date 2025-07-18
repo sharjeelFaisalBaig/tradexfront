@@ -8,7 +8,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ChevronDown, PencilLine } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -17,17 +17,11 @@ import Affiliate from "../icons/affiliate.svg";
 import UnlockIcon from "../icons/unlock.svg";
 import { signOut } from "next-auth/react";
 import { useToast } from "@/hooks/use-toast";
-import { useSidebar } from "@/context/SidebarContext";
-import { IStrategy } from "@/lib/types";
 import { useGetUser } from "@/hooks/auth/useAuth";
 
-interface HeaderInterface {
-  strategy?: IStrategy | null;
-  onEditStrategy?: (data?: IStrategy | null) => void;
-}
+interface HeaderInterface {}
 
-const Header = ({ strategy, onEditStrategy }: HeaderInterface) => {
-  const { sidebarType } = useSidebar();
+const Header = ({}: HeaderInterface) => {
   const router = useRouter();
   const { toast } = useToast();
   const [showNotifications, setShowNotifications] = useState(false);
@@ -48,39 +42,22 @@ const Header = ({ strategy, onEditStrategy }: HeaderInterface) => {
         />
 
         <div className="flex items-center space-x-2 mr-4">
-          {sidebarType === "strategy" ? (
-            <div className="flex gap-2 items-center w-full">
-              <h3 className="text-xl font-medium">{strategy?.name ?? ""}</h3>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="flex items-center rounded-10p"
-                onClick={() => onEditStrategy?.(strategy)}
-              >
-                <PencilLine />
-              </Button>
-            </div>
-          ) : (
-            <>
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex items-center rounded-10p"
-              >
-                <Affiliate />
-                Affiliate
-              </Button>
-
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex items-center rounded-10p"
-              >
-                <UnlockIcon />
-                Unlock $100
-              </Button>
-            </>
-          )}
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex items-center rounded-10p"
+          >
+            <Affiliate />
+            Affiliate
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex items-center rounded-10p"
+          >
+            <UnlockIcon />
+            Unlock $100
+          </Button>
         </div>
       </div>
 

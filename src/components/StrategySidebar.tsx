@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import {
   BotMessageSquare,
   CircleFadingPlus,
-  SaveAllIcon,
   GlobeIcon,
   ImageIcon,
   FileText,
@@ -25,12 +24,7 @@ const strategyTools = [
   { id: "social", icon: CircleFadingPlus, label: "Social" },
   { id: "remote", icon: GlobeIcon, label: "Website" },
   { id: "AI Assistant", icon: BotMessageSquare, label: "AI Assistant" },
-  {
-    id: "Save Progress",
-    icon: SaveAllIcon,
-    label: "Save Progress",
-    color: "#0088cc",
-  },
+  // {id: "Save Progress",icon: SaveAllIcon,label: "Save Progress",color: "#0088cc"},
 ];
 
 interface StrategySidebarProps {
@@ -85,8 +79,8 @@ const StrategySidebar = ({ strategyId }: StrategySidebarProps) => {
               )}
             >
               <Icon
-                {...(item?.color ? { color: item?.color } : {})}
                 className="w-5 h-5"
+                // {...(item?.color ? { color: item?.color } : {})}
               />
               {!collapsed && item.label}
             </Button>

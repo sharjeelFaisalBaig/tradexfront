@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import Header from "@/components/Header";
 import {
   ReactFlow,
   addEdge,
@@ -35,6 +34,7 @@ import {
   useConnectNodes,
 } from "@/hooks/strategy/useStrategyMutations";
 import { getPeerTypeFromNodeType } from "@/lib/utils";
+import StrategyHeader from "@/components/StrategyHeader";
 
 const nodeDefaults = {
   sourcePosition: Position.Right,
@@ -447,7 +447,10 @@ const Strategy = (props: StrategyProps) => {
         />
       )}
 
-      <Header strategy={strategy} onEditStrategy={toggleNewStrategyModal} />
+      <StrategyHeader
+        strategy={strategy}
+        onEditStrategy={toggleNewStrategyModal}
+      />
       <div className="flex flex-1 overflow-hidden">
         <StrategySidebar strategyId={slug} />
         <main className="relative flex-1 overflow-y-auto p-6">
