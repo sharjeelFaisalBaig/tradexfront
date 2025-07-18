@@ -5,7 +5,7 @@ import {
   PaginationItem,
   PaginationLink,
 } from "@/components/ui/pagination";
-import { getPaginationRange } from "@/hooks/getPaginationRange";
+import { getPaginationRange } from "@/hooks/useGetPaginationRange";
 
 type PaginationProps = {
   totalPages: number;

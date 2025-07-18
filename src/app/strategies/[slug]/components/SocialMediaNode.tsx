@@ -67,7 +67,7 @@ interface ProcessingState {
 
 // Re-import SocialMediaData and URLValidationResult types if they are exported from utils.ts
 import type { SocialMediaData, URLValidationResult } from "@/lib/utils";
-import { getEmbedVideoByLink } from "@/hooks/getEmbedVideoByLink";
+import { getEmbedVideoByLink } from "@/hooks/useGetEmbedVideoByLink";
 
 export default function SocialMediaNode({
   id,
