@@ -35,8 +35,12 @@ import {
 import { cn } from "@/lib/utils";
 import NodeWrapper from "./common/NodeWrapper";
 import { useParams } from "next/navigation";
-import { useAnalyzeRemotePeer } from "@/hooks/strategy/useStrategyMutations";
+import {
+  useAnalyzeRemotePeer,
+  useResetPeer,
+} from "@/hooks/strategy/useStrategyMutations";
 import { useGetPeerAnalysisStatus } from "@/hooks/strategy/useGetPeerAnalysisStatus";
+import { toast } from "@/hooks/use-toast";
 
 // Types for AI integration
 interface AIProcessingResponse {
@@ -82,9 +86,8 @@ export default function RemoteNode({
 
   console.log("RemoteNode data:", { data });
 
-  const nodeControlRef = useRef(null);
-  const { setEdges } = useReactFlow();
-
+  // mutations
+  const { mutate: resetPeer, isPending: isReseting } = useResetPeer();
   const {
     mutate: analyzeRemotePeer,
     isPending: isAnalyzing,
@@ -105,6 +108,8 @@ export default function RemoteNode({
   console.log("remote_status:", status);
 
   // Website states
+  const nodeControlRef = useRef(null);
+  const { setEdges } = useReactFlow();
   const [websiteUrl, setWebsiteUrl] = useState<string>("");
   const [canConnect, setCanConnect] = useState<boolean>(false);
   const [websiteData, setWebsiteData] = useState<WebsiteData | null>(null);
@@ -345,16 +350,36 @@ export default function RemoteNode({
   };
 
   const handleRemoveWebsite = () => {
-    setWebsiteUrl("");
-    setWebsiteData(null);
-    setAiResponse(null);
-    setProcessingState({
-      isProcessing: false,
-      isComplete: false,
-      error: null,
-    });
-    setUserNotes("");
-    setUrlValidation({ isValid: false });
+    resetPeer(
+      { peerId: data?.id, strategyId, peerType: "remote" },
+      {
+        onSuccess: (data) => {
+          setWebsiteUrl("");
+          setWebsiteData(null);
+          setAiResponse(null);
+          setProcessingState({
+            isProcessing: false,
+            isComplete: false,
+            error: null,
+          });
+          setUserNotes("");
+          setUrlValidation({ isValid: false });
+
+          toast({
+            title: "Link removed",
+            description: data?.message ?? "Link removed successfully",
+          });
+        },
+        onError: (error: any) => {
+          toast({
+            title: "Failed to remove Link",
+            description:
+              error?.response?.data?.message ?? "Something went wrong...",
+            variant: "destructive",
+          });
+        },
+      }
+    );
   };
 
   const handleNotesChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -711,9 +736,13 @@ export default function RemoteNode({
                       size="sm"
                       variant="ghost"
                       className="text-white hover:bg-white/20 h-8 w-8 p-0"
-                      disabled={processingState.isProcessing}
+                      disabled={processingState.isProcessing || isReseting}
                     >
-                      <X className="w-4 h-4" />
+                      {isReseting ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <X className="w-4 h-4" />
+                      )}
                     </Button>
 
                     <DropdownMenu>

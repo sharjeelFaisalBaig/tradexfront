@@ -31,10 +31,12 @@ import { cn } from "@/lib/utils";
 import NodeWrapper from "./common/NodeWrapper";
 import {
   useAnalyzeImagePeer,
+  useResetPeer,
   useUploadImageContent,
 } from "@/hooks/strategy/useStrategyMutations";
 import { useParams } from "next/navigation";
 import { useGetPeerAnalysisStatus } from "@/hooks/strategy/useGetPeerAnalysisStatus";
+import { toast } from "@/hooks/use-toast";
 
 // Types for API integration
 interface AIProcessingResponse {
@@ -61,6 +63,7 @@ export default function ImageUploadNode({
 
   const strategyId = useParams()?.slug as string;
 
+  const { mutate: resetPeer, isPending: isReseting } = useResetPeer();
   const { mutate: uploadImageContent, isPending: isUploading } =
     useUploadImageContent();
 
@@ -193,20 +196,6 @@ export default function ImageUploadNode({
       });
     }
   };
-
-  // const handleFileSelect = (file: File) => {
-  //   if (file && file.type.startsWith("image/")) {
-  //     const reader = new FileReader();
-  //     reader.onload = (e) => {
-  //       const imageData = e.target?.result as string;
-  //       setUploadedImage(imageData);
-  //       setFileName(file.name);
-  //       // Auto-process uploaded images
-  //       processImageWithAI(imageData, file.name);
-  //     };
-  //     reader.readAsDataURL(file);
-  //   }
-  // };
 
   const handleFileSelect = (file: File) => {
     // Supported formats: JPEG, PNG, WEBP, GIF (static only)
@@ -346,18 +335,37 @@ export default function ImageUploadNode({
   };
 
   const handleRemoveImage = () => {
-    setUploadedImage(null);
-    setFileName("");
-    setAiResponse(null);
-    setProcessingState({
-      isProcessing: false,
-      isComplete: false,
-      error: null,
-    });
-    setUserNotes("");
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
+    resetPeer(
+      { peerId: data?.id, strategyId, peerType: "image" },
+      {
+        onSuccess: (data) => {
+          setUploadedImage(null);
+          setFileName("");
+          setAiResponse(null);
+          setProcessingState({
+            isProcessing: false,
+            isComplete: false,
+            error: null,
+          });
+          setUserNotes("");
+          if (fileInputRef.current) {
+            fileInputRef.current.value = "";
+          }
+          toast({
+            title: "Image removed",
+            description: data?.message ?? "Image removed successfully",
+          });
+        },
+        onError: (error: any) => {
+          toast({
+            title: "Failed to remove Image",
+            description:
+              error?.response?.data?.message ?? "Something went wrong...",
+            variant: "destructive",
+          });
+        },
+      }
+    );
   };
 
   const handleNotesChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -568,9 +576,13 @@ export default function ImageUploadNode({
                         size="sm"
                         variant="destructive"
                         className="absolute -top-2 -right-2 rounded-full w-8 h-8 p-0"
-                        disabled={processingState.isProcessing}
+                        disabled={processingState.isProcessing || isReseting}
                       >
-                        <X className="w-4 h-4" />
+                        {isReseting ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <X className="w-4 h-4" />
+                        )}
                       </Button>
 
                       {/* Processing Overlay */}

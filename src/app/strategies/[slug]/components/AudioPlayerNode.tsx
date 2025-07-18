@@ -46,9 +46,11 @@ import NodeWrapper from "./common/NodeWrapper";
 import { useParams } from "next/navigation";
 import {
   useAnalyzeAudioPeer,
+  useResetPeer,
   useUploadAudioContent,
 } from "@/hooks/strategy/useStrategyMutations";
 import { useGetPeerAnalysisStatus } from "@/hooks/strategy/useGetPeerAnalysisStatus";
+import { toast } from "@/hooks/use-toast";
 
 // Types for AI integration
 interface AIProcessingResponse {
@@ -88,6 +90,8 @@ export default function AudioPlayerNode({
   const strategyId = useParams()?.slug as string;
 
   // mutations
+  const { mutate: resetPeer, isPending: isReseting } = useResetPeer();
+
   const {
     mutate: uploadAudio,
     isPending: isUploading,
@@ -610,24 +614,44 @@ export default function AudioPlayerNode({
   };
 
   const handleRemoveAudio = () => {
-    setUploadedAudio(null);
-    setFileName("");
-    setCurrentFile(null); // Clear the stored file
-    setAiResponse(null);
-    setProcessingState({
-      isProcessing: false,
-      isComplete: false,
-      error: null,
-    });
-    setUserNotes("");
-    setIsPlaying(false);
-    setCurrentTime(0);
-    setDuration(0);
-    setShowRecordingInterface(false);
-    setIsInitialLoadFromProps(true); // Reset flag so initial data can be re-evaluated if props change
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
+    resetPeer(
+      { peerId: data?.id, strategyId, peerType: "audio" },
+      {
+        onSuccess: (data) => {
+          setUploadedAudio(null);
+          setFileName("");
+          setCurrentFile(null); // Clear the stored file
+          setAiResponse(null);
+          setProcessingState({
+            isProcessing: false,
+            isComplete: false,
+            error: null,
+          });
+          setUserNotes("");
+          setIsPlaying(false);
+          setCurrentTime(0);
+          setDuration(0);
+          setShowRecordingInterface(false);
+          setIsInitialLoadFromProps(true); // Reset flag so initial data can be re-evaluated if props change
+          if (fileInputRef.current) {
+            fileInputRef.current.value = "";
+          }
+
+          toast({
+            title: "Audio removed",
+            description: data?.message ?? "Audio removed successfully",
+          });
+        },
+        onError: (error: any) => {
+          toast({
+            title: "Failed to remove audio",
+            description:
+              error?.response?.data?.message ?? "Something went wrong...",
+            variant: "destructive",
+          });
+        },
+      }
+    );
   };
 
   const handleNotesChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -1029,9 +1053,13 @@ export default function AudioPlayerNode({
                       size="sm"
                       variant="ghost"
                       className="text-white hover:bg-white/20 h-8 w-8 p-0"
-                      disabled={processingState.isProcessing}
+                      disabled={processingState.isProcessing || isReseting}
                     >
-                      <X className="w-4 h-4" />
+                      {isReseting ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <X className="w-4 h-4" />
+                      )}
                     </Button>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>

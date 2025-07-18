@@ -92,6 +92,16 @@ export const endpoints = {
       peerType: string;
     }) => `/strategies/${id}/peers/${peerType}/${peerId}/status`,
 
+    RESET_PEER: ({
+      id,
+      peerId,
+      peerType,
+    }: {
+      id: string;
+      peerId: string;
+      peerType: string;
+    }) => `/strategies/${id}/peers/${peerType}/${peerId}/reset`,
+
     // board create peer endpoints
     CREATE_IMAGE_PEER: (id: string) => `/strategies/${id}/peers/image`,
     CREATE_AUDIO_PEER: (id: string) => `/strategies/${id}/peers/audio`,

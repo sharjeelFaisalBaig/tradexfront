@@ -1,7 +1,10 @@
 "use client";
 
 import { useState, useRef, useEffect, type ChangeEvent } from "react";
-import { useAnalyzeSocialPeer } from "@/hooks/strategy/useStrategyMutations";
+import {
+  useAnalyzeSocialPeer,
+  useResetPeer,
+} from "@/hooks/strategy/useStrategyMutations";
 import { Handle, Position, useReactFlow } from "@xyflow/react";
 import {
   Tooltip,
@@ -65,6 +68,7 @@ interface ProcessingState {
 
 // Re-import SocialMediaData and URLValidationResult types if they are exported from utils.ts
 import type { SocialMediaData, URLValidationResult } from "@/lib/utils";
+import { toast } from "@/hooks/use-toast";
 
 export default function SocialMediaNode({
   id,
@@ -245,6 +249,7 @@ export default function SocialMediaNode({
   };
 
   // --- Mutation Integration & Polling ---
+  const { mutate: resetPeer, isPending: isReseting } = useResetPeer();
   const {
     mutate: analyzeSocialPeer,
     error: analyzeError,
@@ -337,13 +342,38 @@ export default function SocialMediaNode({
 
   // Reset all states
   const handleReset = () => {
-    setSocialUrl("");
-    setSocialMediaData(null);
-    setUrlValidation({ isValid: false });
-    setAiResponse(null);
-    setProcessingState({ isProcessing: false, isComplete: false, error: null });
-    setUserNotes("");
-    setIsLoading(false);
+    resetPeer(
+      { peerId: data?.id, strategyId, peerType: "social_media" },
+      {
+        onSuccess: (data) => {
+          setSocialUrl("");
+          setSocialMediaData(null);
+          setUrlValidation({ isValid: false });
+          setAiResponse(null);
+          setProcessingState({
+            isProcessing: false,
+            isComplete: false,
+            error: null,
+          });
+          setUserNotes("");
+          setIsLoading(false);
+
+          toast({
+            title: "Social media link removed",
+            description:
+              data?.message ?? "Social media link removed successfully",
+          });
+        },
+        onError: (error: any) => {
+          toast({
+            title: "Failed to remove social media link",
+            description:
+              error?.response?.data?.message ?? "Something went wrong...",
+            variant: "destructive",
+          });
+        },
+      }
+    );
   };
 
   // Handle notes input change
@@ -708,9 +738,13 @@ export default function SocialMediaNode({
                           size="sm"
                           variant="destructive"
                           className="h-8 w-8 p-0"
-                          disabled={processingState.isProcessing}
+                          disabled={processingState.isProcessing || isReseting}
                         >
-                          <X className="w-4 h-4" />
+                          {isReseting ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <X className="w-4 h-4" />
+                          )}
                         </Button>
                       </div>
                     </div>

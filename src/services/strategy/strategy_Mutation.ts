@@ -553,3 +553,19 @@ export const updateConversationAiModel = async ({
   );
   return res.data;
 };
+
+// reset peer data mutation
+export const resetPeer = async ({
+  strategyId,
+  peerId,
+  peerType,
+}: {
+  strategyId: string;
+  peerId: string;
+  peerType: string;
+}) => {
+  const res = await axiosInstance.post(
+    endpoints.STRATEGY.RESET_PEER({ id: strategyId, peerId, peerType })
+  );
+  return res.data;
+};

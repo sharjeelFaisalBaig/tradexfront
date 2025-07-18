@@ -36,6 +36,7 @@ import NodeWrapper from "./common/NodeWrapper";
 import { useParams } from "next/navigation";
 import {
   useAnalyzeDocumentPeer,
+  useResetPeer,
   useUploadDocumentContent,
 } from "@/hooks/strategy/useStrategyMutations";
 import { useGetPeerAnalysisStatus } from "@/hooks/strategy/useGetPeerAnalysisStatus";
@@ -132,7 +133,11 @@ export default function DocumentUploadNode({
   data,
 }: any) {
   console.log("DocumentUploadNode data:", data);
+
   const strategyId = useParams()?.slug as string;
+
+  // mutations
+  const { mutate: resetPeer, isPending: isReseting } = useResetPeer();
   const { mutate: uploadDocContent } = useUploadDocumentContent();
   const {
     mutate: analyzeVideoContent,
@@ -457,19 +462,39 @@ export default function DocumentUploadNode({
   };
 
   const handleRemoveDocument = () => {
-    setUploadedDocument(null);
-    setDocumentInfo(null);
-    setAiResponse(null);
-    setProcessingState({
-      isProcessing: false,
-      isComplete: false,
-      error: null,
-    });
-    setUploadState({ isUploading: false, isSuccess: false, error: null });
-    setUserNotes("");
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
+    resetPeer(
+      { peerId: data?.id, strategyId, peerType: "docs" },
+      {
+        onSuccess: (data) => {
+          setUploadedDocument(null);
+          setDocumentInfo(null);
+          setAiResponse(null);
+          setProcessingState({
+            isProcessing: false,
+            isComplete: false,
+            error: null,
+          });
+          setUploadState({ isUploading: false, isSuccess: false, error: null });
+          setUserNotes("");
+          if (fileInputRef.current) {
+            fileInputRef.current.value = "";
+          }
+
+          toast({
+            title: "Document removed",
+            description: data?.message ?? "Document removed successfully",
+          });
+        },
+        onError: (error: any) => {
+          toast({
+            title: "Failed to remove Document",
+            description:
+              error?.response?.data?.message ?? "Something went wrong...",
+            variant: "destructive",
+          });
+        },
+      }
+    );
   };
 
   const handleNotesChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -836,9 +861,15 @@ export default function DocumentUploadNode({
                             size="sm"
                             variant="destructive"
                             className="h-8 w-8 p-0"
-                            disabled={processingState.isProcessing}
+                            disabled={
+                              processingState.isProcessing || isReseting
+                            }
                           >
-                            <X className="w-4 h-4" />
+                            {isReseting ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <X className="w-4 h-4" />
+                            )}
                           </Button>
                         </div>
                       </div>

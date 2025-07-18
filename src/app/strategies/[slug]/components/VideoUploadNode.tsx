@@ -44,9 +44,11 @@ import { useParams } from "next/navigation";
 import {
   useAnalyzeImagePeer,
   useAnalyzeVideoPeer,
+  useResetPeer,
   useUploadVideoContent,
 } from "@/hooks/strategy/useStrategyMutations";
 import { useGetPeerAnalysisStatus } from "@/hooks/strategy/useGetPeerAnalysisStatus";
+import { toast } from "@/hooks/use-toast";
 
 // Types for AI integration
 interface AIProcessingResponse {
@@ -119,6 +121,7 @@ export default function VideoUploadNode({
   });
 
   // mutations
+  const { mutate: resetPeer, isPending: isReseting } = useResetPeer();
   const { mutate: uploadVideoMutation } = useUploadVideoContent();
   const {
     mutate: analyzeVideoContent,
@@ -579,24 +582,44 @@ export default function VideoUploadNode({
   };
 
   const handleRemoveVideo = () => {
-    setUploadedVideo(null);
-    setFileName("");
-    setVideoMetadata(null);
-    setAiResponse(null);
-    setProcessingState({
-      isProcessing: false,
-      isComplete: false,
-      error: null,
-    });
-    setUploadState({ isUploading: false, isSuccess: false, error: null });
-    setUserNotes("");
-    setIsPlaying(false);
-    setCurrentTime(0);
-    setDuration(0);
-    setUploadedFile(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
+    resetPeer(
+      { peerId: data?.id, strategyId, peerType: "video" },
+      {
+        onSuccess: (data) => {
+          setUploadedVideo(null);
+          setFileName("");
+          setVideoMetadata(null);
+          setAiResponse(null);
+          setProcessingState({
+            isProcessing: false,
+            isComplete: false,
+            error: null,
+          });
+          setUploadState({ isUploading: false, isSuccess: false, error: null });
+          setUserNotes("");
+          setIsPlaying(false);
+          setCurrentTime(0);
+          setDuration(0);
+          setUploadedFile(null);
+          if (fileInputRef.current) {
+            fileInputRef.current.value = "";
+          }
+
+          toast({
+            title: "Video removed",
+            description: data?.message ?? "Video removed successfully",
+          });
+        },
+        onError: (error: any) => {
+          toast({
+            title: "Failed to remove Video",
+            description:
+              error?.response?.data?.message ?? "Something went wrong...",
+            variant: "destructive",
+          });
+        },
+      }
+    );
   };
 
   const handleNotesChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -952,7 +975,11 @@ export default function VideoUploadNode({
                               variant="destructive"
                               disabled={processingState.isProcessing}
                             >
-                              <X className="w-4 h-4" />
+                              {isReseting ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <X className="w-4 h-4" />
+                              )}
                             </Button>
                           </div>
                         </div>
@@ -1066,9 +1093,15 @@ export default function VideoUploadNode({
                               onClick={handleRemoveVideo}
                               size="sm"
                               variant="destructive"
-                              disabled={processingState.isProcessing}
+                              disabled={
+                                processingState.isProcessing || isReseting
+                              }
                             >
-                              <X className="w-4 h-4" />
+                              {isReseting ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <X className="w-4 h-4" />
+                              )}
                             </Button>
                           </div>
                         </div>

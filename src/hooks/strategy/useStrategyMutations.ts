@@ -38,6 +38,7 @@ import {
   analyzeVideoPeer,
   analyzeDocumentPeer,
   analyzeAudioPeer,
+  resetPeer,
 } from "@/services/strategy/strategy_Mutation";
 import { IStrategy } from "@/lib/types";
 import { QUERY_KEYS } from "@/lib/queryKeys";
@@ -738,6 +739,27 @@ export const useUpdateConversationAiModel = () => {
     onSuccess: (_res, { strategyId, conversationId }) => {
       queryClient.invalidateQueries({
         queryKey: [QUERY_KEYS.CONVERSATIONS, strategyId, conversationId],
+      });
+    },
+  });
+};
+
+export const useResetPeer = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      peerId,
+      peerType,
+      strategyId,
+    }: {
+      peerId: string;
+      peerType: string;
+      strategyId: string;
+    }) => resetPeer({ strategyId, peerId, peerType }),
+    onSuccess: (_data, { strategyId }) => {
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.STRATEGY, strategyId],
       });
     },
   });
