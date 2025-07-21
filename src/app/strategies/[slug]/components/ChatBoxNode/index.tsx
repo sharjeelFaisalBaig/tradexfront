@@ -79,20 +79,19 @@ export default function ChatBoxNode({
   targetPosition = Position.Right,
   data,
 }: ChatBoxNodeProps) {
-  console.log({ data });
+  console.log("ChatBoxNode_Data", { data });
 
   const strategyId = useParams()?.slug as string;
-  const queryClient = useQueryClient();
-  const { setEdges } = useReactFlow();
-  const successNote = useSuccessNotifier();
 
   // State
   const [activeConversationId, setActiveConversationId] = useState<
     string | null
   >(null);
-  const [conversations, setConversations] = useState<Conversation[]>([]);
+
+  const [page, setPage] = useState<number>(1);
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [editingConversationId, setEditingConversationId] = useState<
     string | null
   >(null);
@@ -123,7 +122,13 @@ export default function ChatBoxNode({
   const { data: aiTemplatesData, isLoading: isLoadingTemplates } =
     useGetChatTemplates();
   const { data: activeConversationData, isLoading: isLoadingConversation } =
-    useGetConversationById(strategyId, activeConversationId ?? "");
+    useGetConversationById({
+      conversationId: activeConversationId ?? "",
+      strategyId,
+      page,
+    });
+
+  console.log("activeConversationData", { activeConversationData });
 
   // Memoized values
   const availableModels: AIModel[] = useMemo(

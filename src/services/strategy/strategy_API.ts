@@ -33,12 +33,21 @@ export const getAllConversations = async (strategyId: string) => {
   return res.data;
 };
 
-export const getConversationById = async (
-  strategyId: string,
-  conversationId: string
-) => {
+export const getConversationById = async ({
+  page,
+  strategyId,
+  conversationId,
+}: {
+  page: number;
+  strategyId: string;
+  conversationId: string;
+}) => {
   const res = await axiosInstance.get(
-    endpoints.STRATEGY.CONVERSATION_BY_ID(strategyId, conversationId)
+    endpoints.STRATEGY.CONVERSATION_BY_ID({
+      page,
+      id: strategyId,
+      conversationId,
+    })
   );
   return res.data;
 };

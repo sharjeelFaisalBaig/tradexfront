@@ -162,13 +162,20 @@ export const endpoints = {
 
     // board chat/conversation endpoints
     CONVERSATIONS: (id: string) => `/strategies/${id}/ai-conversations`,
-    CONVERSATION_BY_ID: (id: string, conversationId: string) =>
-      `/strategies/${id}/ai-conversations/${conversationId}`,
     CREATE_CONVERSATION: (id: string) => `/strategies/${id}/ai-conversations`,
     DELETE_CONVERSATION: (id: string, conversationId: string) =>
       `/strategies/${id}/ai-conversations/${conversationId}`,
     UPDATE_CONVERSATION_TITLE: (id: string, conversationId: string) =>
       `/strategies/${id}/ai-conversations/${conversationId}`,
+    CONVERSATION_BY_ID: ({
+      id,
+      page,
+      conversationId,
+    }: {
+      id: string;
+      page: number;
+      conversationId: string;
+    }) => `/strategies/${id}/ai-conversations/${conversationId}?page=${page}`,
   },
 
   CHAT_BOX: {

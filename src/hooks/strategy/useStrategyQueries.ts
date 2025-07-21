@@ -38,10 +38,15 @@ export const useGetConversations = (
   });
 };
 
-export const useGetConversationById = (
-  strategyId: string,
-  conversationId: string
-) => {
+export const useGetConversationById = ({
+  page,
+  strategyId,
+  conversationId,
+}: {
+  page: number;
+  strategyId: string;
+  conversationId: string;
+}) => {
   return useQuery({
     queryKey: [
       QUERY_KEYS.CONVERSATION,
@@ -49,7 +54,7 @@ export const useGetConversationById = (
       conversationId,
       strategyId,
     ],
-    queryFn: () => getConversationById(strategyId, conversationId),
+    queryFn: () => getConversationById({ page, strategyId, conversationId }),
     enabled: !!strategyId && !!conversationId,
   });
 };
