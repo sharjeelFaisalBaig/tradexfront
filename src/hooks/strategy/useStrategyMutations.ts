@@ -39,6 +39,8 @@ import {
   analyzeDocumentPeer,
   analyzeAudioPeer,
   resetPeer,
+  createAnnotationPeer,
+  updateAnnotationContent,
 } from "@/services/strategy/strategy_Mutation";
 import { IStrategy } from "@/lib/types";
 import { QUERY_KEYS } from "@/lib/queryKeys";
@@ -153,6 +155,19 @@ export const useUpdatePeerPosition = () => {
   });
 };
 
+export const useCreateAnnotationPeer = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ strategyId, data }: { strategyId: string; data: any }) =>
+      createAnnotationPeer(strategyId, data),
+    onSuccess: (_data, { strategyId }) => {
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.STRATEGY, strategyId],
+      });
+    },
+  });
+};
+
 export const useCreateImagePeer = () => {
   const queryClient = useQueryClient();
   return useMutation({
@@ -245,6 +260,31 @@ export const useCreateRemotePeer = () => {
 };
 
 // Upload Image Content
+export const useUpdateAnnotationContent = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      strategyId,
+      peerId,
+      data,
+    }: {
+      strategyId: string;
+      peerId: string;
+      data: {
+        annotation_message: string;
+        data: {
+          color: string;
+        };
+      };
+    }) => updateAnnotationContent({ strategyId, peerId, data }),
+    onSuccess: (_data, { strategyId }) => {
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.STRATEGY, strategyId],
+      });
+    },
+  });
+};
+
 export const useUploadImageContent = () => {
   const queryClient = useQueryClient();
   return useMutation({

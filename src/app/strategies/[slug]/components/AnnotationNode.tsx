@@ -20,6 +20,9 @@ import {
   Palette,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useNodeOperations } from "../hooks/useNodeOperations";
+import { useParams } from "next/navigation";
+import { useUpdateAnnotationContent } from "@/hooks/strategy/useStrategyMutations";
 
 // Types for annotation data
 interface AnnotationData {
@@ -31,6 +34,7 @@ interface AnnotationData {
 }
 
 interface AnnotationNodeData {
+  id?: string;
   annotation?: AnnotationData;
 }
 
@@ -97,7 +101,11 @@ export default function AnnotationNode({
   data,
   selected,
 }: AnnotationNodeProps) {
+  const strategyId = useParams()?.slug as string;
+
   const { updateNodeData, deleteElements } = useReactFlow();
+  const { deleteNode } = useNodeOperations();
+  const { mutate: updateAnnotation } = useUpdateAnnotationContent();
 
   // State management
   const [isEditing, setIsEditing] = useState(!data.annotation?.content);
@@ -180,7 +188,7 @@ export default function AnnotationNode({
 
   // Handle delete
   const handleDelete = () => {
-    deleteElements({ nodes: [{ id }] });
+    deleteNode(data?.id ?? "", "annotation", strategyId); // (nodeId, nodeType, strategyId)
   };
 
   // Handle theme change

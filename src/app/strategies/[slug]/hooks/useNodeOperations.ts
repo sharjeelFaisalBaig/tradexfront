@@ -18,6 +18,7 @@ import {
   useDeleteSocialPeer,
   useDeleteRemotePeer,
   useDeleteThreadPeer,
+  useCreateAnnotationPeer,
 } from "@/hooks/strategy/useStrategyMutations";
 import { toast } from "@/hooks/use-toast";
 
@@ -36,6 +37,19 @@ const toolToNode = (tool: Tool, position: { x: number; y: number }) => {
   };
 
   switch (tool) {
+    case "annotation":
+      return {
+        ...base,
+        data: {
+          annotation: {
+            content: "This is a sample annotation for collaborative notes!",
+            author: "Demo User",
+            createdAt: new Date().toISOString(),
+            theme: "yellow",
+          },
+        },
+        type: "annotationNode",
+      };
     case "image":
       return {
         ...base,
@@ -87,6 +101,7 @@ export const useNodeOperations = () => {
   const { setNodes, setEdges } = useReactFlow();
 
   // Hooks for create mutations
+  const { mutate: createAnnotationPeer } = useCreateAnnotationPeer();
   const { mutate: createImagePeer } = useCreateImagePeer();
   const { mutate: createAudioPeer } = useCreateAudioPeer();
   const { mutate: createVideoPeer } = useCreateVideoPeer();
@@ -135,6 +150,11 @@ export const useNodeOperations = () => {
       };
 
       switch (tool) {
+        case "annotation":
+          createAnnotationPeer(payload, {
+            onSuccess: (data) => addNodeWithResponse(data),
+          });
+          break;
         case "image":
           createImagePeer(payload, {
             onSuccess: (data) => addNodeWithResponse(data),

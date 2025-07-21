@@ -74,6 +74,14 @@ export const updatePeerPosition = async ({
 };
 
 // Board Peers API calls
+export const createAnnotationPeer = async (strategyId: string, data: any) => {
+  const res = await axiosInstance.post(
+    endpoints.STRATEGY.CREATE_ANNOTATION_PEER(strategyId),
+    data
+  );
+  return res.data;
+};
+
 export const createImagePeer = async (strategyId: string, data: any) => {
   const res = await axiosInstance.post(
     endpoints.STRATEGY.CREATE_IMAGE_PEER(strategyId),
@@ -131,6 +139,28 @@ export const createRemotePeer = async (strategyId: string, data: any) => {
 };
 
 // Upload peer content APIs
+export const updateAnnotationContent = async ({
+  strategyId,
+  peerId,
+  data,
+}: {
+  strategyId: string;
+  peerId: string;
+  data: {
+    annotation_message: string;
+    data: {
+      color: string;
+    };
+  };
+}) => {
+  const res = await axiosInstance.post(
+    endpoints.STRATEGY.UPDATE_ANNOTATION_PEER({ strategyId, peerId }),
+    data,
+    { headers: { "Content-Type": "multipart/form-data" } }
+  );
+  return res.data;
+};
+
 export const uploadImageContent = async ({
   strategyId,
   peerId,

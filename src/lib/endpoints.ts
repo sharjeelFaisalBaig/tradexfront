@@ -103,6 +103,8 @@ export const endpoints = {
     }) => `/strategies/${id}/peers/${peerType}/${peerId}/reset`,
 
     // board create peer endpoints
+    CREATE_ANNOTATION_PEER: (id: string) =>
+      `/strategies/${id}/peers/annotation`,
     CREATE_IMAGE_PEER: (id: string) => `/strategies/${id}/peers/image`,
     CREATE_AUDIO_PEER: (id: string) => `/strategies/${id}/peers/audio`,
     CREATE_VIDEO_PEER: (id: string) => `/strategies/${id}/peers/video`,
@@ -112,6 +114,8 @@ export const endpoints = {
     CREATE_REMOTE_PEER: (id: string) => `/strategies/${id}/peers/remote`,
 
     // board upload peer endpoints
+    UPDATE_ANNOTATION_PEER: ({ strategyId, peerId }: UploadContent) =>
+      `/strategies/${strategyId}/peers/annotation/${peerId}`,
     UPLOAD_IMAGE_CONTENT: ({ strategyId, peerId }: UploadContent) =>
       `/strategies/${strategyId}/peers/image/${peerId}/upload`,
     UPLOAD_AUDIO_CONTENT: ({ strategyId, peerId }: UploadContent) =>

@@ -44,7 +44,22 @@ const nodeDefaults = {
   targetPosition: Position.Left,
 };
 
-const initialNodes: any = [];
+const initialNodes: any = [
+  // {
+  //   id: "8",
+  //   position: { x: 1212.8047809500401, y: -359.45483177740834 },
+  //   data: {
+  //     annotation: {
+  //       content: "This is a sample annotation for collaborative notes!",
+  //       author: "Demo User",
+  //       createdAt: new Date().toISOString(),
+  //       theme: "yellow",
+  //     },
+  //   },
+  //   type: "annotationNode",
+  // },
+];
+
 const initialEdges: any = [];
 
 const nodeTypes = {
@@ -98,6 +113,7 @@ const Strategy = (props: StrategyProps) => {
       Array.isArray(flows) &&
       flows.length > 0 &&
       [
+        "annotationPeers",
         "aiImagePeers",
         "aiVideoPeers",
         "aiAudioPeers",
@@ -131,6 +147,7 @@ const Strategy = (props: StrategyProps) => {
         });
       };
 
+      pushNodes(flow.annotationPeers, "annotationNode");
       pushNodes(flow.aiImagePeers, "imageUploadNode");
       pushNodes(flow.aiAudioPeers, "audioPlayerNode");
       pushNodes(flow.aiVideoPeers, "videoUploadNode");

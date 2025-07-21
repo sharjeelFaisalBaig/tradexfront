@@ -40,6 +40,7 @@ export interface IStrategyFlow {
   aiRemotePeers: any[];
   aiSocialMediaPeers: any[];
   aiThreadPeers: any[];
+  annotationPeers: any[];
   strategyFlowEdges?: StrategyFlowEdge[];
 }
 

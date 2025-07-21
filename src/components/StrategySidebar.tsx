@@ -9,6 +9,7 @@ import {
   FileText,
   MicIcon,
   Play,
+  MessageSquare,
 } from "lucide-react";
 import { useNodeOperations } from "@/app/strategies/[slug]/hooks/useNodeOperations";
 import { useSidebar } from "@/context/SidebarContext";
@@ -17,6 +18,7 @@ import { useEffect } from "react";
 import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 
 const strategyTools = [
+  { id: "annotation", icon: MessageSquare, label: "Annotation" },
   { id: "image", icon: ImageIcon, label: "Images" },
   { id: "audio", icon: MicIcon, label: "Audio" },
   { id: "video", icon: Play, label: "Videos" },
