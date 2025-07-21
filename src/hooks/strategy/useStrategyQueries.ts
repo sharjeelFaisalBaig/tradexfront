@@ -38,6 +38,20 @@ export const useGetConversations = (
   });
 };
 
+export const useGetAiModels = () => {
+  return useQuery({
+    queryKey: [QUERY_KEYS.AI_MODELS],
+    queryFn: () => getAiModels(),
+  });
+};
+
+export const useGetChatTemplates = () => {
+  return useQuery({
+    queryKey: [QUERY_KEYS.AI_CHAT_TEMPLATES],
+    queryFn: () => getChatTemplates(),
+  });
+};
+
 export const useGetConversationById = ({
   page,
   strategyId,
@@ -56,19 +70,5 @@ export const useGetConversationById = ({
     ],
     queryFn: () => getConversationById({ page, strategyId, conversationId }),
     enabled: !!strategyId && !!conversationId,
-  });
-};
-
-export const useGetAiModels = () => {
-  return useQuery({
-    queryKey: [QUERY_KEYS.AI_MODELS],
-    queryFn: () => getAiModels(),
-  });
-};
-
-export const useGetChatTemplates = () => {
-  return useQuery({
-    queryKey: [QUERY_KEYS.AI_CHAT_TEMPLATES],
-    queryFn: () => getChatTemplates(),
   });
 };
