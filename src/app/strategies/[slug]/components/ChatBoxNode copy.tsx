@@ -1,7 +1,7 @@
 "use client";
 import type React from "react";
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
-import { Handle, Position } from "@xyflow/react";
+import { Handle, Position, useReactFlow } from "@xyflow/react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -37,8 +37,10 @@ import {
 } from "@/hooks/strategy/useStrategyQueries";
 import { getFilteredAiModels } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 
 // Types
 interface AIModel {
@@ -93,6 +95,9 @@ export default function ChatBoxNode({
   data,
 }: ChatBoxNodeProps) {
   const strategyId = useParams()?.slug as string;
+  const queryClient = useQueryClient();
+  const { setEdges } = useReactFlow();
+  const successNote = useSuccessNotifier();
 
   // State
   const [activeConversationId, setActiveConversationId] = useState<
