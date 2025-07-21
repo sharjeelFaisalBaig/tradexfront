@@ -14,7 +14,6 @@ import {
   MiniMap,
 } from "@xyflow/react";
 import { Position } from "@xyflow/react";
-import ChatBoxNode from "./ChatBoxNode";
 import ImageUploadNode from "./ImageUploadNode";
 import AudioPlayerNode from "./AudioPlayerNode";
 import StyledEdge from "./elements/StyledEdge";
@@ -38,6 +37,7 @@ import {
 import { getPeerTypeFromNodeType } from "@/lib/utils";
 import StrategyHeader from "@/components/StrategyHeader";
 import useSuccessNotifier from "@/hooks/useSuccessNotifier";
+import ChatBoxNode from "./ChatBoxNode";
 
 const nodeDefaults = {
   sourcePosition: Position.Right,

@@ -5,7 +5,7 @@ import { toast } from "./use-toast";
 import { useGetUser } from "./auth/useAuth";
 import { auth } from "@/lib/auth";
 
-export const useSuccessNotifier = async () => {
+export const useSuccessNotifier = () => {
   // const session = await auth();
   // console.log({ session });
 
