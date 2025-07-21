@@ -181,10 +181,18 @@ const Strategy = (props: StrategyProps) => {
     const handlePaste = async (e: ClipboardEvent) => {
       const items = e.clipboardData?.items;
 
+      console.log("pasted item(s)", { items });
+
       if (!items) return;
 
       for (let i = 0; i < items.length; i++) {
         const item = items[i];
+
+        console.log("pasted item", {
+          item,
+          type: item?.type,
+          kind: item?.kind,
+        });
 
         if (item.type.indexOf("image") !== -1) {
           e.preventDefault();
