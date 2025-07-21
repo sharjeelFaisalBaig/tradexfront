@@ -3,9 +3,8 @@
 import type React from "react";
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { Handle, Position } from "@xyflow/react";
+import { Loader2 } from "lucide-react";
 import { useParams } from "next/navigation";
-import { toast } from "@/hooks/use-toast";
-import NodeWrapper from "../common/NodeWrapper";
 import {
   useCreateConversation,
   useDeleteConversation,
@@ -19,45 +18,14 @@ import {
   useGetConversationById,
 } from "@/hooks/strategy/useStrategyQueries";
 import { getFilteredAiModels } from "@/lib/utils";
-import { Loader2, MessageSquare } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
+
+import type { AIModel, Conversation, Message, PredefinedPrompt } from "./types";
+import ChatHeader from "./ChatHeader";
 import ConversationSidebar from "./ConversationSidebar";
-import MainConversationSection from "./MainConversationSection";
-
-// Types
-interface AIModel {
-  id: string;
-  name: string;
-  color: string;
-}
-
-interface Conversation {
-  id: string;
-  title: string;
-  ai_model_id: string;
-  isLoading?: boolean; // For chat message sending
-  draftMessage?: string;
-  selectedModel?: AIModel;
-  hasError?: boolean;
-  errorMessage?: string;
-  isDeleting?: boolean; // New: for delete operation
-  isUpdatingTitle?: boolean; // New: for title update operation
-}
-
-interface PredefinedPrompt {
-  id: string;
-  label: string;
-  prompt: string;
-}
-
-interface Message {
-  id: string;
-  content: string;
-  name: string;
-  sender: "user" | "ai";
-  timestamp: Date;
-  isOptimistic?: boolean;
-  hasError?: boolean;
-}
+import ChatMessages from "./ChatMessages";
+import ChatInputArea from "./ChatInputArea";
+import NodeWrapper from "../common/NodeWrapper";
 
 interface ChatBoxNodeProps {
   id: string;
@@ -69,22 +37,19 @@ interface ChatBoxNodeProps {
   };
 }
 
-export default function ChatBoxNode({
+export default function ChatNode({
   id,
   sourcePosition = Position.Left,
   targetPosition = Position.Right,
   data,
 }: ChatBoxNodeProps) {
-  console.log("ChatBoxNode_Data", { data });
-
   const strategyId = useParams()?.slug as string;
 
   // State
   const [activeConversationId, setActiveConversationId] = useState<
     string | null
   >(null);
-
-  const [page, setPage] = useState<number>(1);
+  const [page, setPage] = useState<number>(1); // Not used in current implementation, but kept for potential future pagination
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -119,18 +84,17 @@ export default function ChatBoxNode({
     useGetChatTemplates();
   const { data: activeConversationData, isLoading: isLoadingConversation } =
     useGetConversationById({
-      conversationId: activeConversationId ?? "",
       strategyId,
+      conversationId: activeConversationId ?? "",
       page,
     });
-
-  console.log("activeConversationData", { activeConversationData });
 
   // Memoized values
   const availableModels: AIModel[] = useMemo(
     () => getFilteredAiModels(aiModelsData?.models) || [],
     [aiModelsData]
   );
+
   const predefinedPrompts: PredefinedPrompt[] = useMemo(
     () =>
       aiTemplatesData?.templates?.map(
@@ -142,11 +106,13 @@ export default function ChatBoxNode({
       ) || [],
     [aiTemplatesData]
   );
+
   const activeConversation = useMemo(
     () =>
       conversations.find((conv) => conv.id === activeConversationId) || null,
     [conversations, activeConversationId]
   );
+
   const selectedModel = useMemo(
     () => activeConversation?.selectedModel || availableModels[0] || null,
     [activeConversation, availableModels]
@@ -161,8 +127,9 @@ export default function ChatBoxNode({
       updateModelLoading,
     [conversations, createConversationLoading, updateModelLoading]
   );
+
   const isLoading = activeConversation?.isLoading || false;
-  const canConnect = !isLoading; // This controls if new connections can be made to the handle
+  const canConnect = !isLoading;
 
   // Helper functions
   const parseTimestamp = useCallback((val: string | undefined): Date => {
@@ -180,15 +147,8 @@ export default function ChatBoxNode({
     setIsHydrated(true);
   }, []);
 
-  useEffect(() => {
-    if (data?.conversations && data?.conversations?.length > 0) {
-      setConversations(data?.conversations);
-    }
-  }, [data]);
-
   // Initialization useEffect: Populates conversations from props or starts empty
   useEffect(() => {
-    // Only run if hydrated, models are loaded, and not yet initialized
     if (!isHydrated || isLoadingModels || isInitialized) {
       return;
     }
@@ -201,7 +161,6 @@ export default function ChatBoxNode({
       : [];
 
     if (initialConversationsFromProps.length > 0) {
-      // If conversations are provided via props, use them
       const mappedConversations = initialConversationsFromProps.map((conv) => ({
         ...conv,
         selectedModel:
@@ -209,18 +168,16 @@ export default function ChatBoxNode({
           availableModels[0],
         isLoading: false,
         hasError: false,
-        isDeleting: false, // Initialize new state
-        isUpdatingTitle: false, // Initialize new state
+        isDeleting: false,
+        isUpdatingTitle: false,
       }));
       setConversations(mappedConversations);
       setActiveConversationId(mappedConversations[0]?.id || null);
     } else {
-      // If no conversations from props, the list starts empty.
-      // A new conversation will be created when the user clicks "New Conversation".
       setConversations([]);
       setActiveConversationId(null);
     }
-    setIsInitialized(true); // Mark as initialized
+    setIsInitialized(true);
   }, [
     isHydrated,
     isLoadingModels,
@@ -308,7 +265,7 @@ export default function ChatBoxNode({
     (conversationId: string, loading: boolean) => {
       updateConversationState(conversationId, {
         isLoading: loading,
-        hasError: loading ? false : undefined, // Clear error when starting new request
+        hasError: loading ? false : undefined,
       });
     },
     [updateConversationState]
@@ -319,7 +276,7 @@ export default function ChatBoxNode({
       updateConversationState(conversationId, {
         hasError: true,
         errorMessage: error,
-        isLoading: false, // Ensure loading is false on error
+        isLoading: false,
       });
     },
     [updateConversationState]
@@ -348,12 +305,10 @@ export default function ChatBoxNode({
     const timestamp = new Date();
     const optimisticUserId = generateOptimisticId();
 
-    // Clear input and draft
     setMessage("");
     saveDraftMessage(activeConversationId, "");
     setConversationLoading(activeConversationId, true);
 
-    // Add optimistic user message
     const optimisticUserMessage: Message = {
       id: optimisticUserId,
       content: userMessageText,
@@ -378,7 +333,6 @@ export default function ChatBoxNode({
         throw new Error("No response received from AI");
       }
 
-      // Remove optimistic user message and add real messages
       setMessages((prev) => {
         const withoutOptimistic = prev.filter(
           (msg) => msg.id !== optimisticUserId
@@ -404,7 +358,6 @@ export default function ChatBoxNode({
         ];
       });
 
-      // Update conversation title if it's the first message && still "New Conversation"
       if (
         messages.length === 0 &&
         activeConversation?.title === "New Conversation"
@@ -413,7 +366,6 @@ export default function ChatBoxNode({
           userMessageText.slice(0, 30) +
           (userMessageText.length > 30 ? "..." : "");
         updateConversationState(activeConversationId, { title: newTitle });
-        // Update title on server
         try {
           await updateConversationMutation({
             strategyId,
@@ -426,15 +378,12 @@ export default function ChatBoxNode({
       }
     } catch (error: any) {
       console.error("Send message error:", error);
-      // Remove optimistic user message
       removeOptimisticMessage(optimisticUserId);
-      // Set conversation error state
       const errorMessage =
         error?.response?.data?.message ||
         error?.message ||
         "Failed to send message";
-      setConversationError(activeConversationId, errorMessage); // This will trigger the Alert display
-      // Show error toast
+      setConversationError(activeConversationId, errorMessage);
       toast({
         title: "Message Failed",
         description: errorMessage,
@@ -463,7 +412,6 @@ export default function ChatBoxNode({
 
   const createNewConversation = useCallback(async () => {
     if (isAnyConversationLoading || !availableModels.length) return;
-
     try {
       const response = await createConversationMutation({
         strategyId,
@@ -472,14 +420,11 @@ export default function ChatBoxNode({
           ai_thread_peer_id: data?.id ?? "",
         },
       });
-
       const conv = response?.conversation;
       if (!conv) throw new Error("No conversation returned from API");
-
       const model =
         availableModels.find((m) => m.id === conv.ai_model_id) ||
         availableModels[0];
-
       const newConversation: Conversation = {
         id: conv.id,
         title: conv.title,
@@ -488,10 +433,9 @@ export default function ChatBoxNode({
         draftMessage: "",
         selectedModel: model,
         hasError: false,
-        isDeleting: false, // Initialize new state
-        isUpdatingTitle: false, // Initialize new state
+        isDeleting: false,
+        isUpdatingTitle: false,
       };
-
       setConversations((prev) => {
         const exists = prev.some((c) => c.id === newConversation.id);
         return exists ? prev : [newConversation, ...prev];
@@ -517,11 +461,8 @@ export default function ChatBoxNode({
 
   const deleteConversation = useCallback(
     async (conversationId: string) => {
-      if (isAnyConversationLoading) return; // Still prevent if other global operations are pending
-
-      // Set optimistic loading state for the specific conversation
+      if (isAnyConversationLoading) return;
       updateConversationState(conversationId, { isDeleting: true });
-
       try {
         await deleteConversationMutation({ strategyId, conversationId });
         setConversations((prev) =>
@@ -543,12 +484,11 @@ export default function ChatBoxNode({
           variant: "destructive",
         });
       } finally {
-        // Ensure loading state is reset even on error
         updateConversationState(conversationId, { isDeleting: false });
       }
     },
     [
-      isAnyConversationLoading, // Keep this to prevent deletion if other global operations are pending
+      isAnyConversationLoading,
       conversations,
       deleteConversationMutation,
       strategyId,
@@ -568,10 +508,7 @@ export default function ChatBoxNode({
   const handleModelSelect = useCallback(
     async (model: AIModel) => {
       if (!activeConversationId) return;
-
-      // Optimistically update UI
       updateConversationState(activeConversationId, { selectedModel: model });
-
       try {
         await updateConversationAiModelMutation({
           strategyId,
@@ -579,7 +516,6 @@ export default function ChatBoxNode({
           data: { ai_model_id: model.id },
         });
       } catch (error: any) {
-        // Revert optimistic update
         updateConversationState(activeConversationId, {
           selectedModel:
             availableModels.find(
@@ -647,14 +583,11 @@ export default function ChatBoxNode({
         setEditingConversationId(null);
         return;
       }
-
-      // Optimistically update UI and set loading state for the specific conversation
       updateConversationState(conversation.id, {
         title: newTitle,
         isUpdatingTitle: true,
       });
-      setEditingConversationId(null); // Hide the input immediately
-
+      setEditingConversationId(null);
       try {
         await updateConversationMutation({
           strategyId,
@@ -662,7 +595,6 @@ export default function ChatBoxNode({
           data: { title: newTitle },
         });
       } catch (error: any) {
-        // Revert optimistic update and show error
         updateConversationState(conversation.id, {
           title: conversation.title,
           hasError: true,
@@ -740,28 +672,12 @@ export default function ChatBoxNode({
       <div className="react-flow__node nowheel">
         <div ref={nodeControlRef} className="nodrag" />
         <div className="w-[1100px] h-[700px] bg-white rounded-lg shadow-lg overflow-hidden">
-          {/* Header */}
-          <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <MessageSquare className="w-5 h-5 text-white" />
-              <span className="text-white font-semibold">AI Chat</span>
-            </div>
-            <div className="flex items-center gap-2">
-              {selectedModel && (
-                <>
-                  <div
-                    className="w-2 h-2 rounded-full"
-                    style={{ backgroundColor: selectedModel.color }}
-                  />
-                  <span className="text-white text-sm">
-                    {selectedModel.name}
-                  </span>
-                </>
-              )}
-            </div>
-          </div>
+          <ChatHeader
+            selectedModel={selectedModel}
+            activeConversationTitle={activeConversation?.title || null}
+            isLoading={isLoading}
+          />
           <div className="flex h-[calc(100%-64px)]">
-            {/* Left Sidebar */}
             <ConversationSidebar
               conversations={conversations}
               activeConversationId={activeConversationId}
@@ -772,34 +688,64 @@ export default function ChatBoxNode({
               availableModels={availableModels}
               createNewConversation={createNewConversation}
               switchToConversation={switchToConversation}
+              deleteConversation={deleteConversation}
               handleConversationTitleDoubleClick={
                 handleConversationTitleDoubleClick
               }
               handleEditingTitleKeyDown={handleEditingTitleKeyDown}
               handleEditingTitleBlur={handleEditingTitleBlur}
               setEditingTitle={setEditingTitle}
-              deleteConversation={deleteConversation}
             />
-
-            {/* Main Content Area */}
-            <MainConversationSection
-              availableModels={availableModels}
-              activeConversationId={activeConversationId}
-              activeConversation={activeConversation}
-              messages={messages}
-              isLoading={isLoading}
-              selectedModel={selectedModel}
-              predefinedPrompts={predefinedPrompts}
-              isLoadingTemplates={isLoadingTemplates}
-              message={message}
-              handleMessageChange={handleMessageChange}
-              handleKeyPress={handleKeyPress}
-              handleSendMessage={handleSendMessage}
-              handleModelSelect={handleModelSelect}
-              handlePredefinedPromptClick={handlePredefinedPromptClick}
-              messagesEndRef={messagesEndRef}
-              textareaRef={textareaRef}
-            />
+            <div className="flex-1 flex flex-col">
+              <div className="p-6 border-b border-gray-200 text-left">
+                <h1 className="text-xl font-semibold text-gray-800">
+                  {activeConversation?.title || "Select a conversation"}
+                  {isLoading && (
+                    <span className="ml-2 text-sm text-blue-500 font-normal">
+                      AI is thinking...
+                    </span>
+                  )}
+                </h1>
+                {selectedModel && (
+                  <div className="flex items-center gap-2 mt-1">
+                    <div
+                      className="w-2 h-2 rounded-full"
+                      style={{ backgroundColor: selectedModel.color }}
+                    />
+                    <span className="text-sm text-gray-500">
+                      Using {selectedModel.name}
+                    </span>
+                  </div>
+                )}
+              </div>
+              <ChatMessages
+                messages={messages}
+                isLoading={isLoading}
+                activeConversationId={activeConversationId}
+                activeConversationHasError={
+                  activeConversation?.hasError || false
+                }
+                activeConversationErrorMessage={
+                  activeConversation?.errorMessage
+                }
+                messagesEndRef={messagesEndRef}
+              />
+              <ChatInputArea
+                message={message}
+                isLoading={isLoading}
+                activeConversationId={activeConversationId}
+                selectedModel={selectedModel}
+                availableModels={availableModels}
+                predefinedPrompts={predefinedPrompts}
+                isLoadingTemplates={isLoadingTemplates}
+                handleMessageChange={handleMessageChange}
+                handleSendMessage={handleSendMessage}
+                handleKeyPress={handleKeyPress}
+                handleModelSelect={handleModelSelect}
+                handlePredefinedPromptClick={handlePredefinedPromptClick}
+                textareaRef={textareaRef}
+              />
+            </div>
           </div>
         </div>
         <Handle
