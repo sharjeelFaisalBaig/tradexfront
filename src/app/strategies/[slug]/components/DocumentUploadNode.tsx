@@ -659,15 +659,6 @@ export default function DocumentUploadNode({
               onWheel={(e) => e.stopPropagation()}
               onMouseDown={(e) => e.stopPropagation()}
             >
-              {/* Full node loader overlay when status is polling/loading */}
-              {isStatusPollingLoading && (
-                <div className="absolute inset-0 z-50 bg-white bg-opacity-80 flex flex-col items-center justify-center">
-                  <Loader2 className="w-10 h-10 animate-spin text-purple-600 mb-2" />
-                  <span className="text-base font-medium text-gray-700">
-                    Checking analysis status...
-                  </span>
-                </div>
-              )}
               {!uploadedDocument ? (
                 // Upload Interface
                 <div
@@ -761,6 +752,16 @@ export default function DocumentUploadNode({
                       )}
                     </div>
                     <div className="flex items-center gap-2">
+                      {isStatusPollingLoading && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="text-sm">Preparing to connect...</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
                       {canConnect && (
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -774,6 +775,7 @@ export default function DocumentUploadNode({
                         </Tooltip>
                       )}
                       {!canConnect &&
+                        !isStatusPollingLoading &&
                         !processingState.isProcessing &&
                         uploadedDocument && (
                           <Tooltip>

@@ -1,5 +1,5 @@
 "use client";
-import { useState, useRef, useEffect, type ChangeEvent } from "react";
+import { useState, useRef, useEffect, type ChangeEvent, useMemo } from "react";
 import {
   useAnalyzeSocialPeer,
   useResetPeer,
@@ -368,9 +368,8 @@ export default function SocialMediaNode({
   };
 
   // Allow connection if processing is complete and no error
-  const canConnect =
-    (processingState.isComplete && !processingState.error) ||
-    data?.is_ready_to_interact;
+  // const canConnect = (processingState.isComplete && !processingState.error) || data?.is_ready_to_interact;
+  const canConnect = useMemo(() => data?.is_ready_to_interact, [data]);
 
   // Remove connections if node is not connectable
   useEffect(() => {
@@ -415,15 +414,6 @@ export default function SocialMediaNode({
               onWheel={(e) => e.stopPropagation()}
               onMouseDown={(e) => e.stopPropagation()}
             >
-              {/* Full node loader overlay when status is polling/loading */}
-              {isStatusPollingLoading && (
-                <div className="absolute inset-0 z-50 bg-white bg-opacity-80 flex flex-col items-center justify-center">
-                  <Loader2 className="w-10 h-10 animate-spin text-purple-600 mb-2" />
-                  <span className="text-base font-medium text-gray-700">
-                    {"Checking analysis status..."}
-                  </span>
-                </div>
-              )}
               {!socialMediaData ? (
                 // URL Input Interface
                 <div className="p-6 space-y-4 py-4">
@@ -605,6 +595,17 @@ export default function SocialMediaNode({
                       )}
                     </div>
                     <div className="flex items-center gap-2">
+                      {isStatusPollingLoading && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="text-sm">Preparing to connect...</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+
                       {canConnect && (
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -618,6 +619,7 @@ export default function SocialMediaNode({
                         </Tooltip>
                       )}
                       {!canConnect &&
+                        !isStatusPollingLoading &&
                         !processingState.isProcessing &&
                         socialMediaData && (
                           <Tooltip>

@@ -417,15 +417,6 @@ export default function ImageUploadNode({
 
           <TooltipProvider>
             <div className="w-[1000px] max-w-md mx-auto bg-white rounded-lg shadow-sm border overflow-hidden relative">
-              {/* Full node loader overlay when status is polling/loading */}
-              {isStatusPollingLoading && (
-                <div className="absolute inset-0 z-50 bg-white bg-opacity-80 flex flex-col items-center justify-center">
-                  <Loader2 className="w-10 h-10 animate-spin text-purple-600 mb-2" />
-                  <span className="text-base font-medium text-gray-700">
-                    Checking analysis status...
-                  </span>
-                </div>
-              )}
               {!uploadedImage ? (
                 // Upload Interface
                 <div className="relative">
@@ -534,6 +525,17 @@ export default function ImageUploadNode({
                     </div>
 
                     <div className="flex items-center gap-2">
+                      {isStatusPollingLoading && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="text-sm">Preparing to connect...</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+
                       {canConnect && (
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -548,6 +550,7 @@ export default function ImageUploadNode({
                       )}
 
                       {!canConnect &&
+                        !isStatusPollingLoading &&
                         !processingState.isProcessing &&
                         uploadedImage && (
                           <Tooltip>

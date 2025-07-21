@@ -211,8 +211,8 @@ const Strategy = (props: StrategyProps) => {
               position: { x: centerX - 500, y: centerY - 150 }, // Center the node (adjusted for 1000px width)
               data: {
                 label: "Image Upload",
-                pastedImage: imageData,
-                pastedFileName: file.name || "pasted-image.png",
+                image: imageData,
+                title: file.name || "pasted-image.png",
               },
               ...nodeDefaults,
             };

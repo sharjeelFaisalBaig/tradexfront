@@ -494,15 +494,6 @@ export default function RemoteNode({
         <div ref={nodeControlRef} className={`nodrag`} />
         <TooltipProvider>
           <div className="w-[1000px] max-w-md mx-auto bg-white rounded-lg shadow-sm border overflow-hidden relative">
-            {/* Full node loader overlay when status is polling/loading */}
-            {isStatusPollingLoading && (
-              <div className="absolute inset-0 z-50 bg-white bg-opacity-80 flex flex-col items-center justify-center">
-                <Loader2 className="w-10 h-10 animate-spin text-cyan-600 mb-2" />
-                <span className="text-base font-medium text-gray-700">
-                  Checking analysis status...
-                </span>
-              </div>
-            )}
             {!websiteData ? (
               // URL Input Interface
               <div className="space-y-0">
@@ -711,6 +702,17 @@ export default function RemoteNode({
                   </div>
 
                   <div className="flex items-center gap-2">
+                    {isStatusPollingLoading && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="text-sm">Preparing to connect...</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+
                     {canConnect && (
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -719,6 +721,19 @@ export default function RemoteNode({
                         <TooltipContent>
                           <p className="text-sm">
                             Ready to connect to other nodes
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+
+                    {!canConnect && !isStatusPollingLoading && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Shield className="w-4 h-4 text-yellow-500" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="text-sm">
+                            Complete analysis to enable connections
                           </p>
                         </TooltipContent>
                       </Tooltip>
