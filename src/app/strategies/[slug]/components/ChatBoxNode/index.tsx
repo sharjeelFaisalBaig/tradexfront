@@ -2,11 +2,9 @@
 
 import type React from "react";
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
-import { Handle, Position, useReactFlow } from "@xyflow/react";
+import { Handle, Position } from "@xyflow/react";
 import { useParams } from "next/navigation";
-import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
-import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 import NodeWrapper from "../common/NodeWrapper";
 import {
   useCreateConversation,
@@ -24,8 +22,6 @@ import { getFilteredAiModels } from "@/lib/utils";
 import { Loader2, MessageSquare } from "lucide-react";
 import ConversationSidebar from "./ConversationSidebar";
 import MainConversationSection from "./MainConversationSection";
-
-// Import the new child components
 
 // Types
 interface AIModel {
@@ -787,6 +783,7 @@ export default function ChatBoxNode({
 
             {/* Main Content Area */}
             <MainConversationSection
+              availableModels={availableModels}
               activeConversationId={activeConversationId}
               activeConversation={activeConversation}
               messages={messages}

@@ -58,6 +58,7 @@ interface Message {
 }
 
 interface MainChatSectionProps {
+  availableModels?: AIModel[];
   activeConversationId: string | null;
   activeConversation: Conversation | null;
   messages: Message[];
@@ -76,6 +77,7 @@ interface MainChatSectionProps {
 }
 
 export default function MainConversationSection({
+  availableModels,
   activeConversationId,
   activeConversation,
   messages,
@@ -260,59 +262,23 @@ export default function MainConversationSection({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
-                  {/* Assuming availableModels is passed down or fetched here */}
-                  {/* For now, using a placeholder for availableModels */}
-                  {/* You'll need to pass availableModels from the parent */}
-                  {/* Example: availableModels.map((model) => ( */}
-                  {/*   <DropdownMenuItem key={model.id} onClick={() => handleModelSelect(model)}> */}
-                  {/*     <div className="flex items-center gap-2"> */}
-                  {/*       <div className="w-2 h-2 rounded-full" style={{ backgroundColor: model.color }} /> */}
-                  {/*       {model.name} */}
-                  {/*       {selectedModel.id === model.id && <span className="ml-auto">✓</span>} */}
-                  {/*     </div> */}
-                  {/*   </DropdownMenuItem> */}
-                  {/* )) */}
-                  {/* Placeholder for demonstration */}
-                  <DropdownMenuItem
-                    onClick={() =>
-                      handleModelSelect({
-                        id: "model-1",
-                        name: "Model 1",
-                        color: "#FF0000",
-                      })
-                    }
-                  >
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="w-2 h-2 rounded-full"
-                        style={{ backgroundColor: "#FF0000" }}
-                      />
-                      Model 1
-                      {selectedModel.id === "model-1" && (
-                        <span className="ml-auto">✓</span>
-                      )}
-                    </div>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() =>
-                      handleModelSelect({
-                        id: "model-2",
-                        name: "Model 2",
-                        color: "#00FF00",
-                      })
-                    }
-                  >
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="w-2 h-2 rounded-full"
-                        style={{ backgroundColor: "#00FF00" }}
-                      />
-                      Model 2
-                      {selectedModel.id === "model-2" && (
-                        <span className="ml-auto">✓</span>
-                      )}
-                    </div>
-                  </DropdownMenuItem>
+                  {availableModels?.map((model) => (
+                    <DropdownMenuItem
+                      key={model.id}
+                      onClick={() => handleModelSelect(model)}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-2 h-2 rounded-full"
+                          style={{ backgroundColor: model.color }}
+                        />
+                        {model.name}
+                        {selectedModel.id === model.id && (
+                          <span className="ml-auto">✓</span>
+                        )}
+                      </div>
+                    </DropdownMenuItem>
+                  ))}
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
