@@ -132,6 +132,8 @@ export const endpoints = {
       `/strategies/${strategyId}/peers/thread/${peerId}/upload`,
 
     // board delete peer endpoints
+    DELETE_ANNOTATION_PEER: (id: string, peerId: string) =>
+      `/strategies/${id}/peers/annotation/${peerId}`,
     DELETE_IMAGE_PEER: (id: string, peerId: string) =>
       `/strategies/${id}/peers/image/${peerId}`,
     DELETE_AUDIO_PEER: (id: string, peerId: string) =>

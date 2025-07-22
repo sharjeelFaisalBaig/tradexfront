@@ -41,6 +41,7 @@ import {
   resetPeer,
   createAnnotationPeer,
   updateAnnotationContent,
+  deleteAnnotationPeer,
 } from "@/services/strategy/strategy_Mutation";
 import { IStrategy } from "@/lib/types";
 import { QUERY_KEYS } from "@/lib/queryKeys";
@@ -378,6 +379,24 @@ export const useUploadDocumentContent = () => {
 };
 
 // Delete Image Peer
+export const useDeleteAnnotationPeer = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      strategyId,
+      peerId,
+    }: {
+      strategyId: string;
+      peerId: string;
+    }) => deleteAnnotationPeer({ strategyId, peerId }),
+    onSuccess: (_data, { strategyId }) => {
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.STRATEGY, strategyId],
+      });
+    },
+  });
+};
+
 export const useDeleteImagePeer = () => {
   const queryClient = useQueryClient();
   return useMutation({

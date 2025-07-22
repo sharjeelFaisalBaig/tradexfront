@@ -19,6 +19,7 @@ import {
   useDeleteRemotePeer,
   useDeleteThreadPeer,
   useCreateAnnotationPeer,
+  useDeleteAnnotationPeer,
 } from "@/hooks/strategy/useStrategyMutations";
 import { toast } from "@/hooks/use-toast";
 
@@ -111,6 +112,7 @@ export const useNodeOperations = () => {
   const { mutate: createRemotePeer } = useCreateRemotePeer();
 
   // Hooks for delete mutations
+  const { mutate: deleteAnnotationPeer } = useDeleteAnnotationPeer();
   const { mutate: deleteImagePeer } = useDeleteImagePeer();
   const { mutate: deleteAudioPeer } = useDeleteAudioPeer();
   const { mutate: deleteVideoPeer } = useDeleteVideoPeer();
@@ -217,6 +219,7 @@ export const useNodeOperations = () => {
         socialMediaNode: deleteSocialPeer,
         remoteNode: deleteRemotePeer,
         chatbox: deleteThreadPeer,
+        annotationNode: deleteAnnotationPeer,
       };
 
       const mutation = deleteMutationMap[nodeType];

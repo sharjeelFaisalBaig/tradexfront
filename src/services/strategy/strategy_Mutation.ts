@@ -153,10 +153,9 @@ export const updateAnnotationContent = async ({
     };
   };
 }) => {
-  const res = await axiosInstance.post(
+  const res = await axiosInstance.put(
     endpoints.STRATEGY.UPDATE_ANNOTATION_PEER({ strategyId, peerId }),
-    data,
-    { headers: { "Content-Type": "multipart/form-data" } }
+    data
   );
   return res.data;
 };
@@ -239,6 +238,19 @@ export const uploadDocumentContent = async ({
 };
 
 // Delete peer content APIs
+export const deleteAnnotationPeer = async ({
+  strategyId,
+  peerId,
+}: {
+  strategyId: string;
+  peerId: string;
+}) => {
+  const res = await axiosInstance.delete(
+    endpoints.STRATEGY.DELETE_ANNOTATION_PEER(strategyId, peerId)
+  );
+  return res.data;
+};
+
 export const deleteImagePeer = async ({
   strategyId,
   peerId,

@@ -23,17 +23,19 @@ import { cn } from "@/lib/utils";
 import { useNodeOperations } from "../hooks/useNodeOperations";
 import { useParams } from "next/navigation";
 import { useUpdateAnnotationContent } from "@/hooks/strategy/useStrategyMutations";
-import useSuccessNotifier from "@/hooks/useSuccessNotifier";
-import { toast } from "@/hooks/use-toast";
+
+// Types for annotation data
+interface AnnotationData {
+  content: string;
+  author: string;
+  createdAt: string;
+  updatedAt?: string;
+  theme: "default" | "yellow" | "blue" | "green" | "purple" | "red";
+}
 
 interface AnnotationNodeData {
   id?: string;
-  annotation_message?: string;
-  created_at?: string;
-  updated_at?: string;
-  data?: {
-    color?: keyof typeof themes;
-  };
+  annotation?: AnnotationData;
 }
 
 interface AnnotationNodeProps {
@@ -99,20 +101,17 @@ export default function AnnotationNode({
   data,
   selected,
 }: AnnotationNodeProps) {
-  console.log("AnnotationNode_Data", { data });
-
   const strategyId = useParams()?.slug as string;
-  const successNote = useSuccessNotifier();
 
   const { updateNodeData, deleteElements } = useReactFlow();
   const { deleteNode } = useNodeOperations();
   const { mutate: updateAnnotation } = useUpdateAnnotationContent();
 
   // State management
-  const [isEditing, setIsEditing] = useState(!data?.annotation_message);
-  const [content, setContent] = useState(data?.annotation_message || "");
+  const [isEditing, setIsEditing] = useState(!data.annotation?.content);
+  const [content, setContent] = useState(data.annotation?.content || "");
   const [currentTheme, setCurrentTheme] = useState<keyof typeof themes>(
-    data?.data?.color || "default"
+    data.annotation?.theme || "default"
   );
   const [showThemePicker, setShowThemePicker] = useState(false);
 
@@ -160,19 +159,28 @@ export default function AnnotationNode({
       return;
     }
 
-    handleUpdateAnnotationNode();
+    const now = new Date().toISOString();
+    const annotationData: AnnotationData = {
+      content: content.trim(),
+      author: getCurrentUser(),
+      createdAt: data.annotation?.createdAt || now,
+      updatedAt: data.annotation?.createdAt ? now : undefined,
+      theme: currentTheme,
+    };
+
+    updateNodeData(id, { annotation: annotationData });
+    setIsEditing(false);
   };
 
   // Handle canceling edit
   const handleCancel = () => {
-    if (!data?.annotation_message) {
+    if (!data.annotation?.content) {
       // If this is a new annotation with no content, delete the node
       deleteElements({ nodes: [{ id }] });
-      handleDelete();
     } else {
       // Restore original content
-      setContent(data?.annotation_message);
-      setCurrentTheme(data?.data?.color || "default");
+      setContent(data.annotation.content);
+      setCurrentTheme(data.annotation.theme || "default");
       setIsEditing(false);
     }
     setShowThemePicker(false);
@@ -180,14 +188,13 @@ export default function AnnotationNode({
 
   // Handle delete
   const handleDelete = () => {
-    deleteNode(data?.id ?? "", "annotationNode", strategyId); // (nodeId, nodeType, strategyId)
+    deleteNode(data?.id ?? "", "annotation", strategyId); // (nodeId, nodeType, strategyId)
   };
 
   // Handle theme change
   const handleThemeChange = (newTheme: keyof typeof themes) => {
     setCurrentTheme(newTheme);
     setShowThemePicker(false);
-    handleUpdateAnnotationNode(newTheme);
   };
 
   // Handle keyboard shortcuts
@@ -204,39 +211,6 @@ export default function AnnotationNode({
   // Prevent node drag when interacting with controls
   const preventDrag = (e: React.MouseEvent | React.KeyboardEvent) => {
     e.stopPropagation();
-  };
-
-  const handleUpdateAnnotationNode = (newTheme?: keyof typeof themes) => {
-    const annotationData = {
-      annotation_message: content.trim(),
-      data: { color: newTheme || currentTheme },
-    };
-
-    setIsEditing(false);
-
-    updateAnnotation(
-      {
-        peerId: data?.id ?? "",
-        strategyId,
-        data: annotationData,
-      },
-      {
-        onSuccess: (data) => {
-          updateNodeData(id, { ...data });
-          successNote({
-            title: "Annotation Node Updated",
-            description: "Annotation node updated successfully",
-          });
-        },
-        onError: (error: any) => {
-          toast({
-            title: error?.message || "Failed To Update Node",
-            description:
-              error?.response?.data?.message || "Something went wrong",
-          });
-        },
-      }
-    );
   };
 
   return (
@@ -423,7 +397,7 @@ export default function AnnotationNode({
               theme.text
             )}
           >
-            {data?.annotation_message || (
+            {data.annotation?.content || (
               <span className="text-gray-400 italic">
                 Click edit to add a note...
               </span>
@@ -433,7 +407,7 @@ export default function AnnotationNode({
       </div>
 
       {/* Footer - Author and timestamp */}
-      {data?.annotation_message && (
+      {data.annotation && (
         <div
           className={cn(
             "px-3 py-2 border-t flex items-center justify-between text-xs",
@@ -443,18 +417,15 @@ export default function AnnotationNode({
         >
           <div className="flex items-center gap-1">
             <User className="h-3 w-3" />
-            <span>
-              {/* {data.annotation.author} */}
-              {getCurrentUser()}
-            </span>
+            <span>{data.annotation.author}</span>
           </div>
 
           <div className="flex items-center gap-1">
             <Clock className="h-3 w-3" />
             <span>
-              {data?.updated_at
-                ? `Updated ${getFormattedTime(data?.updated_at)}`
-                : `Created ${getFormattedTime(data?.created_at ?? "")}`}
+              {data.annotation.updatedAt
+                ? `Updated ${getFormattedTime(data.annotation.updatedAt)}`
+                : `Created ${getFormattedTime(data.annotation.createdAt)}`}
             </span>
           </div>
         </div>
