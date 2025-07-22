@@ -281,3 +281,215 @@ export const extractSocialVideoDetails = (
     duration: "",
   };
 };
+
+export type PastedContentType =
+  | { type: "image-file"; data: string } // Data URL from a pasted image file
+  | { type: "image-url"; data: string } // URL from a pasted image (e.g., from HTML or direct URL)
+  | { type: "audio-file"; data: string }
+  | { type: "video-file"; data: string }
+  | { type: "document-file"; data: string }
+  | { type: "youtube"; data: string }
+  | { type: "tiktok"; data: string }
+  | { type: "instagram"; data: string }
+  | { type: "facebook"; data: string }
+  | { type: "website url"; data: string }
+  | { type: "annotation"; data: string }
+  | { type: "unknown"; data: null };
+
+/**
+ * Analyzes the pasted content from a ClipboardEvent and returns its type and data.
+ * It prioritizes file types over string types, and specific URLs over general text.
+ * @param e The ClipboardEvent.
+ * @returns A Promise that resolves to an object containing the type and data of the pasted content.
+ */
+export async function getPastedContent(
+  e: ClipboardEvent
+): Promise<PastedContentType> {
+  const items = e?.clipboardData?.items;
+
+  console.log({ items_items: items });
+
+  if (!items) {
+    return { type: "unknown", data: null };
+  }
+
+  const urlRegex = /^(https?:\/\/[^\s$.?#].[^\s]*)$/i;
+  const imageFileExtensionRegex = /\.(jpg|jpeg|png|gif|webp|svg)$/i; // For checking if a URL points to an image
+
+  const socialMediaPlatforms = [
+    {
+      name: "youtube",
+      regex:
+        /(?:https?:\/\/)?(?:www\.)?(?:m\.)?(?:youtube\.com|youtu\.be)\/(?:watch\?v=|embed\/|v\/|)([\w-]{11})(?:\S+)?/i,
+    },
+    {
+      name: "tiktok",
+      regex:
+        /(?:https?:\/\/)?(?:www\.)?(?:tiktok\.com)\/@([\w.-]+)\/video\/(\d+)(?:\S+)?/i,
+    },
+    {
+      name: "instagram",
+      regex:
+        /(?:https?:\/\/)?(?:www\.)?(?:instagram\.com)\/(?:p|reel|tv)\/([\w-]+)(?:\S+)?/i,
+    },
+    {
+      name: "facebook",
+      regex:
+        /(?:https?:\/\/)?(?:www\.)?(?:facebook\.com)\/(?:video\.php\?v=|watch\/?\?v=|permalink\.php\?story_fbid=|groups\/[\w.-]+\/permalink\/|)([\w.-]+)(?:\S+)?/i,
+    },
+  ] as const;
+
+  const promises: Promise<PastedContentType | null>[] = [];
+
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i];
+
+    if (item.kind === "file") {
+      const file = item.getAsFile();
+      if (!file) continue;
+
+      promises.push(
+        new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            const dataUrl = event.target?.result as string;
+            if (item.type.startsWith("image/")) {
+              resolve({ type: "image-file", data: dataUrl });
+            } else if (item.type.startsWith("video/")) {
+              resolve({ type: "video-file", data: dataUrl });
+            } else if (item.type.startsWith("audio/")) {
+              resolve({ type: "audio-file", data: dataUrl });
+            } else if (
+              item.type.startsWith("application/pdf") ||
+              item.type.startsWith("application/msword") ||
+              item.type.startsWith(
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+              )
+            ) {
+              resolve({ type: "document-file", data: dataUrl });
+            } else {
+              resolve(null); // Not a recognized file type we want to handle specifically
+            }
+          };
+          reader.readAsDataURL(file);
+        })
+      );
+    } else if (item.kind === "string") {
+      if (item.type === "text/uri-list") {
+        promises.push(
+          new Promise((resolve) => {
+            item.getAsString((text) => {
+              const url = text.split("\n")[0]; // Take the first URL if multiple
+              if (urlRegex.test(url)) {
+                // Check if it's an image URL based on extension
+                if (imageFileExtensionRegex.test(url)) {
+                  resolve({ type: "image-url", data: url });
+                  return;
+                }
+
+                let matchedPlatform: PastedContentType["type"] = "website url";
+                for (const p of socialMediaPlatforms) {
+                  if (p.regex.test(url)) {
+                    matchedPlatform = p.name;
+                    break;
+                  }
+                }
+                resolve({ type: matchedPlatform, data: url });
+              } else {
+                resolve(null); // Not a valid URL in uri-list
+              }
+            });
+          })
+        );
+      } else if (item.type === "text/html") {
+        promises.push(
+          new Promise((resolve) => {
+            item.getAsString((htmlText) => {
+              // Try to extract image src from HTML
+              const imgMatch = htmlText.match(/<img[^>]+src="([^">]+)"/i);
+              if (imgMatch && imgMatch[1]) {
+                const imageUrl = imgMatch[1];
+                if (urlRegex.test(imageUrl)) {
+                  resolve({ type: "image-url", data: imageUrl });
+                  return;
+                }
+              }
+
+              // Try to extract href from anchor tags
+              const aMatch = htmlText.match(/<a[^>]+href="([^">]+)"/i);
+              if (aMatch && aMatch[1]) {
+                const url = aMatch[1];
+                if (urlRegex.test(url)) {
+                  let matchedPlatform: PastedContentType["type"] =
+                    "website url";
+                  for (const p of socialMediaPlatforms) {
+                    if (p.regex.test(url)) {
+                      matchedPlatform = p.name;
+                      break;
+                    }
+                  }
+                  resolve({ type: matchedPlatform, data: url });
+                  return;
+                }
+              }
+              resolve(null); // No specific URL or image found in HTML
+            });
+          })
+        );
+      } else if (item.type === "text/plain") {
+        promises.push(
+          new Promise((resolve) => {
+            item.getAsString((text) => {
+              if (urlRegex.test(text)) {
+                // Check if it's an image URL based on extension
+                if (imageFileExtensionRegex.test(text)) {
+                  resolve({ type: "image-url", data: text });
+                  return;
+                }
+
+                let matchedPlatform: PastedContentType["type"] = "website url";
+                for (const p of socialMediaPlatforms) {
+                  if (p.regex.test(text)) {
+                    matchedPlatform = p.name;
+                    break;
+                  }
+                }
+                resolve({ type: matchedPlatform, data: text });
+              } else {
+                resolve({ type: "annotation", data: text });
+              }
+            });
+          })
+        );
+      }
+    }
+  }
+
+  const results = (await Promise.all(promises)).filter(
+    Boolean
+  ) as PastedContentType[];
+
+  // Define the order of priority for content types
+  const prioritizedOrder: PastedContentType["type"][] = [
+    "image-file",
+    "video-file",
+    "audio-file",
+    "document-file",
+    "image-url", // Prioritize image URLs after actual files
+    "youtube",
+    "tiktok",
+    "instagram",
+    "facebook",
+    "website url",
+    "annotation",
+  ];
+
+  for (const type of prioritizedOrder) {
+    const found = results.find((result) => result.type === type);
+    if (found) {
+      return found;
+    }
+  }
+
+  return { type: "unknown", data: null };
+}

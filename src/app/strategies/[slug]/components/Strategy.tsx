@@ -38,6 +38,7 @@ import { getPeerTypeFromNodeType } from "@/lib/utils";
 import StrategyHeader from "@/components/StrategyHeader";
 import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 import ChatBoxNode from "./ChatBoxNode";
+import { useNodeOperations } from "../hooks/useNodeOperations";
 
 const nodeDefaults = {
   sourcePosition: Position.Right,
@@ -70,10 +71,12 @@ interface StrategyProps {
 }
 
 const Strategy = (props: StrategyProps) => {
-  const { slug } = props;
+  const { slug: strategyId } = props;
 
   const store = useStoreApi();
   const successNote = useSuccessNotifier();
+  const { addToolNode } = useNodeOperations();
+
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const { getInternalNode, getViewport } = useReactFlow();
@@ -85,7 +88,7 @@ const Strategy = (props: StrategyProps) => {
   const { mutate: updatePeerPosition } = useUpdatePeerPosition();
   const { mutate: connectNodes } = useConnectNodes();
 
-  const { data, isLoading, isError, error } = useGetStrategyById(slug);
+  const { data, isLoading, isError, error } = useGetStrategyById(strategyId);
   const strategy: IStrategy = useMemo(() => data?.data, [data]);
 
   // Handle initial node creation and loading from flows
@@ -180,71 +183,287 @@ const Strategy = (props: StrategyProps) => {
 
   // Add paste event handler for images
   useEffect(() => {
+    // Define the type for pasted content
+    type PastedContentType =
+      | { type: "image-file"; data: File }
+      | { type: "image-url"; data: string }
+      | { type: "audio-file"; data: File }
+      | { type: "video-file"; data: File }
+      | { type: "document-file"; data: File }
+      | { type: "youtube"; data: string }
+      | { type: "tiktok"; data: string }
+      | { type: "instagram"; data: string }
+      | { type: "facebook"; data: string }
+      | { type: "website url"; data: string }
+      | { type: "plain text"; data: string }
+      | { type: "unknown"; data: null };
+
     const handlePaste = async (e: ClipboardEvent) => {
       const items = e.clipboardData?.items;
+      console.log("Clipboard items:", items);
+      if (!items) {
+        console.log("No clipboard items found.");
+        return;
+      }
 
-      console.log("pasted item(s)", { items });
+      // Prevent default paste behavior for all relevant types upfront
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (
+          item.kind === "file" ||
+          (item.kind === "string" &&
+            (item.type === "text/plain" ||
+              item.type === "text/html" ||
+              item.type === "text/uri-list"))
+        ) {
+          e.preventDefault();
+        }
+      }
 
-      if (!items) return;
+      const urlRegex = /^(https?:\/\/[^\s$.?#].[^\s]*)$/i;
+      const imageFileExtensionRegex = /\.(jpg|jpeg|png|gif|webp|svg)$/i;
+      const socialMediaPlatforms = [
+        {
+          name: "youtube",
+          regex:
+            /(?:https?:\/\/)?(?:www\.|m\.|)(?:youtube\.com|youtu\.be)\/(?:watch\?v=|embed\/|v\/|)([\\w-]{11})(?:\S+)?/i,
+        },
+        {
+          name: "tiktok",
+          regex:
+            /(?:https?:\/\/)?(?:www\.|)(?:tiktok\.com)\/@([\\w.-]+)\/video\/(\d+)(?:\S+)?/i,
+        },
+        {
+          name: "instagram",
+          regex:
+            /(?:https?:\/\/)?(?:www\.|)(?:instagram\.com)\/(?:p|reel|tv)\/([\\w-]+)(?:\S+)?/i,
+        },
+        {
+          name: "facebook",
+          regex:
+            /(?:https?:\/\/)?(?:www\.|)(?:facebook\.com)\/(?:video\.php\?v=|watch\/\?v=|permalink\.php\?story_fbid=|groups\/[\\w.-]+\/permalink\/|)([\\w.-]+)(?:\S+)?/i,
+        },
+      ] as const;
+
+      const itemPromises: Promise<PastedContentType | null>[] = [];
 
       for (let i = 0; i < items.length; i++) {
         const item = items[i];
+        console.log(
+          `Processing item ${i}: kind='${item.kind}', type='${item.type}'`
+        );
 
-        console.log("pasted item", {
-          item,
-          type: item?.type,
-          kind: item?.kind,
-        });
-
-        if (item.type.indexOf("image") !== -1) {
-          e.preventDefault();
-
+        if (item.kind === "file") {
           const file = item.getAsFile();
-          if (!file) continue;
+          if (!file) {
+            console.log(`Item ${i} (file): getAsFile() returned null.`);
+            itemPromises.push(Promise.resolve(null)); // Push a resolved null promise
+            continue;
+          }
+          console.log(
+            `Item ${i} (file): file.type='${file.type}', file.name='${file.name}', file.size=${file.size}`
+          );
 
-          // Convert file to data URL
-          const reader = new FileReader();
-          reader.onload = (event) => {
-            const imageData = event.target?.result as string;
-
-            // Get current viewport center
-            const viewport = getViewport();
-            const centerX =
-              (-viewport.x + window.innerWidth / 2) / viewport.zoom;
-            const centerY =
-              (-viewport.y + window.innerHeight / 2) / viewport.zoom;
-
-            // Create new image upload node with pasted image data
-            const newNode = {
-              id: `image-upload-${Date.now()}`,
-              type: "imageUploadNode",
-              position: { x: centerX - 500, y: centerY - 150 }, // Center the node (adjusted for 1000px width)
-              data: {
-                label: "Image Upload",
-                image: imageData,
-                title: file.name || "pasted-image.png",
-              },
-              ...nodeDefaults,
-            };
-
-            // Add the new node
-            setNodes((nds) => [...nds, newNode]);
-          };
-
-          reader.readAsDataURL(file);
-          break; // Only handle the first image
+          if (file.type.startsWith("image/")) {
+            itemPromises.push(
+              Promise.resolve({ type: "image-file", data: file })
+            );
+          } else if (file.type.startsWith("video/")) {
+            itemPromises.push(
+              Promise.resolve({ type: "video-file", data: file })
+            );
+          } else if (file.type.startsWith("audio/")) {
+            itemPromises.push(
+              Promise.resolve({ type: "audio-file", data: file })
+            );
+          } else if (
+            file.type.startsWith("application/pdf") ||
+            file.type.startsWith("application/msword") ||
+            file.type.startsWith(
+              "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            ) ||
+            file.type.startsWith(
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            ) || // .xlsx
+            file.type.startsWith(
+              "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+            ) // .pptx
+          ) {
+            itemPromises.push(
+              Promise.resolve({ type: "document-file", data: file })
+            );
+          } else {
+            console.log(
+              `Item ${i} (file): Unrecognized file type: '${file.type}'`
+            );
+            itemPromises.push(Promise.resolve(null));
+          }
+        } else if (item.kind === "string") {
+          // Wrap getAsString in a Promise to handle its asynchronous nature
+          const stringPromise = new Promise<PastedContentType | null>(
+            (resolve) => {
+              item.getAsString((text) => {
+                console.log(
+                  `Item ${i} (string/${item.type}): text='${text.substring(
+                    0,
+                    Math.min(text.length, 100)
+                  )}...'`
+                );
+                if (item.type === "text/uri-list") {
+                  const url = text.split("\n")[0]; // Take the first URL if multiple
+                  if (urlRegex.test(url)) {
+                    if (imageFileExtensionRegex.test(url)) {
+                      resolve({ type: "image-url", data: url });
+                    } else {
+                      let matchedPlatform: PastedContentType["type"] =
+                        "website url";
+                      for (const p of socialMediaPlatforms) {
+                        if (p.regex.test(url)) {
+                          matchedPlatform = p.name;
+                          break;
+                        }
+                      }
+                      resolve({ type: matchedPlatform, data: url });
+                    }
+                  } else {
+                    resolve(null); // Not a valid URL in uri-list
+                  }
+                } else if (item.type === "text/html") {
+                  // Try to extract image src from HTML
+                  const imgMatch = text.match(/<img[^>]+src="([^">]+)"/i);
+                  if (imgMatch && imgMatch[1] && urlRegex.test(imgMatch[1])) {
+                    resolve({ type: "image-url", data: imgMatch[1] });
+                  } else {
+                    // Try to extract href from anchor tags
+                    const aMatch = text.match(/<a[^>]+href="([^">]+)"/i);
+                    if (aMatch && aMatch[1] && urlRegex.test(aMatch[1])) {
+                      let matchedPlatform: PastedContentType["type"] =
+                        "website url";
+                      for (const p of socialMediaPlatforms) {
+                        if (p.regex.test(aMatch[1])) {
+                          matchedPlatform = p.name;
+                          break;
+                        }
+                      }
+                      resolve({ type: matchedPlatform, data: aMatch[1] });
+                    } else {
+                      resolve(null); // No specific URL or image found in HTML
+                    }
+                  }
+                } else if (item.type === "text/plain") {
+                  if (urlRegex.test(text)) {
+                    if (imageFileExtensionRegex.test(text)) {
+                      resolve({ type: "image-url", data: text });
+                    } else {
+                      let matchedPlatform: PastedContentType["type"] =
+                        "website url";
+                      for (const p of socialMediaPlatforms) {
+                        if (p.regex.test(text)) {
+                          matchedPlatform = p.name;
+                          break;
+                        }
+                      }
+                      resolve({ type: matchedPlatform, data: text });
+                    }
+                  } else {
+                    resolve({ type: "plain text", data: text });
+                  }
+                } else {
+                  resolve(null); // Unhandled string type
+                }
+              });
+            }
+          );
+          itemPromises.push(stringPromise); // Push the promise, don't await yet
         }
+      }
+
+      // Await all promises after the loop has collected them
+      const potentialResults = (await Promise.all(itemPromises)).filter(
+        Boolean
+      ) as PastedContentType[];
+      console.log("All collected and filtered results:", potentialResults);
+
+      // Define the order of priority for content types
+      // Files are prioritized over URLs, and specific URLs over general ones, then plain text.
+      const prioritizedOrder: PastedContentType["type"][] = [
+        "image-file",
+        "video-file",
+        "audio-file",
+        "document-file",
+        "image-url", // Prioritize image URLs after actual files
+        "youtube",
+        "tiktok",
+        "instagram",
+        "facebook",
+        "website url",
+        "plain text",
+      ];
+
+      let finalPastedItem: PastedContentType = { type: "unknown", data: null };
+      for (const type of prioritizedOrder) {
+        const found = potentialResults.find((result) => result.type === type);
+        if (found) {
+          finalPastedItem = found;
+          break; // Found the highest priority item, stop searching
+        }
+      }
+
+      console.log("Final Pasted Item Result:", finalPastedItem);
+
+      if (finalPastedItem.type !== "unknown") {
+        console.log("Pasted Item Type:", finalPastedItem.type);
+        console.log("Pasted Data:", finalPastedItem.data);
+
+        // Call addToolNode based on the detected type
+        switch (finalPastedItem.type) {
+          case "plain text":
+            handleCreateNodeOnPaste(
+              "annotation",
+              finalPastedItem.data as string
+            );
+            break;
+          case "youtube":
+          case "tiktok":
+          case "instagram":
+          case "facebook":
+            handleCreateNodeOnPaste("social", finalPastedItem.data as string);
+            break;
+          case "website url":
+            handleCreateNodeOnPaste("remote", finalPastedItem.data as string);
+            break;
+          case "image-file":
+            handleCreateNodeOnPaste("image", finalPastedItem.data as File);
+            break;
+          case "image-url": // Image URL is handled as an image type, but with a string URL
+            handleCreateNodeOnPaste("image", finalPastedItem.data as string);
+            break;
+          case "video-file":
+            handleCreateNodeOnPaste("video", finalPastedItem.data as File);
+            break;
+          case "document-file":
+            handleCreateNodeOnPaste("document", finalPastedItem.data as File);
+            break;
+          case "audio-file":
+            handleCreateNodeOnPaste("audio", finalPastedItem.data as File);
+            break;
+          default:
+            console.log("Unhandled pasted item type:", finalPastedItem.type);
+            break;
+        }
+      } else {
+        console.log("Pasted Item Type: Unknown");
       }
     };
 
-    // Add event listener to document
+    // Add event listener to the document
     document.addEventListener("paste", handlePaste);
 
-    // Cleanup
+    // Cleanup function to remove the event listener when the component unmounts
     return () => {
       document.removeEventListener("paste", handlePaste);
     };
-  }, [setNodes, getViewport]);
+  }, [addToolNode, strategyId]); // The empty dependency array ensures this effect runs once on mount and cleans up on unmount [^3].
 
   const onConnect = useCallback(
     (params: Connection) => {
@@ -423,6 +642,12 @@ const Strategy = (props: StrategyProps) => {
     [getClosestEdge, setEdges, strategy?.id, updatePeerPosition]
   );
 
+  const handleCreateNodeOnPaste = (type: string, data?: any) => {
+    console.log("handleCreateNodeOnPaste:", { type, data });
+
+    addToolNode(type, strategyId); // (nodeType, strategyId)
+  };
+
   const defaultEdgeOptions = {
     type: "styledEdge",
     animated: true,
@@ -465,7 +690,7 @@ const Strategy = (props: StrategyProps) => {
         onEditStrategy={toggleNewStrategyModal}
       />
       <div className="flex flex-1 overflow-hidden">
-        <StrategySidebar strategyId={slug} />
+        <StrategySidebar strategyId={strategyId} />
         <main className="relative flex-1 overflow-y-auto p-6">
           <ReactFlow
             nodes={nodes}
