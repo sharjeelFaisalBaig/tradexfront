@@ -448,6 +448,7 @@ const Strategy = (props: StrategyProps) => {
             handleCreateNodeOnPaste("audio", finalPastedItem.data as File);
             break;
           default:
+            // @ts-ignore
             console.log("Unhandled pasted item type:", finalPastedItem.type);
             break;
         }
@@ -645,7 +646,11 @@ const Strategy = (props: StrategyProps) => {
   const handleCreateNodeOnPaste = (type: string, data?: any) => {
     console.log("handleCreateNodeOnPaste:", { type, data });
 
-    addToolNode(type, strategyId); // (nodeType, strategyId)
+    addToolNode({
+      peerType: type,
+      strategyId,
+      dataToAutoUpload: { image: data },
+    }); // (nodeType, strategyId, dataToAutoUpload)
   };
 
   const defaultEdgeOptions = {

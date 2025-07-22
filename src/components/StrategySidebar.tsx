@@ -72,7 +72,7 @@ const StrategySidebar = ({ strategyId }: StrategySidebarProps) => {
               onClick={
                 item.id === "Save Progress"
                   ? () => handleSavePeersPositions()
-                  : () => addToolNode(item.id, strategyId)
+                  : () => addToolNode({ peerType: item.id, strategyId })
               }
               className={cn(
                 collapsed

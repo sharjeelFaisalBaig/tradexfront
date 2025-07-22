@@ -122,7 +122,17 @@ export const useNodeOperations = () => {
   const { mutate: deleteThreadPeer } = useDeleteThreadPeer();
 
   const addToolNode = useCallback(
-    (tool: Tool, strategyId: string) => {
+    ({
+      peerType: tool,
+      strategyId,
+      dataToAutoUpload,
+    }: {
+      peerType: Tool;
+      strategyId: string;
+      dataToAutoUpload?: any; // remove this if not resolve the issue
+    }) => {
+      console.log({ dataToAutoUpload });
+
       const position = { x: 500, y: 500 };
       const newNode = toolToNode(tool, position);
 
@@ -143,6 +153,9 @@ export const useNodeOperations = () => {
             ...newNode,
             id: responseData?.peer_id,
             data: {
+              ...(Object.keys(dataToAutoUpload)?.length > 0
+                ? { dataToAutoUpload }
+                : {}), // data need to auto upload
               ...newNode.data,
               id: responseData?.peer_id,
               ...responseData,
