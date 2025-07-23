@@ -123,13 +123,13 @@ export const useNodeOperations = () => {
 
   const addToolNode = useCallback(
     ({
-      dataToAutoUpload,
+      dataToAutoUpload = {},
       peerType: tool,
       strategyId,
     }: {
       peerType: Tool;
       strategyId: string;
-      dataToAutoUpload: any;
+      dataToAutoUpload?: any;
     }) => {
       const position = { x: 500, y: 500 };
       const newNode = toolToNode(tool, position);

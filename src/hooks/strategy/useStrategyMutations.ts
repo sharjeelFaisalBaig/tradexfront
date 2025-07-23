@@ -161,11 +161,11 @@ export const useCreateAnnotationPeer = () => {
   return useMutation({
     mutationFn: ({ strategyId, data }: { strategyId: string; data: any }) =>
       createAnnotationPeer(strategyId, data),
-    onSuccess: (_data, { strategyId }) => {
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.STRATEGY, strategyId],
-      });
-    },
+    // onSuccess: (_data, { strategyId }) => {
+    //   queryClient.invalidateQueries({
+    //     queryKey: [QUERY_KEYS.STRATEGY, strategyId],
+    //   });
+    // },
   });
 };
 

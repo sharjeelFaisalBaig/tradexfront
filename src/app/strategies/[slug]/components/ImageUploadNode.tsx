@@ -61,7 +61,7 @@ export default function ImageUploadNode({
   targetPosition = Position.Right,
   data,
 }: any) {
-  console.log("ImageUploadNode data:", data);
+  // console.log("ImageUploadNode data:", data);
 
   const strategyId = useParams()?.slug as string;
 
@@ -108,10 +108,13 @@ export default function ImageUploadNode({
       enabled: isAnalyzeSuccess,
     });
 
-  console.log("Image analysis status:", { status });
-
   // Sync state with incoming data props (like VideoUploadNode)
   useEffect(() => {
+    // upload pasted image if exists
+    if (data?.dataToAutoUpload?.data) {
+      handleFileSelect(data?.dataToAutoUpload?.data);
+    }
+
     // Handle image from data.image (relative or absolute path)
     if (data?.image) {
       let apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
@@ -192,12 +195,12 @@ export default function ImageUploadNode({
 
       console.log("🤖 AI Response:", result);
     } catch (error) {
-      console.error("AI Processing Error:", error);
       setProcessingState({
         isProcessing: false,
         isComplete: false,
         error: error instanceof Error ? error.message : "Processing failed",
       });
+      console.error("AI Processing Error:", error);
     }
   };
 

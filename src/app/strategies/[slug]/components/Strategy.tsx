@@ -91,10 +91,6 @@ const Strategy = (props: StrategyProps) => {
   const { data, isLoading, isError, error } = useGetStrategyById(strategyId);
   const strategy: IStrategy = useMemo(() => data?.data, [data]);
 
-  useEffect(() => {
-    console.log("Component reload");
-  }, []);
-
   // Handle initial node creation and loading from flows
   useEffect(() => {
     if (!strategy) return;
@@ -606,12 +602,10 @@ const Strategy = (props: StrategyProps) => {
   );
 
   const handleCreateNodeOnPaste = (type: string, data?: any) => {
-    console.log("handleCreateNodeOnPaste:", { type, data });
-
     addToolNode({
       peerType: type,
       strategyId,
-      dataToAutoUpload: { image: data }, // ({nodeType, strategyId, dataToAutoUpload})
+      dataToAutoUpload: { data }, // ({nodeType, strategyId, dataToAutoUpload})
     });
   };
 

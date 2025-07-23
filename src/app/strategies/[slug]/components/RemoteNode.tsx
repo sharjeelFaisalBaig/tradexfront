@@ -150,12 +150,12 @@ export default function RemoteNode({
 
   // Handle pasted URL data from props (if needed)
   useEffect(() => {
-    if (data?.pastedUrl) {
-      setWebsiteUrl(data.pastedUrl);
-      const validation = validateUrl(data.pastedUrl);
-      if (validation.isValid) {
-        handleUrlSubmit(data.pastedUrl);
-      }
+    if (data?.dataToAutoUpload?.data) {
+      setWebsiteUrl(data?.dataToAutoUpload?.data);
+      // const validation = validateUrl(data?.dataToAutoUpload?.data);
+      // if (validation.isValid) {
+      //   handleUrlSubmit(data?.dataToAutoUpload?.data);
+      // }
     }
   }, [data]);
 

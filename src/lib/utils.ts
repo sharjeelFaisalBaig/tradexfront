@@ -170,6 +170,7 @@ export const SUPPORTED_PLATFORMS = {
       /^https?:\/\/(www\.)?facebook\.com\/[a-zA-Z0-9.]+\/videos\/[0-9]+/,
       /^https?:\/\/(www\.)?fb\.watch\/[a-zA-Z0-9_-]+/,
       /^https?:\/\/(www\.)?facebook\.com\/share\/r\/[a-zA-Z0-9_-]+\/?$/,
+      /^https?:\/\/(www\.)?facebook\.com\/reel\/[0-9]+/, // NEW: Reel pattern
     ],
   },
 };

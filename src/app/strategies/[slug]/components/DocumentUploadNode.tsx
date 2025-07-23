@@ -134,7 +134,7 @@ export default function DocumentUploadNode({
   targetPosition = Position.Right,
   data,
 }: any) {
-  console.log("DocumentUploadNode data:", data);
+  // console.log("DocumentUploadNode data:", data);
 
   const strategyId = useParams()?.slug as string;
   const successNote = useSuccessNotifier();
@@ -243,49 +243,10 @@ export default function DocumentUploadNode({
           error: null,
         });
       }
-    } else if (data?.pastedDocument && data?.pastedDocumentInfo) {
-      setUploadedDocument(data.pastedDocument);
-      setDocumentInfo(data.pastedDocumentInfo);
-      // Auto-process pasted documents
-      processDocumentWithAI(data.pastedDocument, data.pastedDocumentInfo);
+    } else if (data?.dataToAutoUpload?.data) {
+      handleFileSelect(data?.dataToAutoUpload?.data);
     }
   }, [data]);
-
-  // Mock AI processing function (not used in actual upload flow, but kept for context)
-  const processDocument = (docInfo: DocumentInfo): AIProcessingResponse => {
-    const documentType =
-      SUPPORTED_DOCUMENT_TYPES[
-        docInfo.type as keyof typeof SUPPORTED_DOCUMENT_TYPES
-      ]?.label || "Unknown Document";
-    return {
-      title: docInfo.name.replace(/\.[^/.]+$/, ""), // Remove file extension
-      peerId: `peer_${Math.random().toString(36).substr(2, 12)}`,
-      summary:
-        "This document contains comprehensive information about business strategies and market analysis. The content covers key performance indicators, growth projections, and competitive landscape analysis.",
-      content:
-        "Document content extracted successfully. The document discusses various aspects of business development, strategic planning, and implementation frameworks.",
-      keyPoints: [
-        "Strategic planning and implementation",
-        "Market analysis and competitive positioning",
-        "Performance metrics and KPIs",
-        "Growth opportunities and challenges",
-        "Risk assessment and mitigation strategies",
-      ],
-      documentType,
-      language: "English",
-      wordCount: Math.floor(Math.random() * 5000) + 1000,
-      pageCount: Math.floor(Math.random() * 20) + 1,
-      confidence: 0.92,
-      tags: ["business", "strategy", "analysis", "planning", "growth"],
-      entities: [
-        "Company Name",
-        "Market Segment",
-        "Financial Data",
-        "Strategic Goals",
-      ],
-      sentiment: "neutral",
-    };
-  };
 
   // API Integration Function
   const processDocumentWithAI = async (

@@ -223,54 +223,14 @@ export default function AudioPlayerNode({
           error: data.error_message || null,
         });
       }
+
       setIsLoading(true); // Assume audio needs to load in the player
       setIsInitialLoadFromProps(false); // Mark as processed
+    } else if (data?.dataToAutoUpload?.data) {
+      // Handle pasted audio data from props (ensure it doesn't conflict with initial data from 'audio' prop)
+      handleFileSelect(data?.dataToAutoUpload?.data);
     }
   }, [data, isInitialLoadFromProps]); // Depend on data and the initial load flag
-
-  // Handle pasted audio data from props (ensure it doesn't conflict with initial data from 'audio' prop)
-  useEffect(() => {
-    // Only process if it's new pasted audio and not already handled by main data loading
-    if (
-      data?.pastedAudio &&
-      data?.pastedFileName &&
-      !uploadedAudio &&
-      !isInitialLoadFromProps
-    ) {
-      const fetchAndUploadPastedAudio = async () => {
-        try {
-          const response = await fetch(data.pastedAudio);
-          const blob = await response.blob();
-          const pastedFile = new File([blob], data.pastedFileName, {
-            type: blob.type,
-          });
-          setCurrentFile(pastedFile);
-          setUploadedAudio(data.pastedAudio); // This is a blob URL
-          setFileName(data.pastedFileName);
-          setIsLoading(true); // Audio player loading
-
-          const formData: any = new FormData();
-          formData.append("file", pastedFile);
-          formData.append("title", data.pastedFileName);
-
-          uploadAudio({
-            strategyId,
-            peerId: data?.id,
-            data: formData,
-          });
-        } catch (e) {
-          console.error("Error processing pasted audio:", e);
-          setProcessingState({
-            isProcessing: false,
-            isComplete: false,
-            error:
-              e instanceof Error ? e.message : "Failed to process pasted audio",
-          });
-        }
-      };
-      fetchAndUploadPastedAudio();
-    }
-  }, [data, uploadedAudio, isInitialLoadFromProps, strategyId, uploadAudio]);
 
   // Update processing state based on mutation status
   useEffect(() => {
@@ -1127,10 +1087,10 @@ export default function AudioPlayerNode({
                               className="rounded-full bg-purple-500 hover:bg-purple-600 text-white h-12 w-12 disabled:opacity-50"
                               onClick={togglePlayPause}
                               disabled={
-                                isLoading || processingState.isProcessing
+                                isUploading || processingState.isProcessing
                               }
                             >
-                              {isLoading ? (
+                              {isUploading ? (
                                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                               ) : isPlaying ? (
                                 <Pause className="w-6 h-6 fill-white" />
@@ -1207,9 +1167,10 @@ export default function AudioPlayerNode({
                         size="icon"
                         className="rounded-full bg-purple-500 hover:bg-purple-600 text-white h-10 w-10 disabled:opacity-50"
                         onClick={togglePlayPause}
-                        disabled={isLoading || processingState.isProcessing}
+                        disabled={isUploading || processingState.isProcessing}
+                        // disabled={isLoading || processingState.isProcessing}
                       >
-                        {isLoading ? (
+                        {isUploading ? (
                           <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                         ) : isPlaying ? (
                           <Pause className="w-5 h-5 fill-white" />

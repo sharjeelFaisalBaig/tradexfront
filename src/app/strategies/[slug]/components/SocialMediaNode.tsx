@@ -76,7 +76,8 @@ export default function SocialMediaNode({
   targetPosition = Position.Right,
   data,
 }: any) {
-  console.log("SocialMediaNode data:", { data });
+  // console.log("SocialMediaNode data:", { data });
+
   const strategyId = useParams()?.slug as string;
   const nodeControlRef = useRef(null);
   const { setEdges } = useReactFlow();
@@ -108,7 +109,7 @@ export default function SocialMediaNode({
 
   // Sync state with incoming data props (like VideoUploadNode)
   useEffect(() => {
-    if (data && data.video) {
+    if (data && data?.video) {
       const validation = validateSocialMediaUrl(data.video);
       setSocialUrl(data.video);
       setUrlValidation(validation);
@@ -154,8 +155,15 @@ export default function SocialMediaNode({
       }
     } else {
       // If no data or no video, reset to pre-upload state
-      setSocialUrl("");
-      setUrlValidation({ isValid: false });
+      if (data?.dataToAutoUpload?.data) {
+        const validation = validateSocialMediaUrl(data?.dataToAutoUpload?.data);
+        setSocialUrl(data?.dataToAutoUpload?.data);
+        setUrlValidation(validation);
+      } else {
+        setSocialUrl("");
+        setUrlValidation({ isValid: false });
+      }
+
       setSocialMediaData(null);
       setAiResponse(null);
       setProcessingState({
