@@ -1,46 +1,89 @@
-"use client"
-import type React from "react"
-import { useEffect, useState, useRef, useCallback } from "react"
-import { Handle, Position, useReactFlow } from "@xyflow/react"
-import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { ChevronDown, Plus, MessageSquare, Copy, ArrowUp, Trash2 } from "lucide-react"
-import AIResponseLoader from "@/components/common/ai-response-loader"
-import NodeWrapper from "./common/NodeWrapper"
+"use client";
+import type React from "react";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
+import { Handle, Position } from "@xyflow/react";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  ChevronDown,
+  Plus,
+  MessageSquare,
+  Copy,
+  ArrowUp,
+  Trash2,
+  AlertCircle,
+  Loader2,
+} from "lucide-react";
+import AIResponseLoader from "@/components/common/ai-response-loader";
+import NodeWrapper from "./common/NodeWrapper";
+import { useParams } from "next/navigation";
+import {
+  useCreateConversation,
+  useDeleteConversation,
+  useSendChatMessage,
+  useUpdateConversation,
+  useUpdateConversationAiModel,
+} from "@/hooks/strategy/useStrategyMutations";
+import {
+  useGetAiModels,
+  useGetChatTemplates,
+  useGetConversationById,
+} from "@/hooks/strategy/useStrategyQueries";
+import { getFilteredAiModels } from "@/lib/utils";
+import ReactMarkdown from "react-markdown";
+import { toast } from "@/hooks/use-toast";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
-// Message type definition
-type Message = {
-  id: string
-  content: string
-  sender: "user" | "ai"
-  timestamp: Date
+// Types
+interface AIModel {
+  id: string;
+  name: string;
+  color: string;
 }
 
-// Model type definition
-type AIModel = {
-  id: string
-  name: string
-  color: string
+interface Conversation {
+  id: string;
+  title: string;
+  ai_model_id: string;
+  isLoading?: boolean; // For chat message sending
+  draftMessage?: string;
+  selectedModel?: AIModel;
+  hasError?: boolean;
+  errorMessage?: string;
+  isDeleting?: boolean; // New: for delete operation
+  isUpdatingTitle?: boolean; // New: for title update operation
 }
 
-// Conversation type definition - Extended with draft message and selected model
-type Conversation = {
-  id: string
-  title: string
-  messages: Message[]
-  createdAt: Date
-  updatedAt: Date
-  isLoading?: boolean
-  draftMessage?: string // Store unsent message for this conversation
-  selectedModel?: AIModel // Store selected model for this conversation
+interface PredefinedPrompt {
+  id: string;
+  label: string;
+  prompt: string;
 }
 
-// Predefined prompt type definition
-type PredefinedPrompt = {
-  id: string
-  label: string
-  prompt: string
+interface Message {
+  id: string;
+  content: string;
+  name: string;
+  sender: "user" | "ai";
+  timestamp: Date;
+  isOptimistic?: boolean;
+  hasError?: boolean;
+}
+
+interface ChatBoxNodeProps {
+  id: string;
+  sourcePosition?: Position;
+  targetPosition?: Position;
+  data?: {
+    conversations?: Conversation[];
+    id?: string;
+  };
 }
 
 export default function ChatBoxNode({
@@ -48,478 +91,962 @@ export default function ChatBoxNode({
   sourcePosition = Position.Left,
   targetPosition = Position.Right,
   data,
-}: any) {
-  const nodeControlRef = useRef(null)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const { setEdges } = useReactFlow()
-  const [message, setMessage] = useState("")
-  const [conversations, setConversations] = useState<Conversation[]>([])
-  const [activeConversationId, setActiveConversationId] = useState<string | null>(null)
+}: ChatBoxNodeProps) {
+  const strategyId = useParams()?.slug as string;
 
-  // Dynamic AI Models State
-  const [availableModels] = useState<AIModel[]>([
-    { id: "gpt-4o", name: "GPT-4o", color: "bg-orange-500" },
-    { id: "claude-3-sonnet", name: "Claude 3 Sonnet", color: "bg-purple-500" },
-    { id: "gemini-pro", name: "Gemini Pro", color: "bg-blue-500" },
-    { id: "llama-2", name: "Llama 2", color: "bg-green-500" },
-  ])
+  // State
+  const [activeConversationId, setActiveConversationId] = useState<
+    string | null
+  >(null);
+  const [page, setPage] = useState<number>(1);
+  const [message, setMessage] = useState("");
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [editingConversationId, setEditingConversationId] = useState<
+    string | null
+  >(null);
+  const [editingTitle, setEditingTitle] = useState("");
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [isHydrated, setIsHydrated] = useState(false);
 
-  // Dynamic Predefined Prompts State
-  const [predefinedPrompts] = useState<PredefinedPrompt[]>([
-    {
-      id: "summarize",
-      label: "Summarize",
-      prompt: "Please summarize the attached content, focusing on the main points and key takeaways.",
-    },
-    {
-      id: "key-insights",
-      label: "Get Key Insights",
-      prompt: "Extract the key insights and important findings from the provided content.",
-    },
-    {
-      id: "write-email",
-      label: "Write Email",
-      prompt: "Help me write a professional email based on the following context:",
-    },
-    {
-      id: "explain",
-      label: "Explain",
-      prompt: "Please explain this content in simple terms that anyone can understand.",
-    },
-    {
-      id: "action-items",
-      label: "Action Items",
-      prompt: "Identify actionable items and next steps from the provided information.",
-    },
-  ])
+  // Refs
+  const nodeControlRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Get active conversation
-  const activeConversation = conversations.find((conv) => conv.id === activeConversationId)
-  const messages = activeConversation?.messages || []
-  const isLoading = activeConversation?.isLoading || false
+  // Mutations
+  const { mutateAsync: sendChatMessageMutation } = useSendChatMessage();
+  const {
+    mutateAsync: createConversationMutation,
+    isPending: createConversationLoading,
+  } = useCreateConversation();
+  const { mutateAsync: updateConversationMutation } = useUpdateConversation();
+  const { mutateAsync: deleteConversationMutation } = useDeleteConversation();
+  const {
+    mutateAsync: updateConversationAiModelMutation,
+    isPending: updateModelLoading,
+  } = useUpdateConversationAiModel();
 
-  // Get current selected model (conversation-specific or default)
-  const selectedModel = activeConversation?.selectedModel || availableModels[0]
+  // Queries
+  const { data: aiModelsData, isLoading: isLoadingModels } = useGetAiModels();
+  const { data: aiTemplatesData, isLoading: isLoadingTemplates } =
+    useGetChatTemplates();
+  const { data: activeConversationData, isLoading: isLoadingConversation } =
+    useGetConversationById({
+      strategyId,
+      conversationId: activeConversationId ?? "",
+      page,
+    });
 
-  // Check if any conversation is loading (to disable switching)
-  const isAnyConversationLoading = conversations.some((conv) => conv.isLoading)
+  // Memoized values
+  const availableModels: AIModel[] = useMemo(
+    () => getFilteredAiModels(aiModelsData?.models) || [],
+    [aiModelsData]
+  );
+  const predefinedPrompts: PredefinedPrompt[] = useMemo(
+    () =>
+      aiTemplatesData?.templates?.map(
+        (template: { text: string; title: string }) => ({
+          id: template?.title,
+          label: template?.title,
+          prompt: template?.text,
+        })
+      ) || [],
+    [aiTemplatesData]
+  );
+  const activeConversation = useMemo(
+    () =>
+      conversations.find((conv) => conv.id === activeConversationId) || null,
+    [conversations, activeConversationId]
+  );
+  const selectedModel = useMemo(
+    () => activeConversation?.selectedModel || availableModels[0] || null,
+    [activeConversation, availableModels]
+  );
 
-  // Determine if connection should be allowed
-  const canConnect: any = true;
+  // MODIFIED: isAnyConversationLoading now checks per-item loading states
+  const isAnyConversationLoading = useMemo(
+    () =>
+      conversations.some(
+        (conv) => conv.isLoading || conv.isDeleting || conv.isUpdatingTitle
+      ) ||
+      createConversationLoading ||
+      updateModelLoading,
+    [conversations, createConversationLoading, updateModelLoading]
+  );
 
-  // Remove connections when node becomes not connectable
+  const isLoading = activeConversation?.isLoading || false;
+  const canConnect = !isLoading; // This controls if new connections can be made to the handle
+
+  // Helper functions
+  const parseTimestamp = useCallback((val: string | undefined): Date => {
+    if (!val) return new Date();
+    const d = new Date(val);
+    return isNaN(d.getTime()) ? new Date() : d;
+  }, []);
+
+  const generateOptimisticId = useCallback(() => {
+    return `temp_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+  }, []);
+
+  // Add hydration effect
   useEffect(() => {
-    if (!canConnect) {
-      setEdges((edges) =>
-        edges.filter((edge) => edge.source !== id && edge.target !== id)
-      )
-    }
-  }, [canConnect, id, setEdges])
+    setIsHydrated(true);
+  }, []);
 
-  // Create memoized functions to prevent re-renders
-  const saveDraftMessage = useCallback((conversationId: string, draftMessage: string) => {
-    setConversations((prev) =>
-      prev.map((conv) => (conv.id === conversationId ? { ...conv, draftMessage, updatedAt: new Date() } : conv)),
-    )
-  }, [])
-
-  const saveSelectedModel = useCallback((conversationId: string, model: AIModel) => {
-    setConversations((prev) =>
-      prev.map((conv) =>
-        conv.id === conversationId ? { ...conv, selectedModel: model, updatedAt: new Date() } : conv,
-      ),
-    )
-  }, [])
-
-  // Update the message change handler to save draft directly
-  const handleMessageChange = useCallback(
-    (newMessage: string) => {
-      setMessage(newMessage)
-      if (activeConversationId) {
-        saveDraftMessage(activeConversationId, newMessage)
-      }
-    },
-    [activeConversationId, saveDraftMessage],
-  )
-
-  const createNewConversation = useCallback(() => {
-    if (isAnyConversationLoading) return
-
-    const newConversation: Conversation = {
-      id: `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // More unique ID
-      title: "New Conversation",
-      messages: [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      isLoading: false,
-      draftMessage: "",
-      selectedModel: availableModels[0],
-    }
-
-    setConversations((prev) => {
-      // Check if conversation already exists to prevent duplicates
-      const exists = prev.some((conv) => conv.id === newConversation.id)
-      if (exists) return prev
-      return [newConversation, ...prev]
-    })
-    setActiveConversationId(newConversation.id)
-  }, [isAnyConversationLoading, availableModels])
-
-  // Delete conversation
-  const deleteConversation = useCallback(
-    (conversationId: string) => {
-      if (isAnyConversationLoading) return
-
-      // Find the conversation to delete
-      const conversationToDelete = conversations.find((conv) => conv.id === conversationId)
-      const conversationIndex = conversations.findIndex((conv) => conv.id === conversationId)
-
-      // Prevent deletion of the first conversation
-      if (conversationIndex === 0) {
-        console.log("Cannot delete the first conversation")
-        return
-      }
-
-      setConversations((prev) => prev.filter((conv) => conv.id !== conversationId))
-
-      // If deleted conversation was active, switch to first available
-      if (activeConversationId === conversationId) {
-        const remainingConversations = conversations.filter((conv) => conv.id !== conversationId)
-        if (remainingConversations.length > 0) {
-          setActiveConversationId(remainingConversations[0].id)
-        }
-      }
-    },
-    [isAnyConversationLoading, activeConversationId, conversations],
-  )
-
-  // Initialize with first conversation - fix to prevent multiple calls
+  // Initialization useEffect: Populates conversations from props or starts empty
   useEffect(() => {
-    if (conversations.length === 0) {
-      const initialConversation: Conversation = {
-        id: `conv_${Date.now()}_initial`,
-        title: "New Conversation",
-        messages: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
+    // Only run if hydrated, models are loaded, and not yet initialized
+    if (!isHydrated || isLoadingModels || isInitialized) {
+      return;
+    }
+
+    const rawConversations = data?.conversations;
+    const initialConversationsFromProps = Array.isArray(rawConversations)
+      ? rawConversations.filter(
+          (conv) => conv && typeof conv === "object" && conv.id
+        )
+      : [];
+
+    if (initialConversationsFromProps.length > 0) {
+      // If conversations are provided via props, use them
+      const mappedConversations = initialConversationsFromProps.map((conv) => ({
+        ...conv,
+        selectedModel:
+          availableModels.find((m) => m.id === conv.ai_model_id) ||
+          availableModels[0],
         isLoading: false,
-        draftMessage: "",
-        selectedModel: availableModels[0],
-      }
-
-      setConversations([initialConversation])
-      setActiveConversationId(initialConversation.id)
+        hasError: false,
+        isDeleting: false, // Initialize new state
+        isUpdatingTitle: false, // Initialize new state
+      }));
+      setConversations(mappedConversations);
+      setActiveConversationId(mappedConversations[0]?.id || null);
+    } else {
+      // If no conversations from props, the list starts empty.
+      // A new conversation will be created when the user clicks "New Conversation".
+      setConversations([]);
+      setActiveConversationId(null);
     }
-  }, []) // Empty dependency array - only run once
+    setIsInitialized(true); // Mark as initialized
+  }, [
+    isHydrated,
+    isLoadingModels,
+    availableModels,
+    data?.conversations,
+    isInitialized,
+  ]);
 
-  // Scroll to bottom when messages change
+  // Load messages when active conversation changes
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages])
+    if (activeConversationData?.conversation?.aiChats) {
+      const loadedMessages: Message[] =
+        activeConversationData.conversation.aiChats.flatMap((chat: any) => [
+          {
+            id: `${chat.id}_user`,
+            content: chat.prompt,
+            sender: "user" as const,
+            name: "You",
+            timestamp: parseTimestamp(chat.created_at),
+            isOptimistic: false,
+          },
+          {
+            id: `${chat.id}_ai`,
+            content: chat.response,
+            sender: "ai" as const,
+            name: chat?.ai_model,
+            timestamp: parseTimestamp(chat.updated_at),
+            isOptimistic: false,
+          },
+        ]);
+      setMessages(loadedMessages);
+    } else if (activeConversationId && !isLoadingConversation) {
+      setMessages([]);
+    }
+  }, [
+    activeConversationData,
+    activeConversationId,
+    isLoadingConversation,
+    parseTimestamp,
+  ]);
+
+  // Load draft message when switching conversations
+  useEffect(() => {
+    if (activeConversation?.draftMessage !== undefined) {
+      setMessage(activeConversation.draftMessage);
+    }
+  }, [activeConversation?.draftMessage]);
+
+  // Auto-scroll to bottom
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   // Auto-resize textarea
   useEffect(() => {
     if (textareaRef.current) {
-      textareaRef.current.style.height = "auto"
-      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`
+      textareaRef.current.style.height = "auto";
+      textareaRef.current.style.height = `${Math.min(
+        textareaRef.current.scrollHeight,
+        120
+      )}px`;
     }
-  }, [message])
+  }, [message]);
 
-  // Load conversation-specific draft message and model when switching conversations
-  useEffect(() => {
-    if (activeConversation) {
-      // Only update if the message is different to prevent loops
-      const draftMessage = activeConversation.draftMessage || ""
-      if (message !== draftMessage) {
-        setMessage(draftMessage)
+  // REMOVED: The useEffect that was disconnecting edges based on `canConnect`.
+  // This was causing connections to drop during chat loading.
+  // The `isConnectable` prop on `Handle` will still prevent new connections
+  // from being made when the node is in a loading state.
+
+  // Conversation management functions
+  const updateConversationState = useCallback(
+    (conversationId: string, updates: Partial<Conversation>) => {
+      setConversations((prev) =>
+        prev.map((conv) =>
+          conv.id === conversationId ? { ...conv, ...updates } : conv
+        )
+      );
+    },
+    []
+  );
+
+  const saveDraftMessage = useCallback(
+    (conversationId: string, draftMessage: string) => {
+      updateConversationState(conversationId, { draftMessage });
+    },
+    [updateConversationState]
+  );
+
+  const setConversationLoading = useCallback(
+    (conversationId: string, loading: boolean) => {
+      updateConversationState(conversationId, {
+        isLoading: loading,
+        hasError: loading ? false : undefined, // Clear error when starting new request
+      });
+    },
+    [updateConversationState]
+  );
+
+  const setConversationError = useCallback(
+    (conversationId: string, error: string) => {
+      updateConversationState(conversationId, {
+        hasError: true,
+        errorMessage: error,
+        isLoading: false, // Ensure loading is false on error
+      });
+    },
+    [updateConversationState]
+  );
+
+  // Message handling
+  const handleMessageChange = useCallback(
+    (newMessage: string) => {
+      setMessage(newMessage);
+      if (activeConversationId) {
+        saveDraftMessage(activeConversationId, newMessage);
       }
-    }
-  }, [activeConversationId]) // Remove activeConversation and message from dependencies
+    },
+    [activeConversationId, saveDraftMessage]
+  );
 
-  // Switch to conversation
-  const switchToConversation = (conversationId: string) => {
-    if (isAnyConversationLoading) return
-    setActiveConversationId(conversationId)
-  }
+  const removeOptimisticMessage = useCallback((messageId: string) => {
+    setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
+  }, []);
 
-  // Update conversation title based on first user message
-  const updateConversationTitle = (conversationId: string, firstMessage: string) => {
-    setConversations((prev) =>
-      prev.map((conv) =>
-        conv.id === conversationId
-          ? {
-            ...conv,
-            title: firstMessage.slice(0, 30) + (firstMessage.length > 30 ? "..." : ""),
-            updatedAt: new Date(),
-          }
-          : conv,
-      ),
-    )
-  }
+  const handleSendMessage = useCallback(async () => {
+    if (!message.trim() || !activeConversationId || isLoading || !selectedModel)
+      return;
 
-  // Add message to specific conversation
-  const addMessageToConversation = (conversationId: string, newMessage: Message) => {
-    setConversations((prev) =>
-      prev.map((conv) =>
-        conv.id === conversationId
-          ? { ...conv, messages: [...conv.messages, newMessage], updatedAt: new Date() }
-          : conv,
-      ),
-    )
-  }
+    const userMessageText = message.trim();
+    const timestamp = new Date();
+    const optimisticUserId = generateOptimisticId();
+    // const optimisticAiId = generateOptimisticId(); // Not needed if AI message is only added on success
 
-  // Set loading state for specific conversation
-  const setConversationLoading = (conversationId: string, loading: boolean) => {
-    setConversations((prev) =>
-      prev.map((conv) => (conv.id === conversationId ? { ...conv, isLoading: loading } : conv)),
-    )
-  }
+    // Clear input and draft
+    setMessage("");
+    saveDraftMessage(activeConversationId, "");
+    setConversationLoading(activeConversationId, true);
 
-  // Handle predefined prompt click
-  const handlePredefinedPromptClick = (prompt: PredefinedPrompt) => {
-    if (isLoading) return
-
-    const newMessage = message ? `${message}\n\n${prompt.prompt}` : prompt.prompt
-    setMessage(newMessage)
-
-    // Focus textarea after adding prompt
-    setTimeout(() => {
-      textareaRef.current?.focus()
-    }, 0)
-  }
-
-  // Handle model selection - Save to current conversation
-  const handleModelSelect = (model: AIModel) => {
-    if (activeConversationId) {
-      saveSelectedModel(activeConversationId, model)
-    }
-  }
-
-  const handleSendMessage = async () => {
-    if (!message.trim() || !activeConversationId || isLoading) return
-
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      content: message.trim(),
+    // Add optimistic user message
+    const optimisticUserMessage: Message = {
+      id: optimisticUserId,
+      content: userMessageText,
       sender: "user",
-      timestamp: new Date(),
-    }
-
-    // Add user message to active conversation
-    addMessageToConversation(activeConversationId, userMessage)
-
-    // Update conversation title if it's the first message
-    const currentConversation = conversations.find((conv) => conv.id === activeConversationId)
-    if (currentConversation && currentConversation.messages.length === 0) {
-      updateConversationTitle(activeConversationId, message.trim())
-    }
-
-    const currentConversationId = activeConversationId
-    const currentSelectedModel = selectedModel
-
-    // Clear message and draft
-    setMessage("")
-    saveDraftMessage(currentConversationId, "")
-    setConversationLoading(currentConversationId, true)
+      name: "You",
+      timestamp,
+      isOptimistic: true,
+    };
+    setMessages((prev) => [...prev, optimisticUserMessage]);
 
     try {
-      // TODO: Replace with actual AI API call using selectedModel
-      setTimeout(() => {
-        const aiMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          content: `<div class="ai-response-container">
-            <p>Response from <strong>${currentSelectedModel.name}</strong>:</p>
-            <p>I understand your message: "<strong>${userMessage.content}</strong>"</p>
-            <p>This is a placeholder response. In production, this would be replaced with actual AI processing using the selected model.</p>
-          </div>`,
-          sender: "ai",
-          timestamp: new Date(),
+      const response = await sendChatMessageMutation({
+        strategyId,
+        data: {
+          message: userMessageText,
+          conversation_id: activeConversationId,
+        },
+      });
+
+      const aiMessageContent = response?.response;
+      if (!aiMessageContent) {
+        throw new Error("No response received from AI");
+      }
+
+      // Remove optimistic user message and add real messages
+      setMessages((prev) => {
+        const withoutOptimistic = prev.filter(
+          (msg) => msg.id !== optimisticUserId
+        );
+        return [
+          ...withoutOptimistic,
+          {
+            id: `user_${Date.now()}`,
+            content: userMessageText,
+            sender: "user",
+            timestamp,
+            name: "You",
+            isOptimistic: false,
+          },
+          {
+            id: `ai_${Date.now()}`,
+            content: aiMessageContent,
+            sender: "ai",
+            timestamp: new Date(),
+            name: response.ai_model,
+            isOptimistic: false,
+          },
+        ];
+      });
+
+      // Update conversation title if it's the first message && still "New Conversation"
+      if (
+        messages.length === 0 &&
+        activeConversation?.title === "New Conversation"
+      ) {
+        const newTitle =
+          userMessageText.slice(0, 30) +
+          (userMessageText.length > 30 ? "..." : "");
+        updateConversationState(activeConversationId, { title: newTitle });
+        // Update title on server
+        try {
+          await updateConversationMutation({
+            strategyId,
+            conversationId: activeConversationId,
+            data: { title: newTitle },
+          });
+        } catch (titleError) {
+          console.warn("Failed to update conversation title:", titleError);
         }
-
-        addMessageToConversation(currentConversationId, aiMessage)
-        setConversationLoading(currentConversationId, false)
-      }, 2000)
-    } catch (error) {
-      console.error("Error sending message:", error)
-      setConversationLoading(currentConversationId, false)
+      }
+    } catch (error: any) {
+      console.error("Send message error:", error);
+      // Remove optimistic user message
+      removeOptimisticMessage(optimisticUserId);
+      // Set conversation error state
+      const errorMessage =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Failed to send message";
+      setConversationError(activeConversationId, errorMessage); // This will trigger the Alert display
+      // Show error toast
+      toast({
+        title: "Message Failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setConversationLoading(activeConversationId, false);
     }
-  }
+  }, [
+    message,
+    activeConversationId,
+    isLoading,
+    selectedModel,
+    generateOptimisticId,
+    saveDraftMessage,
+    setConversationLoading,
+    messages.length,
+    sendChatMessageMutation,
+    strategyId,
+    updateConversationState,
+    updateConversationMutation,
+    removeOptimisticMessage,
+    setConversationError,
+    activeConversation?.title,
+  ]);
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault()
-      handleSendMessage()
+  const createNewConversation = useCallback(async () => {
+    if (isAnyConversationLoading || !availableModels.length) return;
+
+    try {
+      const response = await createConversationMutation({
+        strategyId,
+        data: {
+          title: "New Conversation",
+          ai_thread_peer_id: data?.id ?? "",
+        },
+      });
+
+      const conv = response?.conversation;
+      if (!conv) throw new Error("No conversation returned from API");
+
+      const model =
+        availableModels.find((m) => m.id === conv.ai_model_id) ||
+        availableModels[0];
+
+      const newConversation: Conversation = {
+        id: conv.id,
+        title: conv.title,
+        ai_model_id: conv.ai_model_id,
+        isLoading: false,
+        draftMessage: "",
+        selectedModel: model,
+        hasError: false,
+        isDeleting: false, // Initialize new state
+        isUpdatingTitle: false, // Initialize new state
+      };
+
+      setConversations((prev) => {
+        const exists = prev.some((c) => c.id === newConversation.id);
+        return exists ? prev : [newConversation, ...prev];
+      });
+      setActiveConversationId(newConversation.id);
+    } catch (error: any) {
+      toast({
+        title: "Failed to create conversation",
+        description:
+          error?.response?.data?.message ||
+          error?.message ||
+          "Unknown error occurred",
+        variant: "destructive",
+      });
     }
+  }, [
+    isAnyConversationLoading,
+    availableModels,
+    createConversationMutation,
+    strategyId,
+    data?.id,
+  ]);
+
+  // MODIFIED: deleteConversation to use per-item loading
+  const deleteConversation = useCallback(
+    async (conversationId: string) => {
+      if (isAnyConversationLoading) return; // Still prevent if other global operations are pending
+
+      // Set optimistic loading state for the specific conversation
+      updateConversationState(conversationId, { isDeleting: true });
+
+      try {
+        await deleteConversationMutation({ strategyId, conversationId });
+        setConversations((prev) =>
+          prev.filter((conv) => conv.id !== conversationId)
+        );
+        if (activeConversationId === conversationId) {
+          const remainingConversations = conversations.filter(
+            (conv) => conv.id !== conversationId
+          );
+          setActiveConversationId(remainingConversations[0]?.id || null);
+        }
+      } catch (error: any) {
+        toast({
+          title: "Failed to delete conversation",
+          description:
+            error?.response?.data?.message ||
+            error?.message ||
+            "Unknown error occurred",
+          variant: "destructive",
+        });
+      } finally {
+        // Ensure loading state is reset even on error
+        updateConversationState(conversationId, { isDeleting: false });
+      }
+    },
+    [
+      isAnyConversationLoading, // Keep this to prevent deletion if other global operations are pending
+      conversations,
+      deleteConversationMutation,
+      strategyId,
+      activeConversationId,
+      updateConversationState,
+    ]
+  );
+
+  const switchToConversation = useCallback(
+    (conversationId: string) => {
+      if (isAnyConversationLoading) return;
+      setActiveConversationId(conversationId);
+    },
+    [isAnyConversationLoading]
+  );
+
+  const handleModelSelect = useCallback(
+    async (model: AIModel) => {
+      if (!activeConversationId) return;
+
+      // Optimistically update UI
+      updateConversationState(activeConversationId, { selectedModel: model });
+
+      try {
+        await updateConversationAiModelMutation({
+          strategyId,
+          conversationId: activeConversationId,
+          data: { ai_model_id: model.id },
+        });
+      } catch (error: any) {
+        // Revert optimistic update
+        updateConversationState(activeConversationId, {
+          selectedModel:
+            availableModels.find(
+              (m) => m.id === activeConversation?.ai_model_id
+            ) || availableModels[0],
+        });
+        toast({
+          title: "Failed to update model",
+          description:
+            error?.response?.data?.message ||
+            error?.message ||
+            "Unknown error occurred",
+          variant: "destructive",
+        });
+      }
+    },
+    [
+      activeConversationId,
+      updateConversationState,
+      updateConversationAiModelMutation,
+      strategyId,
+      availableModels,
+      activeConversation?.ai_model_id,
+    ]
+  );
+
+  const handlePredefinedPromptClick = useCallback(
+    (prompt: PredefinedPrompt) => {
+      if (isLoading) return;
+      const newMessage = message
+        ? `${message}\n\n${prompt.prompt}`
+        : prompt.prompt;
+      setMessage(newMessage);
+      if (activeConversationId) {
+        saveDraftMessage(activeConversationId, newMessage);
+      }
+      setTimeout(() => textareaRef.current?.focus(), 0);
+    },
+    [isLoading, message, activeConversationId, saveDraftMessage]
+  );
+
+  const handleKeyPress = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        handleSendMessage();
+      }
+    },
+    [handleSendMessage]
+  );
+
+  // Title editing functions
+  const handleConversationTitleDoubleClick = useCallback(
+    (conversation: Conversation) => {
+      if (isAnyConversationLoading) return;
+      setEditingConversationId(conversation.id);
+      setEditingTitle(conversation.title);
+    },
+    [isAnyConversationLoading]
+  );
+
+  // MODIFIED: saveConversationTitle to use per-item loading
+  const saveConversationTitle = useCallback(
+    async (conversation: Conversation, newTitle: string) => {
+      if (conversation.title === newTitle) {
+        setEditingConversationId(null);
+        return;
+      }
+
+      // Optimistically update UI and set loading state for the specific conversation
+      updateConversationState(conversation.id, {
+        title: newTitle,
+        isUpdatingTitle: true,
+      });
+      setEditingConversationId(null); // Hide the input immediately
+
+      try {
+        await updateConversationMutation({
+          strategyId,
+          conversationId: conversation.id,
+          data: { title: newTitle },
+        });
+      } catch (error: any) {
+        // Revert optimistic update and show error
+        updateConversationState(conversation.id, {
+          title: conversation.title,
+          hasError: true,
+          errorMessage:
+            error?.response?.data?.message ||
+            error?.message ||
+            "Failed to update title",
+        });
+        toast({
+          title: "Failed to update title",
+          description:
+            error?.response?.data?.message ||
+            error?.message ||
+            "Unknown error occurred",
+          variant: "destructive",
+        });
+      } finally {
+        updateConversationState(conversation.id, { isUpdatingTitle: false });
+      }
+    },
+    [updateConversationState, updateConversationMutation, strategyId]
+  );
+
+  const handleEditingTitleKeyDown = useCallback(
+    async (
+      e: React.KeyboardEvent<HTMLInputElement>,
+      conversation: Conversation
+    ) => {
+      if (e.key === "Enter" && editingTitle.trim()) {
+        await saveConversationTitle(conversation, editingTitle.trim());
+      } else if (e.key === "Escape") {
+        setEditingConversationId(null);
+      }
+    },
+    [editingTitle, saveConversationTitle]
+  );
+
+  const handleEditingTitleBlur = useCallback(
+    async (conversation: Conversation) => {
+      if (editingTitle.trim()) {
+        await saveConversationTitle(conversation, editingTitle.trim());
+      } else {
+        setEditingConversationId(null);
+      }
+    },
+    [editingTitle, saveConversationTitle]
+  );
+
+  // Show loading spinner for initial load
+  if (!isHydrated || isLoadingModels || !isInitialized) {
+    return (
+      <NodeWrapper
+        id={id}
+        strategyId={strategyId}
+        type="chatbox"
+        className="bg-white"
+      >
+        <div className="w-[1100px] h-[700px] bg-white rounded-lg shadow-lg flex items-center justify-center">
+          <div className="text-center">
+            <Loader2 className="w-8 h-8 mx-auto mb-4 animate-spin text-blue-600" />
+            <p className="text-gray-500">Loading chat interface...</p>
+          </div>
+        </div>
+      </NodeWrapper>
+    );
   }
 
   return (
-    <>
-      <NodeWrapper
-        id={id}
-        className="bg-white"
-      >
-        <div className="react-flow__node nowheel">
-          <div ref={nodeControlRef} className={`nodrag`} />
-
-          <div className="w-[1100px] h-[700px] bg-white rounded-lg shadow-lg overflow-hidden">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <MessageSquare className="w-5 h-5 text-white" />
-                <span className="text-white font-semibold">AI Chat</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className={`w-2 h-2 ${selectedModel.color} rounded-full`}></div>
-                <span className="text-white text-sm">{selectedModel.name}</span>
-              </div>
+    <NodeWrapper
+      id={id}
+      strategyId={strategyId}
+      type="chatbox"
+      className="bg-white"
+    >
+      <div className="react-flow__node nowheel">
+        <div ref={nodeControlRef} className="nodrag" />
+        <div className="w-[1100px] h-[700px] bg-white rounded-lg shadow-lg overflow-hidden">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <MessageSquare className="w-5 h-5 text-white" />
+              <span className="text-white font-semibold">AI Chat</span>
             </div>
-
-            <div className="flex h-[calc(100%-64px)]">
-              {/* Left Sidebar - Conversations */}
-              <div className="w-72 bg-gray-50 border-r border-gray-200 p-4">
-                <Button
-                  onClick={createNewConversation}
-                  disabled={isAnyConversationLoading}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white mb-4 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
+            <div className="flex items-center gap-2">
+              {selectedModel && (
+                <>
+                  <div
+                    className="w-2 h-2 rounded-full"
+                    style={{ backgroundColor: selectedModel.color }}
+                  />
+                  <span className="text-white text-sm">
+                    {selectedModel.name}
+                  </span>
+                </>
+              )}
+            </div>
+          </div>
+          <div className="flex h-[calc(100%-64px)]">
+            {/* Left Sidebar - Conversations */}
+            <div className="w-72 bg-gray-50 border-r border-gray-200 p-4 flex-shrink-0">
+              <Button
+                onClick={createNewConversation}
+                disabled={createConversationLoading || isAnyConversationLoading}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white mb-4 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {createConversationLoading ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
                   <Plus className="w-4 h-4 mr-2" />
-                  New Conversation
-                </Button>
-
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500 mb-3">Conversations</h3>
-                  <div className="space-y-2">
-                    {conversations.length === 0 ? (
-                      <div className="text-sm text-gray-400 text-center py-4">No conversations yet</div>
-                    ) : (
-                      conversations.map((conversation) => (
+                )}
+                New Conversation
+              </Button>
+              <h3 className="text-sm font-medium text-gray-500 mb-3">
+                Conversations
+              </h3>
+              <div className="space-y-2">
+                {conversations.length === 0 ? (
+                  <div className="text-sm text-gray-400 text-center py-4">
+                    No conversations yet
+                  </div>
+                ) : (
+                  conversations
+                    .filter((conversation) => conversation && conversation.id) // Add safety filter
+                    .map((conversation) => {
+                      const model =
+                        conversation.selectedModel ||
+                        availableModels.find(
+                          (m) => m.id === conversation.ai_model_id
+                        );
+                      const isEditing =
+                        editingConversationId === conversation.id;
+                      const isActive = activeConversationId === conversation.id;
+                      return (
                         <div
                           key={conversation.id}
-                          className={`group flex items-center justify-between p-3 rounded-lg text-sm font-medium transition-colors ${activeConversationId === conversation.id
+                          className={`group flex items-center justify-between p-3 rounded-lg text-sm font-medium transition-colors ${
+                            isActive
                               ? "bg-blue-100 text-blue-700"
                               : "hover:bg-gray-100 text-gray-700"
-                            } ${isAnyConversationLoading ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
+                          } ${
+                            isAnyConversationLoading // This now correctly includes per-item loading
+                              ? "cursor-not-allowed opacity-50"
+                              : "cursor-pointer"
+                          }`}
                           onClick={() => switchToConversation(conversation.id)}
                         >
                           <div className="flex-1 truncate flex items-center gap-2">
-                            <div className="flex flex-col">
-                              <span>{conversation.title}</span>
-                              {/* Show draft indicator if conversation has unsent message */}
-                              {conversation.draftMessage && conversation.draftMessage.trim() && (
-                                <span className="text-xs text-gray-500 italic">
-                                  Draft: {conversation.draftMessage.slice(0, 20)}...
+                            <div className="flex flex-col min-w-0 flex-1">
+                              {isEditing ? (
+                                <input
+                                  type="text"
+                                  className="text-sm font-medium rounded px-1 py-0.5 border border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white text-blue-700 w-full"
+                                  value={editingTitle}
+                                  autoFocus
+                                  onChange={(e) =>
+                                    setEditingTitle(e.target.value)
+                                  }
+                                  onKeyDown={(e) =>
+                                    handleEditingTitleKeyDown(e, conversation)
+                                  }
+                                  onBlur={() =>
+                                    handleEditingTitleBlur(conversation)
+                                  }
+                                  onClick={(e) => e.stopPropagation()}
+                                  maxLength={60}
+                                  disabled={conversation.isUpdatingTitle} // Disable input while saving
+                                />
+                              ) : (
+                                <span
+                                  onDoubleClick={(e) => {
+                                    e.stopPropagation();
+                                    handleConversationTitleDoubleClick(
+                                      conversation
+                                    );
+                                  }}
+                                  title="Double click to edit"
+                                  className="truncate cursor-pointer text-left flex items-center gap-2" // Added flex for loader
+                                >
+                                  {conversation.title ||
+                                    "Untitled Conversation"}
+                                  {/* MODIFIED: Show loader for title update */}
+                                  {conversation.isUpdatingTitle && (
+                                    <Loader2 className="w-3 h-3 animate-spin text-blue-500" />
+                                  )}
+                                </span>
+                              )}
+                              {/* Show draft indicator */}
+                              {conversation.draftMessage &&
+                                conversation.draftMessage.trim() && (
+                                  <span className="text-xs text-gray-500 italic truncate">
+                                    Draft:{" "}
+                                    {conversation.draftMessage.slice(0, 20)}...
+                                  </span>
+                                )}
+                              {/* Show error indicator */}
+                              {conversation.hasError && (
+                                <span className="text-xs text-red-500 italic truncate">
+                                  Error:{" "}
+                                  {conversation.errorMessage?.slice(0, 20)}...
                                 </span>
                               )}
                             </div>
                             {conversation.isLoading && (
-                              <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                              <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse flex-shrink-0" />
                             )}
                           </div>
-                          <div className="flex items-center gap-1">
-                            {/* Show model indicator for each conversation */}
-                            {conversation.selectedModel && (
-                              <div className={`w-2 h-2 ${conversation.selectedModel.color} rounded-full`}></div>
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            {/* Model indicator */}
+                            {model && (
+                              <div
+                                className="w-2 h-2 rounded-full"
+                                style={{ backgroundColor: model.color }}
+                              />
                             )}
-
-                            {/* Only show delete button if this is not the first conversation */}
-                            {conversations.length > 1 && conversations.indexOf(conversation) !== 0 && (
+                            {/* Delete button */}
+                            {conversations.length > 0 && (
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                disabled={isAnyConversationLoading}
-                                className="opacity-0 group-hover:opacity-100 h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 disabled:opacity-0"
+                                disabled={isAnyConversationLoading} // Disabled if any global operation is pending
+                                className={`h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 ${
+                                  conversation.isDeleting
+                                    ? "opacity-100" // Always show loader when deleting
+                                    : "opacity-0 group-hover:opacity-100" // Hide normally, show on hover
+                                } disabled:opacity-50`} // General disabled opacity
                                 onClick={(e) => {
-                                  e.stopPropagation()
-                                  deleteConversation(conversation.id)
+                                  e.stopPropagation();
+                                  deleteConversation(conversation.id);
                                 }}
                               >
-                                <Trash2 className="w-3 h-3" />
+                                {/* MODIFIED: Show loader for delete operation */}
+                                {conversation.isDeleting ? (
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                ) : (
+                                  <Trash2 className="w-3 h-3" />
+                                )}
                               </Button>
                             )}
                           </div>
                         </div>
-                      ))
-                    )}
-                  </div>
-                </div>
+                      );
+                    })
+                )}
               </div>
-
-              {/* Main Content Area */}
-              <div className="flex-1 flex flex-col">
-                {/* Content Header */}
-                <div className="p-6 border-b border-gray-200 text-left">
-                  <h1 className="text-xl font-semibold text-gray-800">
-                    {activeConversation?.title || "New Conversation"}
-                    {isLoading && <span className="ml-2 text-sm text-blue-500 font-normal">AI is thinking...</span>}
-                  </h1>
-                  {/* Show current model for active conversation */}
-                  <div className="flex items-center gap-2 mt-1">
-                    <div className={`w-2 h-2 ${selectedModel.color} rounded-full`}></div>
-                    <span className="text-sm text-gray-500">Using {selectedModel.name}</span>
-                  </div>
-                </div>
-
-                {/* Messages Area */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-6">
-                  {messages.length === 0 ? (
-                    <div className="flex items-center justify-center h-full text-gray-400">
-                      <div className="text-center">
-                        <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                        <p>Start a conversation by typing a message below</p>
-                      </div>
-                    </div>
-                  ) : (
-                    messages.map((msg) =>
-                      msg.sender === "user" ? (
-                        <div key={msg.id} className="flex items-start gap-3 mb-4 text-left">
-                          <div className="w-7 h-7 bg-green-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                            U
-                          </div>
-                          <div className="flex-1">
-                            <div className="text-sm font-semibold text-green-600 mb-1">You</div>
-                            <div className="text-gray-800 text-sm whitespace-pre-wrap">{msg.content}</div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div key={msg.id} className="flex items-start gap-3 mb-6">
-                          <div className="w-7 h-7 bg-gradient-to-r from-blue-500 to-pink-500 rounded-full flex items-center justify-center text-white text-xs">
-                            🤖
-                          </div>
-                          <div className="flex-1 text-left">
-                            <div className="text-sm font-semibold text-blue-600 mb-2">AI</div>
-                            <div
-                              className="ai-message-content text-gray-700 text-sm leading-relaxed"
-                              dangerouslySetInnerHTML={{ __html: msg.content }}
-                            />
-                            <div className="flex items-center gap-4 mt-3">
-                              <button className="flex items-center gap-1 text-xs text-blue-500 hover:text-blue-600">
-                                <Copy className="w-3 h-3" />
-                                Copy
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      ),
-                    )
-                  )}
-
+            </div>
+            {/* Main Content Area */}
+            <div className="flex-1 flex flex-col">
+              {/* Content Header */}
+              <div className="p-6 border-b border-gray-200 text-left">
+                <h1 className="text-xl font-semibold text-gray-800">
+                  {activeConversation?.title || "Select a conversation"}
                   {isLoading && (
-                    <div className="flex items-start gap-3 mb-6">
-                      <div className="w-7 h-7 bg-gradient-to-r from-blue-500 to-pink-500 rounded-full flex items-center justify-center text-white text-xs">
-                        🤖
-                      </div>
-                      <div className="flex-1 text-left">
-                        <div className="text-sm font-semibold text-blue-600 mb-2">AI</div>
-                        <AIResponseLoader />
-                      </div>
-                    </div>
+                    <span className="ml-2 text-sm text-blue-500 font-normal">
+                      AI is thinking...
+                    </span>
                   )}
-
-                  <div ref={messagesEndRef} />
+                </h1>
+                {selectedModel && (
+                  <div className="flex items-center gap-2 mt-1">
+                    <div
+                      className="w-2 h-2 rounded-full"
+                      style={{ backgroundColor: selectedModel.color }}
+                    />
+                    <span className="text-sm text-gray-500">
+                      Using {selectedModel.name}
+                    </span>
+                  </div>
+                )}
+              </div>
+              {/* Error Alert */}
+              {activeConversation?.hasError && (
+                <div className="p-4 border-b border-gray-200">
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      {activeConversation.errorMessage || "An error occurred"}
+                    </AlertDescription>
+                  </Alert>
                 </div>
-
-                {/* Bottom Input Area */}
+              )}
+              {/* Messages Area */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-6">
+                {!activeConversationId ? (
+                  <div className="flex items-center justify-center h-full text-gray-400">
+                    <div className="text-center">
+                      <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                      <p>Select a conversation to start chatting</p>
+                    </div>
+                  </div>
+                ) : messages.length === 0 && !isLoading ? (
+                  <div className="flex items-center justify-center h-full text-gray-400">
+                    <div className="text-center">
+                      <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                      <p>Start a conversation by typing a message below</p>
+                    </div>
+                  </div>
+                ) : (
+                  messages.map((msg) =>
+                    msg.sender === "user" ? (
+                      <div
+                        key={msg.id}
+                        className={`flex items-start gap-3 mb-4 text-left ${
+                          msg.isOptimistic ? "opacity-70" : ""
+                        }`}
+                        style={{ justifySelf: "end" }}
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="text-right text-sm font-semibold text-green-600 mb-1">
+                            {msg.name}
+                          </div>
+                          <div className="text-gray-800 text-sm whitespace-pre-wrap break-words">
+                            {msg.content}
+                          </div>
+                        </div>
+                        <div className="w-7 h-7 bg-green-500 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                          U
+                        </div>
+                      </div>
+                    ) : (
+                      <div
+                        key={msg.id}
+                        className={`flex items-start gap-3 mb-6 ${
+                          msg.isOptimistic ? "opacity-70" : ""
+                        }`}
+                      >
+                        <div className="w-7 h-7 bg-gradient-to-r from-blue-500 to-pink-500 rounded-full flex items-center justify-center text-white text-xs flex-shrink-0">
+                          🤖
+                        </div>
+                        <div className="flex-1 text-left min-w-0">
+                          <div className="text-sm font-semibold text-blue-600 mb-2">
+                            {msg.name}
+                          </div>
+                          <div className="ai-message-content text-gray-700 text-sm leading-relaxed prose prose-sm max-w-none">
+                            <ReactMarkdown>{msg.content}</ReactMarkdown>
+                          </div>
+                          <div className="flex items-center gap-4 mt-3">
+                            <button
+                              className="flex items-center gap-1 text-xs text-blue-500 hover:text-blue-600 transition-colors"
+                              onClick={() =>
+                                navigator.clipboard.writeText(msg.content)
+                              }
+                            >
+                              <Copy className="w-3 h-3" />
+                              Copy
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  )
+                )}
+                {isLoading && (
+                  <div className="flex items-start gap-3 mb-6">
+                    <div className="w-7 h-7 bg-gradient-to-r from-blue-500 to-pink-500 rounded-full flex items-center justify-center text-white text-xs flex-shrink-0">
+                      🤖
+                    </div>
+                    <div className="flex-1 text-left">
+                      <div className="text-sm font-semibold text-blue-600 mb-2">
+                        AI
+                      </div>
+                      <AIResponseLoader />
+                    </div>
+                  </div>
+                )}
+                <div ref={messagesEndRef} />
+              </div>
+              {/* Bottom Input Area */}
+              {activeConversationId && (
                 <div className="border-t border-gray-200 p-4">
                   {/* Input Field */}
                   <div className="relative mb-3">
@@ -534,11 +1061,6 @@ export default function ChatBoxNode({
                           className="w-full border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 text-sm resize-none min-h-[20px] max-h-[120px] scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100 hover:scrollbar-thumb-gray-500"
                           disabled={isLoading}
                           rows={1}
-                          style={{
-                            paddingRight: "8px",
-                            scrollbarWidth: "thin",
-                            scrollbarColor: "#9CA3AF #F3F4F6",
-                          }}
                         />
                       </div>
                       <Button
@@ -551,53 +1073,78 @@ export default function ChatBoxNode({
                       </Button>
                     </div>
                   </div>
-
                   {/* Action Buttons */}
                   <div className="flex items-center gap-2 text-xs flex-wrap">
                     {/* Model Selector */}
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" className="flex items-center gap-1 text-xs h-7">
-                          <div className={`w-2 h-2 ${selectedModel.color} rounded-full`}></div>
-                          {selectedModel.name}
-                          <ChevronDown className="w-3 h-3" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent>
-                        {availableModels.map((model) => (
-                          <DropdownMenuItem key={model.id} onClick={() => handleModelSelect(model)}>
-                            <div className="flex items-center gap-2">
-                              <div className={`w-2 h-2 ${model.color} rounded-full`}></div>
-                              {model.name}
-                              {selectedModel.id === model.id && <span className="ml-auto">✓</span>}
-                            </div>
-                          </DropdownMenuItem>
-                        ))}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-
+                    {selectedModel && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="flex items-center gap-1 text-xs h-7"
+                          >
+                            <div
+                              className="w-2 h-2 rounded-full"
+                              style={{ backgroundColor: selectedModel.color }}
+                            />
+                            {selectedModel.name}
+                            <ChevronDown className="w-3 h-3" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                          {availableModels.map((model) => (
+                            <DropdownMenuItem
+                              key={model.id}
+                              onClick={() => handleModelSelect(model)}
+                            >
+                              <div className="flex items-center gap-2">
+                                <div
+                                  className="w-2 h-2 rounded-full"
+                                  style={{ backgroundColor: model.color }}
+                                />
+                                {model.name}
+                                {selectedModel.id === model.id && (
+                                  <span className="ml-auto">✓</span>
+                                )}
+                              </div>
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
                     {/* Predefined Prompts */}
-                    {predefinedPrompts.map((prompt) => (
-                      <Button
-                        key={prompt.id}
-                        variant="outline"
-                        size="sm"
-                        className="text-xs h-7 bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100"
-                        onClick={() => handlePredefinedPromptClick(prompt)}
-                        disabled={isLoading}
-                      >
-                        {prompt.label}
-                      </Button>
-                    ))}
+                    {isLoadingTemplates ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin text-blue-600" />
+                    ) : (
+                      predefinedPrompts?.map((prompt) => (
+                        <Button
+                          key={prompt.id}
+                          variant="outline"
+                          size="sm"
+                          className="text-xs h-7 bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100"
+                          onClick={() => handlePredefinedPromptClick(prompt)}
+                          disabled={isLoading}
+                        >
+                          {prompt.label}
+                        </Button>
+                      ))
+                    )}
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
-
-          <Handle position={targetPosition} type="target" isConnectableEnd={canConnect} isConnectable={canConnect} isConnectableStart={canConnect} style={{ width: "30px", height: "30px" }} />
         </div>
-      </NodeWrapper>
-    </>
-  )
+        <Handle
+          position={targetPosition}
+          type="target"
+          isConnectableEnd={canConnect}
+          isConnectable={canConnect}
+          isConnectableStart={canConnect}
+          style={{ width: "30px", height: "30px" }}
+        />
+      </div>
+    </NodeWrapper>
+  );
 }

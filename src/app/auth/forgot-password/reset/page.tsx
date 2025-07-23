@@ -8,10 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Image from "next/image";
 import Loader from "@/components/common/Loader";
+import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const successNote = useSuccessNotifier();
+
   const email = searchParams.get("email") || "";
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -76,7 +79,7 @@ export default function ResetPasswordPage() {
         setLoading(false);
         return;
       }
-      toast({
+      successNote({
         title: "Password Reset",
         description: "Your password has been reset. Please log in.",
       });
@@ -130,7 +133,7 @@ export default function ResetPasswordPage() {
                   type="password"
                   required
                   value={password}
-                  onChange={e => setPassword(e.target.value)}
+                  onChange={(e) => setPassword(e.target.value)}
                   className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 dark:bg-gray-800 dark:text-gray-100 focus:ring-2 focus:ring-cyan-500 outline-none"
                   placeholder="Enter new password"
                 />
@@ -143,7 +146,7 @@ export default function ResetPasswordPage() {
                   type="password"
                   required
                   value={confirm}
-                  onChange={e => setConfirm(e.target.value)}
+                  onChange={(e) => setConfirm(e.target.value)}
                   className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 dark:bg-gray-800 dark:text-gray-100 focus:ring-2 focus:ring-cyan-500 outline-none"
                   placeholder="Re-enter new password"
                 />

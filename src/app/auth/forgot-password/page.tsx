@@ -8,9 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Image from "next/image";
 import Loader from "@/components/common/Loader";
+import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 
 export default function ForgotPasswordPage() {
   const router = useRouter();
+  const successNote = useSuccessNotifier();
+
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -43,11 +46,15 @@ export default function ForgotPasswordPage() {
         setLoading(false);
         return;
       }
-      toast({
+      successNote({
         title: "OTP Sent",
         description: "Please check your email for the OTP.",
       });
-      router.replace(`/auth/forgot-password/otp?email=${encodeURIComponent(email)}&expires_in=${data.data?.otp_expires_in || 600}`);
+      router.replace(
+        `/auth/forgot-password/otp?email=${encodeURIComponent(
+          email
+        )}&expires_in=${data.data?.otp_expires_in || 600}`
+      );
     } catch (err) {
       toast({
         title: "Error",
@@ -85,7 +92,7 @@ export default function ForgotPasswordPage() {
                   type="email"
                   required
                   value={email}
-                  onChange={e => setEmail(e.target.value)}
+                  onChange={(e) => setEmail(e.target.value)}
                   className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 dark:bg-gray-800 dark:text-gray-100 focus:ring-2 focus:ring-cyan-500 outline-none"
                   placeholder="Enter your email"
                 />

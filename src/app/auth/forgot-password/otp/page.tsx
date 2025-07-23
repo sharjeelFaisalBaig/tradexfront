@@ -8,9 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Image from "next/image";
 import Loader from "@/components/common/Loader";
+import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 
 export default function ForgotPasswordOtpPage() {
   const router = useRouter();
+  const successNote = useSuccessNotifier();
+
   const searchParams = useSearchParams();
   const email = searchParams.get("email") || "";
   const expiresIn = searchParams.get("expires_in");
@@ -28,7 +31,10 @@ export default function ForgotPasswordOtpPage() {
     if (value && index < 5) inputRefs.current[index + 1]?.focus();
   };
 
-  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyDown = (
+    index: number,
+    e: React.KeyboardEvent<HTMLInputElement>
+  ) => {
     if (e.key === "Backspace" && !otp[index] && index > 0) {
       inputRefs.current[index - 1]?.focus();
     }
@@ -64,11 +70,13 @@ export default function ForgotPasswordOtpPage() {
       }
       // Save password_reset_token for reset password
       sessionStorage.setItem("password_reset_token", data.password_reset_token);
-      toast({
+      successNote({
         title: "OTP Verified",
         description: "Please set your new password.",
       });
-      router.replace(`/auth/forgot-password/reset?email=${encodeURIComponent(email)}`);
+      router.replace(
+        `/auth/forgot-password/reset?email=${encodeURIComponent(email)}`
+      );
     } catch (err) {
       toast({
         title: "Error",
@@ -106,7 +114,7 @@ export default function ForgotPasswordOtpPage() {
         });
       } else {
         setTimer(data.data?.otp_expires_in || 60);
-        toast({
+        successNote({
           title: "Success",
           description: "A new OTP has been sent to your email.",
         });
@@ -140,19 +148,22 @@ export default function ForgotPasswordOtpPage() {
           </CardHeader>
           <CardContent className="px-8 sm:px-12">
             <p className="text-gray-500 text-center mb-6">
-              An OTP has been sent to <strong>{email}</strong>. Please enter it below.
+              An OTP has been sent to <strong>{email}</strong>. Please enter it
+              below.
             </p>
             <form onSubmit={handleSubmit}>
               <div className="flex justify-center gap-2 mb-6">
                 {otp.map((digit, i) => (
                   <input
                     key={i}
-                    ref={el => { if (el) inputRefs.current[i] = el; }}
+                    ref={(el) => {
+                      if (el) inputRefs.current[i] = el;
+                    }}
                     type="tel"
                     maxLength={1}
                     value={digit}
-                    onChange={e => handleChange(i, e.target.value)}
-                    onKeyDown={e => handleKeyDown(i, e)}
+                    onChange={(e) => handleChange(i, e.target.value)}
+                    onKeyDown={(e) => handleKeyDown(i, e)}
                     className="w-12 h-12 rounded-lg border border-gray-300 text-center text-2xl outline-none
                       focus:ring-2 focus:ring-cyan-500
                       bg-white dark:bg-gray-800
@@ -178,9 +189,10 @@ export default function ForgotPasswordOtpPage() {
                   onClick={handleResend}
                   disabled={timer > 0 || resending}
                   className={`font-semibold underline transition-colors
-                    ${timer > 0 || resending
-                      ? "text-gray-400 cursor-not-allowed"
-                      : "text-cyan-600 hover:text-cyan-700"
+                    ${
+                      timer > 0 || resending
+                        ? "text-gray-400 cursor-not-allowed"
+                        : "text-cyan-600 hover:text-cyan-700"
                     }`}
                 >
                   {resending ? "Sending..." : "Resend"}

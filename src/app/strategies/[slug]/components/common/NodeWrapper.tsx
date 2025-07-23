@@ -1,16 +1,18 @@
-"use client"
+"use client";
 
-import type React from "react"
-import { X } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { useNodeOperations } from "../../hooks/useNodeOperations"
+import type React from "react";
+import { X } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useNodeOperations } from "../../hooks/useNodeOperations";
 
 interface NodeWrapperProps {
-  id: string
-  children: React.ReactNode
-  className?: string
-  showDeleteButton?: boolean
-  onDelete?: () => void
+  id: string;
+  children: React.ReactNode;
+  className?: string;
+  showDeleteButton?: boolean;
+  onDelete?: () => void;
+  strategyId: string;
+  type: string;
 }
 
 export default function NodeWrapper({
@@ -19,23 +21,25 @@ export default function NodeWrapper({
   className = "",
   showDeleteButton = true,
   onDelete,
+  strategyId,
+  type,
 }: NodeWrapperProps) {
-  const { deleteNode } = useNodeOperations()
+  const { deleteNode } = useNodeOperations();
 
   // Handle delete
   const handleDelete = (e: React.MouseEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
+    e.preventDefault();
+    e.stopPropagation();
     if (onDelete) {
-      onDelete()
+      onDelete();
     } else {
-      deleteNode(id)
+      deleteNode(id, type, strategyId); // (nodeId, nodeType, strategyId)
     }
-  }
+  };
 
   // If delete button is disabled, return children without delete button
   if (!showDeleteButton) {
-    return children
+    return children;
   }
 
   return (
@@ -52,5 +56,5 @@ export default function NodeWrapper({
         <X className="w-4 h-4" />
       </button>
     </div>
-  )
+  );
 }

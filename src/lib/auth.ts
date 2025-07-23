@@ -66,7 +66,9 @@ export const authConfig: NextAuthConfig = {
             // Throw a custom error code
             // console.log("OtpVerificationRequired2:" + json?.data?.user?.email);
             // throw new Error("OtpVerificationRequired:" + json?.data?.user?.email);
-            throw new Error("OtpVerificationRequired:" + json?.data?.user?.email);
+            throw new Error(
+              "OtpVerificationRequired:" + json?.data?.user?.email
+            );
             // return { error: "OtpVerificationRequired", email: json?.data?.user?.email };
           }
 
@@ -79,7 +81,10 @@ export const authConfig: NextAuthConfig = {
             // return { error: "OtpVerificationRequired", email: json?.data?.user?.email };
           }
           // Handle invalid credentials
-          if (json?.status === false && json?.message === "Invalid credentials") {
+          if (
+            json?.status === false &&
+            json?.message === "Invalid credentials"
+          ) {
             throw new Error("InvalidCredentials");
           }
 
@@ -102,7 +107,10 @@ export const authConfig: NextAuthConfig = {
           if (err instanceof CustomAuthError) {
             console.log("authorize error:" + err);
             // Handle custom error codes
-            if (err instanceof Error && err.message.startsWith("OtpVerificationRequired:")) {
+            if (
+              err instanceof Error &&
+              err.message.startsWith("OtpVerificationRequired:")
+            ) {
               const email = err.message.split(":")[1];
               // Redirect to OTP verification page
               throw new CustomAuthError("OtpVerificationRequired:" + email);
@@ -168,7 +176,9 @@ export const authConfig: NextAuthConfig = {
         access_token: { label: "Access Token", type: "text" },
       },
       async authorize(credentials) {
-        console.log("2FA authorize called with credentials:" + JSON.stringify(credentials));
+        console.log(
+          "2FA authorize called with credentials:" + JSON.stringify(credentials)
+        );
         // Accept the access_token and email from the verify-otp response
         if (credentials?.access_token && credentials?.email) {
           // Optionally, you can verify the token here
@@ -216,7 +226,8 @@ export const authConfig: NextAuthConfig = {
       if (user) {
         token.id = user.id;
         token.accessToken = user.accessToken;
-        token.accessTokenExpires = user.accessTokenExpires || (Date.now() + 3600 * 1000);
+        token.accessTokenExpires =
+          user.accessTokenExpires || Date.now() + 3600 * 1000;
         token.email_verified_at = user.email_verified_at;
         token.two_factor_enabled = user.two_factor_enabled;
       }

@@ -1,7 +1,6 @@
 import { DefaultJWT } from "@auth/core/jwt";
 import { DefaultSession } from "next-auth";
 
-
 declare module "next-auth" {
   interface Session {
     accessToken?: string;
@@ -21,15 +20,42 @@ declare module "next-auth" {
   }
 }
 
-export interface IStrategy {
-    id: string;
-    name: string;
-    description: string;
-    tags: string[] | null;
-    is_template: boolean;
-    copied_from_strategy_id: string | null;
-    created_at: string;
-    updated_at: string;
-    is_active: boolean;
-    is_favourite?: boolean;
+export interface StrategyFlowEdge {
+  id: string;
+  source_peer_type: string;
+  source_peer: string;
+  target_peer: string;
+  strategy_collaborator_id: string;
 }
+
+export interface IStrategyFlow {
+  id: string;
+  is_active: boolean;
+  last_opened_at: string;
+  created_at: string;
+  aiImagePeers: any[];
+  aiVideoPeers: any[];
+  aiAudioPeers: any[];
+  aiDocsPeers: any[];
+  aiRemotePeers: any[];
+  aiSocialMediaPeers: any[];
+  aiThreadPeers: any[];
+  annotationPeers: any[];
+  strategyFlowEdges?: StrategyFlowEdge[];
+}
+
+export interface IStrategy {
+  id: string;
+  name: string;
+  description: string;
+  tags: string[] | null;
+  is_template: boolean;
+  copied_from_strategy_id: string | null;
+  created_at: string;
+  updated_at: string;
+  is_active: boolean;
+  is_favourite?: boolean;
+  flows?: IStrategyFlow[];
+}
+
+export type Tool = "image" | "video" | "document" | "AI Assistant" | string;
