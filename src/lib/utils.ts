@@ -153,6 +153,7 @@ export const SUPPORTED_PLATFORMS = {
     name: "TikTok",
     icon: "🎵",
     color: "from-black to-gray-800",
+    // color: "from-[#000000] to-[#FE2C55]",
     textColor: "text-gray-800",
     patterns: [
       /^https?:\/\/(www\.)?tiktok\.com\/@[a-zA-Z0-9_.]+\/video\/[0-9]+/,

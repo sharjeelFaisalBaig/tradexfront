@@ -175,55 +175,6 @@ export default function SocialMediaNode({
     }
   }, [data]);
 
-  // Mock AI processing function (assuming this is for internal dev/testing)
-  const processVideoContent = (
-    videoData: SocialMediaData
-  ): AIProcessingResponse => {
-    const platformConfig =
-      SUPPORTED_PLATFORMS[
-        videoData.platform as keyof typeof SUPPORTED_PLATFORMS
-      ];
-    return {
-      title: videoData.title,
-      peerId: `peer_${Math.random().toString(36).substr(2, 12)}`,
-      description: `AI-analyzed content from ${platformConfig.name} video discussing business strategies, productivity tips, and professional development insights.`,
-      transcript:
-        "The video discusses key strategies for business growth, including market analysis, customer engagement, and digital transformation. The content covers practical implementation steps and real-world examples.",
-      keyTopics: [
-        "Business Strategy",
-        "Digital Marketing",
-        "Customer Engagement",
-        "Growth Tactics",
-        "Market Analysis",
-      ],
-      sentiment: "positive",
-      engagement: {
-        views: Math.floor(Math.random() * 1000000) + 10000,
-        likes: Math.floor(Math.random() * 50000) + 1000,
-        comments: Math.floor(Math.random() * 5000) + 100,
-        shares: Math.floor(Math.random() * 10000) + 50,
-      },
-      metadata: {
-        duration: videoData.duration ?? "00:00:00",
-        platform: platformConfig.name,
-        author: videoData.author ?? "Unknown",
-        publishedAt: new Date(
-          Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000
-        )
-          .toISOString()
-          .split("T")[0],
-        language: "English",
-      },
-      confidence: 0.89,
-      tags: ["business", "strategy", "productivity", "growth", "marketing"],
-      insights: [
-        "High engagement rate indicates viral potential",
-        "Content resonates well with business audience",
-        "Educational format drives strong retention",
-      ],
-    };
-  };
-
   // --- Mutation Integration & Polling ---
   const { mutate: resetPeer, isPending: isReseting } = useResetPeer();
   const {
@@ -403,11 +354,15 @@ export default function SocialMediaNode({
   }, [status]);
 
   // Memoize current platform config
-  const currentPlatform = socialMediaData
-    ? SUPPORTED_PLATFORMS[
-        socialMediaData.platform as keyof typeof SUPPORTED_PLATFORMS
-      ]
-    : null;
+  const currentPlatform = useMemo(
+    () =>
+      socialMediaData
+        ? SUPPORTED_PLATFORMS[
+            socialMediaData.platform as keyof typeof SUPPORTED_PLATFORMS
+          ]
+        : null,
+    [socialMediaData]
+  );
 
   return (
     <>
@@ -564,7 +519,7 @@ export default function SocialMediaNode({
                   {/* Header with AI Title or Processing State */}
                   <div
                     className={cn(
-                      "px-4 py-3 flex items-center justify-between",
+                      "w-full px-4 py-3 flex items-center justify-between",
                       currentPlatform
                         ? `bg-gradient-to-r ${currentPlatform.color} text-white`
                         : "bg-gray-100"
