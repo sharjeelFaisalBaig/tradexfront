@@ -166,14 +166,13 @@ export default function VideoUploadNode({
   const [userNotes, setUserNotes] = useState<string>("");
 
   // Only poll for status if analysis is successful
-  const { isPollingLoading: isStatusPollingLoading } = useGetPeerAnalysisStatus(
-    {
+  const { data: status, isPollingLoading: isStatusPollingLoading } =
+    useGetPeerAnalysisStatus({
       peerId: data?.id,
       strategyId,
       peerType: "video",
       enabled: isAnalyzeSuccess,
-    }
-  );
+    });
 
   // Sync state with incoming data props (like ImageUploadNode)
   useEffect(() => {
@@ -668,7 +667,10 @@ export default function VideoUploadNode({
 
   // Determine if connection should be allowed
   // const canConnect: any = processingState.isComplete && aiResponse && !processingState.error;
-  const canConnect = useMemo(() => data?.is_ready_to_interact, [data]);
+  const canConnect = useMemo(
+    () => data?.is_ready_to_interact || status?.is_ready_to_interact,
+    [data, status]
+  );
 
   // Remove connections when node becomes not connectable
   useEffect(() => {

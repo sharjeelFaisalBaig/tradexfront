@@ -105,18 +105,17 @@ export default function AnnotationNode({
   const strategyId = useParams()?.slug as string;
   const successNote = useSuccessNotifier();
 
-  const { deleteNode } = useNodeOperations();
   const { updateNodeData, deleteElements } = useReactFlow();
+  const { deleteNode } = useNodeOperations();
   const { mutate: updateAnnotation } = useUpdateAnnotationContent();
 
   // State management
-  const [nodeData, setNodeData] = useState<AnnotationNodeData | any>(data);
-  const [showThemePicker, setShowThemePicker] = useState(false);
   const [isEditing, setIsEditing] = useState(!data?.annotation_message);
   const [content, setContent] = useState(data?.annotation_message || "");
   const [currentTheme, setCurrentTheme] = useState<keyof typeof themes>(
     data?.data?.color || "default"
   );
+  const [showThemePicker, setShowThemePicker] = useState(false);
 
   // Refs
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -126,8 +125,6 @@ export default function AnnotationNode({
   const theme = themes[currentTheme];
 
   useEffect(() => {
-    setNodeData(data);
-
     if (data?.dataToAutoUpload?.data) {
       setContent(data?.dataToAutoUpload?.data);
       // setIsEditing(true);
@@ -177,15 +174,14 @@ export default function AnnotationNode({
 
   // Handle canceling edit
   const handleCancel = () => {
-    if (!nodeData?.annotation_message) {
-      // if (!data?.annotation_message) {
+    if (!data?.annotation_message) {
       // If this is a new annotation with no content, delete the node
       deleteElements({ nodes: [{ id }] });
       handleDelete();
     } else {
       // Restore original content
-      setContent(nodeData?.annotation_message);
-      setCurrentTheme(nodeData?.data?.color || "default");
+      setContent(data?.annotation_message);
+      setCurrentTheme(data?.data?.color || "default");
       setIsEditing(false);
     }
     setShowThemePicker(false);
@@ -193,7 +189,7 @@ export default function AnnotationNode({
 
   // Handle delete
   const handleDelete = () => {
-    deleteNode(nodeData?.id ?? "", "annotationNode", strategyId); // (nodeId, nodeType, strategyId)
+    deleteNode(data?.id ?? "", "annotationNode", strategyId); // (nodeId, nodeType, strategyId)
   };
 
   // Handle theme change
@@ -235,13 +231,12 @@ export default function AnnotationNode({
 
     updateAnnotation(
       {
-        peerId: nodeData?.id ?? "",
+        peerId: data?.id ?? "",
         strategyId,
         data: annotationData,
       },
       {
         onSuccess: (data) => {
-          setNodeData(data);
           updateNodeData(id, { ...data });
           setContent(data?.data?.annotation_message ?? "");
           setCurrentTheme(data?.data?.data?.color);
@@ -455,7 +450,7 @@ export default function AnnotationNode({
       </div>
 
       {/* Footer - Author and timestamp */}
-      {nodeData?.annotation_message && (
+      {data?.annotation_message && (
         <div
           className={cn(
             "px-3 py-2 border-t flex items-center justify-between text-xs",
@@ -474,9 +469,9 @@ export default function AnnotationNode({
           <div className="flex items-center gap-1">
             <Clock className="h-3 w-3" />
             <span>
-              {nodeData?.updated_at
-                ? `Updated ${getFormattedTime(nodeData?.updated_at)}`
-                : `Created ${getFormattedTime(nodeData?.created_at ?? "")}`}
+              {data?.updated_at
+                ? `Updated ${getFormattedTime(data?.updated_at)}`
+                : `Created ${getFormattedTime(data?.created_at ?? "")}`}
             </span>
           </div>
         </div>

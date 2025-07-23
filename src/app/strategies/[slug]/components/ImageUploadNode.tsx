@@ -396,7 +396,10 @@ export default function ImageUploadNode({
 
   // Determine if connection should be allowed
   // const canConnect: any = (processingState.isComplete && !processingState.error) || data?.is_ready_to_interact;
-  const canConnect = useMemo(() => data?.is_ready_to_interact, [data]);
+  const canConnect = useMemo(
+    () => data?.is_ready_to_interact || status?.is_ready_to_interact,
+    [data, status]
+  );
 
   // Remove connections when node becomes not connectable
   useEffect(() => {

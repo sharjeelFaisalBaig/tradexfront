@@ -377,7 +377,10 @@ export default function SocialMediaNode({
 
   // Allow connection if processing is complete and no error
   // const canConnect = (processingState.isComplete && !processingState.error) || data?.is_ready_to_interact;
-  const canConnect = useMemo(() => data?.is_ready_to_interact, [data]);
+  const canConnect = useMemo(
+    () => data?.is_ready_to_interact || status?.is_ready_to_interact,
+    [data, status]
+  );
 
   // Remove connections if node is not connectable
   useEffect(() => {
@@ -390,7 +393,7 @@ export default function SocialMediaNode({
 
   // Update processing state if backend status is ready
   useEffect(() => {
-    if (status?.state?.data?.is_ready_to_interact) {
+    if (status?.is_ready_to_interact) {
       setProcessingState({
         isProcessing: false,
         isComplete: true,

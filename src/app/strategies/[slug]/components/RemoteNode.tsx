@@ -86,7 +86,7 @@ export default function RemoteNode({
   const strategyId = useParams()?.slug as string;
   const successNote = useSuccessNotifier();
 
-  console.log("RemoteNode data:", { data });
+  // console.log("RemoteNode data:", { data });
 
   // mutations
   const { mutate: resetPeer, isPending: isReseting } = useResetPeer();
@@ -106,8 +106,6 @@ export default function RemoteNode({
       peerType: "remote",
       enabled: isAnalyzeSuccess,
     });
-
-  console.log("remote_status:", status);
 
   // Website states
   const nodeControlRef = useRef(null);

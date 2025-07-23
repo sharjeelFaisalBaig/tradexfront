@@ -182,14 +182,13 @@ export default function DocumentUploadNode({
   const [userNotes, setUserNotes] = useState<string>("");
 
   // Only poll for status if analysis is successful
-  const { isPollingLoading: isStatusPollingLoading } = useGetPeerAnalysisStatus(
-    {
+  const { data: status, isPollingLoading: isStatusPollingLoading } =
+    useGetPeerAnalysisStatus({
       peerId: data?.id,
       strategyId,
       peerType: "docs",
       enabled: isAnalyzeSuccess,
-    }
-  );
+    });
 
   // Handle initial document data from props (like VideoUploadNode)
   useEffect(() => {
@@ -588,7 +587,10 @@ export default function DocumentUploadNode({
   };
 
   // Determine if connection should be allowed
-  const canConnect = useMemo(() => data?.is_ready_to_interact, [data]);
+  const canConnect = useMemo(
+    () => data?.is_ready_to_interact || status?.is_ready_to_interact,
+    [data, status]
+  );
 
   // Remove connections when node becomes not connectable
   useEffect(() => {

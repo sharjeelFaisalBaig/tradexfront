@@ -88,7 +88,7 @@ export default function AudioPlayerNode({
   targetPosition = Position.Right,
   data,
 }: any) {
-  console.log("AudioPlayerNode", { data });
+  // console.log("AudioPlayerNode", { data });
   const strategyId = useParams()?.slug as string;
   const successNote = useSuccessNotifier();
 
@@ -110,14 +110,13 @@ export default function AudioPlayerNode({
     isSuccess: isAnalyzeSuccess,
   } = useAnalyzeAudioPeer();
 
-  const { isPollingLoading: isStatusPollingLoading } = useGetPeerAnalysisStatus(
-    {
+  const { data: status, isPollingLoading: isStatusPollingLoading } =
+    useGetPeerAnalysisStatus({
       strategyId,
       peerId: data?.id,
       peerType: "audio",
       enabled: isAnalyzeSuccess,
-    }
-  );
+    });
 
   const nodeControlRef = useRef(null);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -716,7 +715,10 @@ export default function AudioPlayerNode({
   const progressValue = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   // Determine if connection should be allowed based on data.is_ready_to_interact
-  const canConnect = useMemo(() => data?.is_ready_to_interact, [data]);
+  const canConnect = useMemo(
+    () => data?.is_ready_to_interact || status?.is_ready_to_interact,
+    [data, status]
+  );
 
   // Remove connections when node becomes not connectable
   useEffect(() => {
