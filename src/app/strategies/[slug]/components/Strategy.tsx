@@ -11,7 +11,6 @@ import {
   useReactFlow,
   Connection,
   Controls,
-  MiniMap,
 } from "@xyflow/react";
 import { Position } from "@xyflow/react";
 import ImageUploadNode from "./ImageUploadNode";
@@ -682,7 +681,6 @@ const Strategy = (props: StrategyProps) => {
             maxZoom={2}
           >
             <Background />
-            <MiniMap />
             <Controls />
           </ReactFlow>
         </main>
