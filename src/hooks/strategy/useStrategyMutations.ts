@@ -148,11 +148,11 @@ export const useUpdatePeerPosition = () => {
         position_x,
         position_y,
       }),
-    onSuccess: (_data, { strategyId }) => {
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.STRATEGY, strategyId],
-      });
-    },
+    // onSuccess: (_data, { strategyId }) => {
+    //   queryClient.invalidateQueries({
+    //     queryKey: [QUERY_KEYS.STRATEGY, strategyId],
+    //   });
+    // },
   });
 };
 
@@ -174,11 +174,11 @@ export const useCreateImagePeer = () => {
   return useMutation({
     mutationFn: ({ strategyId, data }: { strategyId: string; data: any }) =>
       createImagePeer(strategyId, data),
-    onSuccess: (_data, { strategyId }) => {
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.STRATEGY, strategyId],
-      });
-    },
+    // onSuccess: (_data, { strategyId }) => {
+    //   queryClient.invalidateQueries({
+    //      queryKey: [QUERY_KEYS.STRATEGY, strategyId],
+    //   });
+    // },
   });
 };
 
@@ -187,11 +187,11 @@ export const useCreateAudioPeer = () => {
   return useMutation({
     mutationFn: ({ strategyId, data }: { strategyId: string; data: any }) =>
       createAudioPeer(strategyId, data),
-    onSuccess: (_data, { strategyId }) => {
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.STRATEGY, strategyId],
-      });
-    },
+    // onSuccess: (_data, { strategyId }) => {
+    //   queryClient.invalidateQueries({
+    //     queryKey: [QUERY_KEYS.STRATEGY, strategyId],
+    //   });
+    // },
   });
 };
 
@@ -200,11 +200,11 @@ export const useCreateVideoPeer = () => {
   return useMutation({
     mutationFn: ({ strategyId, data }: { strategyId: string; data: any }) =>
       createVideoPeer(strategyId, data),
-    onSuccess: (_data, { strategyId }) => {
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.STRATEGY, strategyId],
-      });
-    },
+    // onSuccess: (_data, { strategyId }) => {
+    //   queryClient.invalidateQueries({
+    //     queryKey: [QUERY_KEYS.STRATEGY, strategyId],
+    //   });
+    // },
   });
 };
 
@@ -213,11 +213,11 @@ export const useCreateDocumentPeer = () => {
   return useMutation({
     mutationFn: ({ strategyId, data }: { strategyId: string; data: any }) =>
       createDocumentPeer(strategyId, data),
-    onSuccess: (_data, { strategyId }) => {
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.STRATEGY, strategyId],
-      });
-    },
+    // onSuccess: (_data, { strategyId }) => {
+    //   queryClient.invalidateQueries({
+    //     queryKey: [QUERY_KEYS.STRATEGY, strategyId],
+    //   });
+    // },
   });
 };
 
@@ -226,11 +226,11 @@ export const useCreateSocialPeer = () => {
   return useMutation({
     mutationFn: ({ strategyId, data }: { strategyId: string; data: any }) =>
       createSocialPeer(strategyId, data),
-    onSuccess: (_data, { strategyId }) => {
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.STRATEGY, strategyId],
-      });
-    },
+    // onSuccess: (_data, { strategyId }) => {
+    //   queryClient.invalidateQueries({
+    //     queryKey: [QUERY_KEYS.STRATEGY, strategyId],
+    //   });
+    // },
   });
 };
 
@@ -239,11 +239,11 @@ export const useCreateThreadPeer = () => {
   return useMutation({
     mutationFn: ({ strategyId, data }: { strategyId: string; data: any }) =>
       createThreadPeer(strategyId, data),
-    onSuccess: (_data, { strategyId }) => {
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.STRATEGY, strategyId],
-      });
-    },
+    // onSuccess: (_data, { strategyId }) => {
+    //   queryClient.invalidateQueries({
+    //     queryKey: [QUERY_KEYS.STRATEGY, strategyId],
+    //   });
+    // },
   });
 };
 
@@ -252,15 +252,15 @@ export const useCreateRemotePeer = () => {
   return useMutation({
     mutationFn: ({ strategyId, data }: { strategyId: string; data: any }) =>
       createRemotePeer(strategyId, data),
-    onSuccess: (_data, { strategyId }) => {
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.STRATEGY, strategyId],
-      });
-    },
+    // onSuccess: (_data, { strategyId }) => {
+    //   queryClient.invalidateQueries({
+    //     queryKey: [QUERY_KEYS.STRATEGY, strategyId],
+    //   });
+    // },
   });
 };
 
-// Upload Image Content
+// Upload annotation node Content
 export const useUpdateAnnotationContent = () => {
   const queryClient = useQueryClient();
   return useMutation({
@@ -278,14 +278,15 @@ export const useUpdateAnnotationContent = () => {
         };
       };
     }) => updateAnnotationContent({ strategyId, peerId, data }),
-    onSuccess: (_data, { strategyId }) => {
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.STRATEGY, strategyId],
-      });
-    },
+    // onSuccess: (_data, { strategyId }) => {
+    //   queryClient.invalidateQueries({
+    //     queryKey: [QUERY_KEYS.STRATEGY, strategyId],
+    //   });
+    // },
   });
 };
 
+// Upload Image Content
 export const useUploadImageContent = () => {
   const queryClient = useQueryClient();
   return useMutation({
@@ -298,11 +299,11 @@ export const useUploadImageContent = () => {
       peerId: string;
       data: any;
     }) => uploadImageContent({ strategyId, peerId, data }),
-    onSuccess: (_data, { strategyId }) => {
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.STRATEGY, strategyId],
-      });
-    },
+    // onSuccess: (_data, { strategyId }) => {
+    //   queryClient.invalidateQueries({
+    //     queryKey: [QUERY_KEYS.STRATEGY, strategyId],
+    //   });
+    // },
   });
 };
 
@@ -322,11 +323,11 @@ export const useUploadAudioContent = () => {
         title: string;
       };
     }) => uploadAudioContent({ strategyId, peerId, data }),
-    onSuccess: (_data, { strategyId }) => {
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.STRATEGY, strategyId],
-      });
-    },
+    // onSuccess: (_data, { strategyId }) => {
+    //   queryClient.invalidateQueries({
+    //     queryKey: [QUERY_KEYS.STRATEGY, strategyId],
+    //   });
+    // },
   });
 };
 
@@ -346,11 +347,11 @@ export const useUploadVideoContent = () => {
         title: string;
       };
     }) => uploadVideoContent({ strategyId, peerId, data }),
-    onSuccess: (_data, { strategyId }) => {
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.STRATEGY, strategyId],
-      });
-    },
+    // onSuccess: (_data, { strategyId }) => {
+    //   queryClient.invalidateQueries({
+    //     queryKey: [QUERY_KEYS.STRATEGY, strategyId],
+    //   });
+    // },
   });
 };
 
@@ -370,15 +371,15 @@ export const useUploadDocumentContent = () => {
         title: string;
       };
     }) => uploadDocumentContent({ strategyId, peerId, data }),
-    onSuccess: (_data, { strategyId }) => {
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.STRATEGY, strategyId],
-      });
-    },
+    // onSuccess: (_data, { strategyId }) => {
+    //   queryClient.invalidateQueries({
+    //     queryKey: [QUERY_KEYS.STRATEGY, strategyId],
+    //   });
+    // },
   });
 };
 
-// Delete Image Peer
+// Delete annotation Peer
 export const useDeleteAnnotationPeer = () => {
   const queryClient = useQueryClient();
   return useMutation({
@@ -397,6 +398,7 @@ export const useDeleteAnnotationPeer = () => {
   });
 };
 
+// Delete Image Peer
 export const useDeleteImagePeer = () => {
   const queryClient = useQueryClient();
   return useMutation({

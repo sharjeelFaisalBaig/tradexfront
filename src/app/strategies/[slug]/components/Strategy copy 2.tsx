@@ -203,17 +203,6 @@ const Strategy = (props: StrategyProps) => {
       | { type: "unknown"; data: null };
 
     const handlePaste = async (e: ClipboardEvent) => {
-      const target = e.target as HTMLElement;
-
-      // Ignore if user is typing/pasting in an input, textarea, or any editable element
-      if (
-        target.tagName === "INPUT" ||
-        target.tagName === "TEXTAREA" ||
-        target.isContentEditable
-      ) {
-        return; // Don't run board paste logic
-      }
-
       const items = e.clipboardData?.items;
 
       console.log("Clipboard items:", items);
@@ -227,6 +216,12 @@ const Strategy = (props: StrategyProps) => {
       for (let i = 0; i < items.length; i++) {
         const item = items[i];
 
+        console.log("loop for preventDefault", {
+          singleItem: item,
+          kind: item.kind,
+          type: item.type,
+        });
+
         if (
           item.kind === "file" ||
           (item.kind === "string" &&
@@ -238,30 +233,28 @@ const Strategy = (props: StrategyProps) => {
         }
       }
 
-      // Make regex more permissive
-      const urlRegex = /https?:\/\/[^\s]+/i;
-      // const urlRegex = /^(https?:\/\/[^\s$.?#].[^\s]*)$/i;
+      const urlRegex = /^(https?:\/\/[^\s$.?#].[^\s]*)$/i;
       const imageFileExtensionRegex = /\.(jpg|jpeg|png|gif|webp|svg)$/i;
       const socialMediaPlatforms = [
         {
           name: "youtube",
           regex:
-            /(?:https?:\/\/)?(?:www\.|m\.)?(?:youtube\.com|youtu\.be)\/(?:watch\?v=|embed\/|v\/)?([\w-]{11})(?:\S+)?/i,
+            /(?:https?:\/\/)?(?:www\.|m\.|)(?:youtube\.com|youtu\.be)\/(?:watch\?v=|embed\/|v\/|)([\\w-]{11})(?:\S+)?/i,
         },
         {
           name: "tiktok",
           regex:
-            /(?:https?:\/\/)?(?:www\.)?(?:tiktok\.com)\/@([\w.-]+)\/video\/(\d+)(?:\S+)?/i,
+            /(?:https?:\/\/)?(?:www\.|)(?:tiktok\.com)\/@([\\w.-]+)\/video\/(\d+)(?:\S+)?/i,
         },
         {
           name: "instagram",
           regex:
-            /(?:https?:\/\/)?(?:www\.)?(?:instagram\.com)\/(?:p|reel|tv)\/([\w-]+)(?:\S+)?/i,
+            /(?:https?:\/\/)?(?:www\.|)(?:instagram\.com)\/(?:p|reel|tv)\/([\\w-]+)(?:\S+)?/i,
         },
         {
           name: "facebook",
           regex:
-            /(?:https?:\/\/)?(?:www\.)?(?:facebook\.com)\/(?:video\.php\?v=|watch\/\?v=|permalink\.php\?story_fbid=|groups\/[\w.-]+\/permalink\/|)?([\w.-]+)(?:\S+)?/i,
+            /(?:https?:\/\/)?(?:www\.|)(?:facebook\.com)\/(?:video\.php\?v=|watch\/\?v=|permalink\.php\?story_fbid=|groups\/[\\w.-]+\/permalink\/|)([\\w.-]+)(?:\S+)?/i,
         },
       ] as const;
 
@@ -269,6 +262,17 @@ const Strategy = (props: StrategyProps) => {
 
       for (let i = 0; i < items.length; i++) {
         const item = items[i];
+
+        console.log("loop for process item", {
+          singleItem: item,
+          kind: item.kind,
+          type: item.type,
+          isPlainText: item.type == "text/plain",
+        });
+
+        console.log(
+          `Processing item ${i}: kind='${item.kind}', type='${item.type}'`
+        );
 
         if (item.kind === "file") {
           const file = item.getAsFile();
@@ -278,6 +282,10 @@ const Strategy = (props: StrategyProps) => {
             itemPromises.push(Promise.resolve(null)); // Push a resolved null promise
             continue;
           }
+
+          console.log(
+            `Item ${i} (file): file.type='${file.type}', file.name='${file.name}', file.size=${file.size}`
+          );
 
           if (file.type.startsWith("image/")) {
             itemPromises.push(
@@ -308,36 +316,113 @@ const Strategy = (props: StrategyProps) => {
               Promise.resolve({ type: "document-file", data: file })
             );
           } else {
+            console.log(
+              `Item ${i} (file): Unrecognized file type: '${file.type}'`
+            );
+
             itemPromises.push(Promise.resolve(null));
           }
         } else if (item.kind == "string") {
+          console.log("out side of promises", {
+            item,
+            type: item.type,
+            isPlainText: item.type == "text/plain",
+          });
+
           // Wrap getAsString in a Promise to handle its asynchronous nature
+
+          const itemCopy = JSON.stringify(item);
+
+          console.log("out-side", { itemCopy });
+
           const stringPromise = new Promise<PastedContentType | null>(
             (resolve) => {
+              console.log("in-side", { itemCopy });
+
+              console.log("item in promises", {
+                item,
+                type: item.type,
+                isPlainText: item.type == "text/plain",
+              });
+
               item.getAsString((text) => {
-                if (urlRegex.test(text)) {
-                  if (imageFileExtensionRegex.test(text)) {
-                    resolve({ type: "image-url", data: text });
-                  } else {
-                    let matchedPlatform: PastedContentType["type"] =
-                      "website url";
-                    for (const p of socialMediaPlatforms) {
-                      if (p.regex.test(text)) {
-                        matchedPlatform = p.name;
-                        break;
+                console.log("pasted-item-is-string", text);
+
+                console.log(
+                  `Item ${i} (string/${item.type}): text='${text.substring(
+                    0,
+                    Math.min(text.length, 100)
+                  )}...'`
+                );
+
+                if (item.type == "text/uri-list") {
+                  const url = text.split("\n")[0]; // Take the first URL if multiple
+                  if (urlRegex.test(url)) {
+                    if (imageFileExtensionRegex.test(url)) {
+                      resolve({ type: "image-url", data: url });
+                    } else {
+                      let matchedPlatform: PastedContentType["type"] =
+                        "website url";
+                      for (const p of socialMediaPlatforms) {
+                        if (p.regex.test(url)) {
+                          matchedPlatform = p.name;
+                          break;
+                        }
                       }
+                      resolve({ type: matchedPlatform, data: url });
                     }
-                    resolve({ type: matchedPlatform, data: text });
+                  } else {
+                    resolve(null); // Not a valid URL in uri-list
+                  }
+                } else if (item.type == "text/html") {
+                  // Try to extract image src from HTML
+                  const imgMatch = text.match(/<img[^>]+src="([^">]+)"/i);
+                  if (imgMatch && imgMatch[1] && urlRegex.test(imgMatch[1])) {
+                    resolve({ type: "image-url", data: imgMatch[1] });
+                  } else {
+                    // Try to extract href from anchor tags
+                    const aMatch = text.match(/<a[^>]+href="([^">]+)"/i);
+                    if (aMatch && aMatch[1] && urlRegex.test(aMatch[1])) {
+                      let matchedPlatform: PastedContentType["type"] =
+                        "website url";
+                      for (const p of socialMediaPlatforms) {
+                        if (p.regex.test(aMatch[1])) {
+                          matchedPlatform = p.name;
+                          break;
+                        }
+                      }
+                      resolve({ type: matchedPlatform, data: aMatch[1] });
+                    } else {
+                      resolve(null); // No specific URL or image found in HTML
+                    }
+                  }
+                } else if (item.type == "text/plain") {
+                  if (urlRegex.test(text)) {
+                    if (imageFileExtensionRegex.test(text)) {
+                      resolve({ type: "image-url", data: text });
+                    } else {
+                      let matchedPlatform: PastedContentType["type"] =
+                        "website url";
+                      for (const p of socialMediaPlatforms) {
+                        if (p.regex.test(text)) {
+                          matchedPlatform = p.name;
+                          break;
+                        }
+                      }
+                      resolve({ type: matchedPlatform, data: text });
+                    }
+                  } else {
+                    resolve({ type: "plain text", data: text });
                   }
                 } else {
-                  // Always resolve plain text (no null)
-                  resolve({ type: "plain text", data: text });
+                  console.log("Unhandled string type:", item.type);
+
+                  resolve(null); // Unhandled string type
                 }
               });
             }
           );
-          itemPromises.push(stringPromise);
-          // Push the promise, don't await yet
+          itemPromises.push(stringPromise); // Push the promise, don't await yet
         }
       }
 
@@ -375,7 +460,8 @@ const Strategy = (props: StrategyProps) => {
       console.log("Final Pasted Item Result:", finalPastedItem);
 
       if (finalPastedItem.type !== "unknown") {
-        console.log("Known Pasted Item:", finalPastedItem);
+        console.log("Pasted Item Type:", finalPastedItem.type);
+        console.log("Pasted Data:", finalPastedItem.data);
 
         // Call addToolNode based on the detected type
         switch (finalPastedItem.type) {

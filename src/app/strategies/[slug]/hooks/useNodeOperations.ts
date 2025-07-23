@@ -123,20 +123,16 @@ export const useNodeOperations = () => {
 
   const addToolNode = useCallback(
     ({
+      dataToAutoUpload,
       peerType: tool,
       strategyId,
-      dataToAutoUpload,
     }: {
       peerType: Tool;
       strategyId: string;
-      dataToAutoUpload?: any; // remove this if not resolve the issue
+      dataToAutoUpload: any;
     }) => {
-      console.log({ dataToAutoUpload });
-
       const position = { x: 500, y: 500 };
       const newNode = toolToNode(tool, position);
-
-      console.log({ newNode });
 
       if (!newNode) return;
 
@@ -155,7 +151,7 @@ export const useNodeOperations = () => {
             data: {
               ...(Object.keys(dataToAutoUpload)?.length > 0
                 ? { dataToAutoUpload }
-                : {}), // data need to auto upload
+                : {}),
               ...newNode.data,
               id: responseData?.peer_id,
               ...responseData,

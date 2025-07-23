@@ -62,15 +62,15 @@ const Dashboard = () => {
     );
   }
 
-  if (isError) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <span className="text-red-600 text-lg font-semibold">
-          Failed to load strategies.
-        </span>
-      </div>
-    );
-  }
+  // if (isError) {
+  //   return (
+  //     <div className="flex min-h-screen items-center justify-center">
+  //       <span className="text-red-600 text-lg font-semibold">
+  //         Failed to load strategies.
+  //       </span>
+  //     </div>
+  //   );
+  // }
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -120,26 +120,36 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Strategy Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-            {filteredStrategies.map((strategy, index) => (
-              <StrategyCard
-                key={strategy.id}
-                strategy={strategy}
-                isFavorite={index === 1}
-                //  isFavorite={starredItems[index]}
-                onClick={() => router.push(`/strategies/${strategy.id}`)}
-                toggleStar={() => toggleStar(strategy.id)}
-              />
-            ))}
-          </div>
+          {isError ? (
+            <div className="flex items-center justify-center p-6">
+              <span className="text-red-600 text-lg font-semibold">
+                Failed to load strategies.
+              </span>
+            </div>
+          ) : (
+            <>
+              {/* Strategy Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                {filteredStrategies.map((strategy, index) => (
+                  <StrategyCard
+                    key={strategy.id}
+                    strategy={strategy}
+                    isFavorite={index === 1}
+                    //  isFavorite={starredItems[index]}
+                    onClick={() => router.push(`/strategies/${strategy.id}`)}
+                    toggleStar={() => toggleStar(strategy.id)}
+                  />
+                ))}
+              </div>
 
-          {/* Pagination */}
-          {/* <Pagination
+              {/* Pagination */}
+              {/* <Pagination
             totalPages={10}
             currentPage={currentPage}
             onPageChange={(page) => setCurrentPage(page)}
           /> */}
+            </>
+          )}
         </main>
       </div>
     </div>
