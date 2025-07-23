@@ -61,11 +61,16 @@ export const useUpdateStrategy = () => {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<IStrategy> }) =>
       updateStrategy(id, data),
-    onSuccess: (_, data) => {
+    onSuccess: (_data, { id }) => {
       queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.STRATEGIES, QUERY_KEYS.STRATEGY, data.id],
+        queryKey: [QUERY_KEYS.STRATEGY, id],
       });
     },
+    // onSuccess: (_, data) => {
+    //   queryClient.invalidateQueries({
+    //     queryKey: [QUERY_KEYS.STRATEGIES, QUERY_KEYS.STRATEGY, data.id],
+    //   });
+    // },
   });
 };
 
