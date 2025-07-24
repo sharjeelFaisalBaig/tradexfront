@@ -15,12 +15,10 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   X,
   Plus,
   Upload,
-  HelpCircle,
   FileText,
   Loader2,
   Shield,
@@ -30,7 +28,6 @@ import {
   FileImage,
   Download,
   Eye,
-  ArrowRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import NodeWrapper from "./common/NodeWrapper";
@@ -43,6 +40,7 @@ import {
 import { useGetPeerAnalysisStatus } from "@/hooks/strategy/useGetPeerAnalysisStatus";
 import { toast } from "@/hooks/use-toast";
 import useSuccessNotifier from "@/hooks/useSuccessNotifier";
+import AiNoteInput from "./common/AiNoteInput";
 
 // Types for AI integration
 interface AIProcessingResponse {
@@ -460,10 +458,6 @@ export default function DocumentUploadNode({
     );
   };
 
-  const handleNotesChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setUserNotes(e.target.value);
-  };
-
   const handleReprocess = () => {
     if (uploadedDocument && documentInfo) {
       if (uploadedDocument.startsWith("data:")) {
@@ -702,15 +696,29 @@ export default function DocumentUploadNode({
                       ) : aiResponse ? (
                         <div className="flex items-center gap-2">
                           <FileText className="w-4 h-4 text-indigo-500" />
-                          <span className="text-sm font-medium text-gray-700 truncate">
-                            {aiResponse.title}
-                          </span>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="text-sm font-medium text-gray-700 truncate w-96 text-left">
+                                {aiResponse.title}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="text-sm">{aiResponse.title}</p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                       ) : (
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium text-gray-700 truncate">
-                            📄 {documentInfo?.name}
-                          </span>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="text-sm font-medium text-gray-700 truncate w-96 text-left">
+                                📄 {documentInfo?.name}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="text-sm">{documentInfo?.name}</p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                       )}
                     </div>
@@ -917,42 +925,19 @@ export default function DocumentUploadNode({
                     </div>
                   )}
                   {/* Notes Input */}
-                  <div className="px-4 pb-4 flex items-center gap-2">
-                    <div className="relative flex-1 flex items-center gap-2">
-                      <Input
-                        placeholder="Add notes for AI to use..."
-                        value={userNotes}
-                        onChange={handleNotesChange}
-                        className="pr-8 border-gray-200 focus:border-blue-500 focus:ring-blue-500"
-                        disabled={processingState.isProcessing}
-                      />
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="absolute right-4 top-1/2 -translate-y-1/2 h-6 w-6 text-gray-400 hover:text-gray-600"
-                          >
-                            <HelpCircle className="w-4 h-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p className="text-sm">
-                            Add notes that will be used by AI to provide better
-                            context and insights
-                          </p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </div>
-                    <Button
-                      size="sm"
-                      type="button"
-                      disabled={
+                  <div className="px-4 pb-4">
+                    <AiNoteInput
+                      color="blue"
+                      note={userNotes}
+                      setNote={(val) => setUserNotes(val ?? "")}
+                      isLoading={isAnalyzing}
+                      isInputDisabled={processingState.isProcessing}
+                      isButtonDisabled={
                         processingState.isProcessing ||
                         isAnalyzing ||
                         !userNotes
                       }
-                      onClick={() => {
+                      onButtonClick={() => {
                         analyzeVideoContent(
                           {
                             data: { ai_notes: userNotes },
@@ -972,14 +957,7 @@ export default function DocumentUploadNode({
                           }
                         );
                       }}
-                      className="bg-cyan-500 hover:bg-cyan-600 text-white rounded-full w-8 h-8 p-0 disabled:opacity-50"
-                    >
-                      {isAnalyzing ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <ArrowRight className="w-4 h-4" />
-                      )}
-                    </Button>
+                    />
                   </div>
                 </div>
               )}
