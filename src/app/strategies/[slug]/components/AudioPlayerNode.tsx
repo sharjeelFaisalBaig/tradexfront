@@ -119,6 +119,7 @@ export default function AudioPlayerNode({
       peerType: "audio",
       // Enable polling only if audio is uploaded, not resetting, not yet ready, and not actively processing
       enabled:
+        isAnalyzeSuccess &&
         !isReseting &&
         !data?.is_ready_to_interact &&
         !processingState.isProcessing,

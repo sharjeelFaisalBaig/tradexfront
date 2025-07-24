@@ -1,9 +1,9 @@
 import axios, {
-  AxiosInstance,
-  AxiosRequestConfig,
-  AxiosRequestHeaders,
-  AxiosError,
-  InternalAxiosRequestConfig,
+  type AxiosInstance,
+  type AxiosRequestConfig,
+  type AxiosRequestHeaders,
+  type AxiosError,
+  type InternalAxiosRequestConfig,
 } from "axios";
 import { getSession, signOut } from "next-auth/react";
 import { endpoints } from "@/lib/endpoints";
@@ -35,15 +35,12 @@ const refreshToken = async (session: any): Promise<string> => {
       Authorization: `Bearer ${session?.accessToken}`,
     },
   });
-
   const data = await res.json();
-
   if (!res.ok || !data?.data?.access_token) {
     console.error("Token refresh failed:", data);
     await signOut({ redirect: true, callbackUrl: "/auth/signin" });
     throw new Error("Token refresh failed");
   }
-
   // ❌ Don't mutate the session directly
   return data.data.access_token;
 };
@@ -52,13 +49,11 @@ const refreshToken = async (session: any): Promise<string> => {
 axiosInstance.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
     const session = await getCachedSession();
-
     if (session?.accessToken && config.headers) {
       (
         config.headers as AxiosRequestHeaders
       ).Authorization = `Bearer ${session.accessToken}`;
     }
-
     return config;
   },
   (error: AxiosError) => Promise.reject(error)
@@ -71,33 +66,27 @@ axiosInstance.interceptors.response.use(
     const originalRequest = error.config as AxiosRequestConfig & {
       _retry?: boolean;
     };
-
     const status = error.response?.status;
     const message = (error.response?.data as any)?.message;
-
     if (
       status === 401 &&
       message?.toLowerCase().includes("token") &&
       !originalRequest._retry
     ) {
       originalRequest._retry = true;
-
       try {
         const session = await getCachedSession();
         const newAccessToken = await refreshToken(session);
-
         const headers = originalRequest.headers ?? {};
         (
           headers as AxiosRequestHeaders
         ).Authorization = `Bearer ${newAccessToken}`;
         originalRequest.headers = headers;
-
         return axiosInstance(originalRequest); // Retry with new token
       } catch (refreshError) {
         return Promise.reject(refreshError);
       }
     }
-
     return Promise.reject(error);
   }
 );
