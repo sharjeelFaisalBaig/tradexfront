@@ -549,11 +549,11 @@ export const useAnalyzeSocialPeer = () => {
       peerId: string;
       data: any;
     }) => analyzeSocialPeer({ strategyId, peerId, data }),
-    onSuccess: (_data, { strategyId }) => {
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.STRATEGY, strategyId],
-      });
-    },
+    // onSuccess: (_data, { strategyId }) => {
+    //   queryClient.invalidateQueries({
+    //     queryKey: [QUERY_KEYS.STRATEGY, strategyId],
+    //   });
+    // },
   });
 };
 
@@ -570,11 +570,11 @@ export const useAnalyzeRemotePeer = () => {
       peerId: string;
       data: { search_query: string; ai_notes?: string };
     }) => analyzeRemotePeer({ strategyId, peerId, data }),
-    onSuccess: (_data, { strategyId }) => {
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.STRATEGY, strategyId],
-      });
-    },
+    // onSuccess: (_data, { strategyId }) => {
+    //   queryClient.invalidateQueries({
+    //     queryKey: [QUERY_KEYS.STRATEGY, strategyId],
+    //   });
+    // },
   });
 };
 
@@ -591,11 +591,11 @@ export const useAnalyzeImagePeer = () => {
       peerId: string;
       data: { ai_notes?: string };
     }) => analyzeImagePeer({ strategyId, peerId, data }),
-    onSuccess: (_data, { strategyId }) => {
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.STRATEGY, strategyId],
-      });
-    },
+    // onSuccess: (_data, { strategyId }) => {
+    //   queryClient.invalidateQueries({
+    //     queryKey: [QUERY_KEYS.STRATEGY, strategyId],
+    //   });
+    // },
   });
 };
 
@@ -612,11 +612,11 @@ export const useAnalyzeVideoPeer = () => {
       peerId: string;
       data: { ai_notes?: string };
     }) => analyzeVideoPeer({ strategyId, peerId, data }),
-    onSuccess: (_data, { strategyId }) => {
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.STRATEGY, strategyId],
-      });
-    },
+    // onSuccess: (_data, { strategyId }) => {
+    //   queryClient.invalidateQueries({
+    //     queryKey: [QUERY_KEYS.STRATEGY, strategyId],
+    //   });
+    // },
   });
 };
 
@@ -633,11 +633,11 @@ export const useAnalyzeDocumentPeer = () => {
       peerId: string;
       data: { ai_notes?: string };
     }) => analyzeDocumentPeer({ strategyId, peerId, data }),
-    onSuccess: (_data, { strategyId }) => {
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.STRATEGY, strategyId],
-      });
-    },
+    // onSuccess: (_data, { strategyId }) => {
+    //   queryClient.invalidateQueries({
+    //     queryKey: [QUERY_KEYS.STRATEGY, strategyId],
+    //   });
+    // },
   });
 };
 
@@ -654,11 +654,11 @@ export const useAnalyzeAudioPeer = () => {
       peerId: string;
       data: { ai_notes?: string };
     }) => analyzeAudioPeer({ strategyId, peerId, data }),
-    onSuccess: (_data, { strategyId }) => {
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.STRATEGY, strategyId],
-      });
-    },
+    // onSuccess: (_data, { strategyId }) => {
+    //   queryClient.invalidateQueries({
+    //     queryKey: [QUERY_KEYS.STRATEGY, strategyId],
+    //   });
+    // },
   });
 };
 

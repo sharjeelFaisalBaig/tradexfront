@@ -385,7 +385,9 @@ export default function VideoUploadNode({
               setUploadState({
                 isUploading: false,
                 isSuccess: false,
-                error: err?.message || "Upload failed. Please try again.",
+                error:
+                  err?.response?.data?.errors?.file[0] ||
+                  "Upload failed. Please try again.",
               });
             },
           }

@@ -126,13 +126,14 @@ export default function AudioPlayerNode({
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animationFrameRef = useRef<number | null>(null);
-  const { setEdges } = useReactFlow();
+  const { setEdges, updateNodeData } = useReactFlow();
 
   // Audio upload states
   const [uploadedAudio, setUploadedAudio] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string>("");
   const [currentFile, setCurrentFile] = useState<File | null>(null); // Store the actual File object
   const [isDragOver, setIsDragOver] = useState(false);
+  const [canConnect, setCanConnect] = useState(false);
 
   // Audio player states
   const [isPlaying, setIsPlaying] = useState(false);
@@ -162,7 +163,7 @@ export default function AudioPlayerNode({
   const [aiResponse, setAiResponse] = useState<AIProcessingResponse | null>(
     null
   );
-  const [userNotes, setUserNotes] = useState<string>("");
+  const [userNotes, setUserNotes] = useState<string>(data?.ai_notes ?? "");
   const [isInitialLoadFromProps, setIsInitialLoadFromProps] = useState(true); // Flag to ensure initial data handling runs only once
 
   const speeds = [1, 1.5, 2];
@@ -580,6 +581,15 @@ export default function AudioPlayerNode({
       { peerId: data?.id, strategyId, peerType: "audio" },
       {
         onSuccess: (data) => {
+          setCanConnect(false);
+          updateNodeData(data?.id, {
+            audio: "",
+            title: "",
+            ai_notes: "",
+            ai_title: "",
+            ai_summary: "",
+            is_ready_to_interact: false,
+          });
           setUploadedAudio(null);
           setFileName("");
           setCurrentFile(null); // Clear the stored file
@@ -710,11 +720,12 @@ export default function AudioPlayerNode({
 
   const progressValue = duration > 0 ? (currentTime / duration) * 100 : 0;
 
-  // Determine if connection should be allowed based on data.is_ready_to_interact
-  const canConnect = useMemo(
-    () => data?.is_ready_to_interact || status?.is_ready_to_interact,
-    [data, status]
-  );
+  useEffect(() => {
+    // Determine if connection should be allowed based on data.is_ready_to_interact
+    setCanConnect(
+      () => data?.is_ready_to_interact || status?.is_ready_to_interact
+    );
+  }, [data, status]);
 
   // Remove connections when node becomes not connectable
   useEffect(() => {
@@ -972,11 +983,13 @@ export default function AudioPlayerNode({
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <span className="text-sm font-medium truncate w-72 text-left">
-                              {fileName}
+                              {status?.ai_title || data?.ai_title || fileName}
                             </span>
                           </TooltipTrigger>
                           <TooltipContent>
-                            <p className="text-sm">{fileName}</p>
+                            <p className="text-sm">
+                              {status?.ai_title || data?.ai_title || fileName}
+                            </p>
                           </TooltipContent>
                         </Tooltip>
                       </div>
@@ -1251,6 +1264,7 @@ export default function AudioPlayerNode({
                       processingState.isProcessing || isAnalyzing
                     }
                     onButtonClick={() => {
+                      updateNodeData(data?.id, { ai_notes: userNotes });
                       analyzeAudioContent({
                         data: { ai_notes: userNotes },
                         strategyId: strategyId,
