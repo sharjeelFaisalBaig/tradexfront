@@ -1,20 +1,24 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
+import { useEffect, useState } from "react";
 
-export default function AIResponseLoader() {
-  const [dots, setDots] = useState("")
+interface Props {
+  modelName?: string;
+}
+
+export default function AIResponseLoader({ modelName }: Props) {
+  const [dots, setDots] = useState("");
 
   useEffect(() => {
     const interval = setInterval(() => {
       setDots((prev) => {
-        if (prev.length >= 3) return ""
-        return prev + "."
-      })
-    }, 300)
+        if (prev.length >= 3) return "";
+        return prev + ".";
+      });
+    }, 300);
 
-    return () => clearInterval(interval)
-  }, [])
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div className="flex justify-start">
@@ -27,7 +31,10 @@ export default function AIResponseLoader() {
             <div className="text-left bg-white border border-gray-200 rounded-2xl rounded-tl-md px-4 py-3 shadow-sm">
               <div className="flex items-center gap-2">
                 <div className="flex space-x-1">
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                  <div
+                    className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                    style={{ animationDelay: "0ms" }}
+                  />
                   <div
                     className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
                     style={{ animationDelay: "300ms" }}
@@ -37,12 +44,14 @@ export default function AIResponseLoader() {
                     style={{ animationDelay: "600ms" }}
                   />
                 </div>
-                <span className="text-gray-500">AI is thinking{dots}</span>
+                <span className="text-gray-500">
+                  {modelName ?? "AI"} is thinking{dots}
+                </span>
               </div>
             </div>
           </div>
         </div>
       </div>
     </div>
-  )
+  );
 }

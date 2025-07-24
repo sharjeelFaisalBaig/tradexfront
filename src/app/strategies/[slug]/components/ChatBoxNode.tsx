@@ -932,7 +932,7 @@ export default function ChatBoxNode({
                   {activeConversation?.title || "Select a conversation"}
                   {isLoading && (
                     <span className="ml-2 text-sm text-blue-500 font-normal">
-                      AI is thinking...
+                      {selectedModel?.name} is thinking...
                     </span>
                   )}
                 </h1>
@@ -1037,9 +1037,9 @@ export default function ChatBoxNode({
                     </div>
                     <div className="flex-1 text-left">
                       <div className="text-sm font-semibold text-blue-600 mb-2">
-                        AI
+                        {selectedModel?.name}
                       </div>
-                      <AIResponseLoader />
+                      <AIResponseLoader modelName={selectedModel?.name} />
                     </div>
                   </div>
                 )}
