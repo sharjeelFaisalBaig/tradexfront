@@ -385,7 +385,9 @@ export default function VideoUploadNode({
               setUploadState({
                 isUploading: false,
                 isSuccess: false,
-                error: err?.message || "Upload failed. Please try again.",
+                error:
+                  err?.response?.data?.errors?.file[0] ||
+                  "Upload failed. Please try again.",
               });
             },
           }
@@ -605,6 +607,11 @@ export default function VideoUploadNode({
           });
         },
         onError: (error: any) => {
+          setProcessingState({
+            isProcessing: false,
+            isComplete: false,
+            error: error?.response?.data?.message ?? "Something went wrong...",
+          });
           toast({
             title: "Failed to remove Video",
             description:
@@ -1212,9 +1219,7 @@ export default function VideoUploadNode({
                       isLoading={isAnalyzing}
                       isInputDisabled={processingState.isProcessing}
                       isButtonDisabled={
-                        processingState.isProcessing ||
-                        isAnalyzing ||
-                        !userNotes
+                        processingState.isProcessing || isAnalyzing
                       }
                       onButtonClick={() => {
                         analyzeVideoContent({

@@ -19,10 +19,10 @@ import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 
 const strategyTools = [
   { id: "annotation", icon: MessageSquare, label: "Annotation" },
-  { id: "image", icon: ImageIcon, label: "Images" },
+  { id: "image", icon: ImageIcon, label: "Image" },
   { id: "audio", icon: MicIcon, label: "Audio" },
-  { id: "video", icon: Play, label: "Videos" },
-  { id: "document", icon: FileText, label: "Documents" },
+  { id: "video", icon: Play, label: "Video" },
+  { id: "document", icon: FileText, label: "Document" },
   { id: "social", icon: CircleFadingPlus, label: "Social" },
   { id: "remote", icon: GlobeIcon, label: "Website" },
   { id: "AI Assistant", icon: BotMessageSquare, label: "AI Assistant" },
@@ -56,7 +56,7 @@ const StrategySidebar = ({ strategyId }: StrategySidebarProps) => {
       onMouseLeave={() => setCollapsed(true)}
       className={cn(
         collapsed ? "w-16" : "w-40",
-        "bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 transition-all duration-300 strategy-sidebar"
+        "bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 transition-all duration-300 ease-linear strategy-sidebar"
       )}
     >
       <div className="flex h-full flex-col items-center p-2 space-y-2">
@@ -85,7 +85,14 @@ const StrategySidebar = ({ strategyId }: StrategySidebarProps) => {
                 className="w-5 h-5"
                 // {...(item?.color ? { color: item?.color } : {})}
               />
-              {!collapsed && item.label}
+              <span
+                className={cn(
+                  collapsed ? "hidden opacity-0" : "opacity-100",
+                  "transition-opacity duration-300 ease-in"
+                )}
+              >
+                {item.label}
+              </span>
             </Button>
           );
         })}

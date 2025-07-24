@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Tooltip,
   TooltipContent,
@@ -6,6 +8,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowRight, HelpCircle, Loader2 } from "lucide-react";
+import { useRef } from "react";
 
 interface AiNoteInputProps {
   color?: "purple" | "blue" | "red" | "green" | "cyan"; // restrict to valid colors
@@ -56,10 +59,13 @@ const AiNoteInput = (props: AiNoteInputProps) => {
 
   const selectedColor = colorClasses[color] || colorClasses.purple;
 
+  const inputRef = useRef<HTMLInputElement | any>(null);
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
       e.preventDefault();
       onButtonClick?.();
+      inputRef.current?.blur();
     }
   };
 
@@ -67,6 +73,7 @@ const AiNoteInput = (props: AiNoteInputProps) => {
     <div className="flex items-center gap-2">
       <div className="relative flex-1 flex items-center gap-2">
         <Input
+          ref={inputRef}
           placeholder="Add notes for AI to use..."
           value={note}
           onChange={(e) => setNote(e?.target?.value)}
