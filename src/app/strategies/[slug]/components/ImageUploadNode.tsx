@@ -513,7 +513,7 @@ export default function ImageUploadNode({
                           <Lightbulb className="w-4 h-4 text-yellow-500" />
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <span className="text-sm font-medium text-gray-700 truncate w-80">
+                              <span className="text-sm font-medium text-gray-700 truncate w-80 text-left">
                                 {status?.ai_title || aiResponse.title}
                               </span>
                             </TooltipTrigger>
@@ -528,7 +528,7 @@ export default function ImageUploadNode({
                         <div className="flex items-center gap-2">
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <span className="text-sm font-medium text-gray-700 truncate">
+                              <span className="text-sm font-medium text-gray-700 truncate text-left">
                                 📁 {fileName}
                               </span>
                             </TooltipTrigger>
@@ -653,9 +653,7 @@ export default function ImageUploadNode({
                       isLoading={isAnalyzing}
                       isInputDisabled={processingState.isProcessing}
                       isButtonDisabled={
-                        processingState.isProcessing ||
-                        isAnalyzing ||
-                        !userNotes
+                        processingState.isProcessing || isAnalyzing
                       }
                       onButtonClick={() => {
                         analyzeImageContent({

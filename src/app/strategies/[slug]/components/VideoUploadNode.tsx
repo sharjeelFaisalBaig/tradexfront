@@ -1212,9 +1212,7 @@ export default function VideoUploadNode({
                       isLoading={isAnalyzing}
                       isInputDisabled={processingState.isProcessing}
                       isButtonDisabled={
-                        processingState.isProcessing ||
-                        isAnalyzing ||
-                        !userNotes
+                        processingState.isProcessing || isAnalyzing
                       }
                       onButtonClick={() => {
                         analyzeVideoContent({

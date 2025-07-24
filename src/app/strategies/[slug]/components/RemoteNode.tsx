@@ -108,7 +108,7 @@ export default function RemoteNode({
 
   // Website states
   const nodeControlRef = useRef(null);
-  const { setEdges } = useReactFlow();
+  const { setEdges, updateNodeData, deleteElements } = useReactFlow();
   const [websiteUrl, setWebsiteUrl] = useState<string>("");
   const [canConnect, setCanConnect] = useState<boolean>(false);
   const [websiteData, setWebsiteData] = useState<WebsiteData | null>(null);
@@ -353,6 +353,7 @@ export default function RemoteNode({
       { peerId: data?.id, strategyId, peerType: "remote" },
       {
         onSuccess: (data) => {
+          // updateNodeData(id, { ...data });
           setWebsiteUrl("");
           setWebsiteData(null);
           setAiResponse(null);

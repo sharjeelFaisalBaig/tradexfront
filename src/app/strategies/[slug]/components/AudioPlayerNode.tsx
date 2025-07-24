@@ -1248,7 +1248,7 @@ export default function AudioPlayerNode({
                     isLoading={isAnalyzing}
                     isInputDisabled={processingState.isProcessing}
                     isButtonDisabled={
-                      processingState.isProcessing || isAnalyzing || !userNotes
+                      processingState.isProcessing || isAnalyzing
                     }
                     onButtonClick={() => {
                       analyzeAudioContent({

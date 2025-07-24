@@ -933,9 +933,7 @@ export default function DocumentUploadNode({
                       isLoading={isAnalyzing}
                       isInputDisabled={processingState.isProcessing}
                       isButtonDisabled={
-                        processingState.isProcessing ||
-                        isAnalyzing ||
-                        !userNotes
+                        processingState.isProcessing || isAnalyzing
                       }
                       onButtonClick={() => {
                         analyzeVideoContent(
