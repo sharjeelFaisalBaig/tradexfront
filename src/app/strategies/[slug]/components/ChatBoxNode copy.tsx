@@ -1,5 +1,4 @@
 "use client";
-
 import type React from "react";
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { Handle, Position } from "@xyflow/react";
@@ -109,13 +108,11 @@ export default function ChatBoxNode({
   const [editingTitle, setEditingTitle] = useState("");
   const [isInitialized, setIsInitialized] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
-  const [isFetchingMoreMessages, setIsFetchingMoreMessages] = useState(false); // New state for pagination loading
 
   // Refs
   const nodeControlRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const messagesContainerRef = useRef<HTMLDivElement>(null); // New ref for the scrollable messages area
 
   // Mutations
   const { mutateAsync: sendChatMessageMutation } = useSendChatMessage();
@@ -134,15 +131,12 @@ export default function ChatBoxNode({
   const { data: aiModelsData, isLoading: isLoadingModels } = useGetAiModels();
   const { data: aiTemplatesData, isLoading: isLoadingTemplates } =
     useGetChatTemplates();
-  const {
-    data: activeConversationData,
-    isLoading: isLoadingConversation,
-    refetch: refetchConversation,
-  } = useGetConversationById({
-    strategyId,
-    conversationId: activeConversationId ?? "",
-    page, // Pass the page parameter for pagination
-  });
+  const { data: activeConversationData, isLoading: isLoadingConversation } =
+    useGetConversationById({
+      strategyId,
+      conversationId: activeConversationId ?? "",
+      page,
+    });
 
   // Memoized values
   const availableModels: AIModel[] = useMemo(
@@ -180,7 +174,8 @@ export default function ChatBoxNode({
       updateModelLoading,
     [conversations, createConversationLoading, updateModelLoading]
   );
-  const isLoading = activeConversation?.isLoading || false; // This specifically refers to sending/receiving the current message
+
+  const isLoading = activeConversation?.isLoading || false;
   const canConnect = !isLoading; // This controls if new connections can be made to the handle
 
   // Helper functions
@@ -242,99 +237,50 @@ export default function ChatBoxNode({
     isInitialized,
   ]);
 
-  // When active conversation changes, reset page and clear messages
+  // Load messages when active conversation changes
   useEffect(() => {
-    if (activeConversationId) {
-      setPage(1); // Reset page to 1 for the new conversation
-      setMessages([]); // Clear messages to load new conversation from scratch
-    }
-  }, [activeConversationId]);
-
-  // Load messages when active conversation data changes (including pagination)
-  useEffect(() => {
-    // MODIFIED: Check for activeConversationData.conversation instead of aiChats
-    if (activeConversationData?.conversation) {
-      const { aiChats, pagination } = activeConversationData.conversation;
-
-      const newLoadedMessages: Message[] = aiChats.flatMap((chat: any) => [
-        {
-          id: `${chat.id}_user`,
-          content: chat.prompt,
-          sender: "user" as const,
-          name: "You",
-          timestamp: parseTimestamp(chat.created_at),
-          isOptimistic: false,
-        },
-        {
-          id: `${chat.id}_ai`,
-          content: chat.response,
-          sender: "ai" as const,
-          name: chat?.ai_model,
-          timestamp: parseTimestamp(chat.updated_at),
-          isOptimistic: false,
-        },
-      ]);
-
-      // Capture old scroll height before updating messages, if fetching more pages
-      let oldScrollHeight = 0;
-      if (isFetchingMoreMessages && messagesContainerRef.current) {
-        oldScrollHeight = messagesContainerRef.current.scrollHeight;
-      }
-
-      setMessages((prevMessages) => {
-        // If it's the first page or switching conversation, replace messages
-        if (pagination.current_page === 1) {
-          return newLoadedMessages;
-        } else {
-          // If fetching more pages, prepend new messages
-          // Filter out duplicates in case of overlapping data or previous optimistic messages
-          const existingMessageIds = new Set(prevMessages.map((msg) => msg.id));
-          const filteredNewMessages = newLoadedMessages.filter(
-            (msg) => !existingMessageIds.has(msg.id)
-          );
-          return [...filteredNewMessages, ...prevMessages];
-        }
-      });
-
-      // After updating messages, if we were fetching more messages, adjust scroll position
-      if (isFetchingMoreMessages && messagesContainerRef.current) {
-        // Use requestAnimationFrame to ensure DOM has updated before calculating new scrollHeight
-        requestAnimationFrame(() => {
-          if (messagesContainerRef.current) {
-            const newScrollHeight = messagesContainerRef.current.scrollHeight;
-            messagesContainerRef.current.scrollTop =
-              newScrollHeight - oldScrollHeight;
-          }
-        });
-        setIsFetchingMoreMessages(false); // Reset pagination loading state
-      }
+    if (activeConversationData?.conversation?.aiChats) {
+      const loadedMessages: Message[] =
+        activeConversationData.conversation.aiChats.flatMap((chat: any) => [
+          {
+            id: `${chat.id}_user`,
+            content: chat.prompt,
+            sender: "user" as const,
+            name: "You",
+            timestamp: parseTimestamp(chat.created_at),
+            isOptimistic: false,
+          },
+          {
+            id: `${chat.id}_ai`,
+            content: chat.response,
+            sender: "ai" as const,
+            name: chat?.ai_model,
+            timestamp: parseTimestamp(chat.updated_at),
+            isOptimistic: false,
+          },
+        ]);
+      setMessages(loadedMessages);
     } else if (activeConversationId && !isLoadingConversation) {
-      // If activeConversationData.conversation is null/undefined and not loading, clear messages
       setMessages([]);
     }
   }, [
     activeConversationData,
     activeConversationId,
-    isLoadingConversation, // Include this to handle initial load states properly
+    isLoadingConversation,
     parseTimestamp,
-    isFetchingMoreMessages,
   ]);
 
-  // Auto-scroll to bottom when new messages are added (not during pagination)
+  // Load draft message when switching conversations
   useEffect(() => {
-    // Only scroll if not currently fetching older messages
-    if (!isFetchingMoreMessages) {
-      // Check if the last message was just added (not an optimistic one)
-      const lastMessage = messages[messages.length - 1];
-      if (lastMessage && !lastMessage.isOptimistic) {
-        // Use a small timeout to ensure DOM has rendered the new message
-        const timer = setTimeout(() => {
-          messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-        }, 100); // Small delay to ensure render
-        return () => clearTimeout(timer);
-      }
+    if (activeConversation?.draftMessage !== undefined) {
+      setMessage(activeConversation.draftMessage);
     }
-  }, [messages, isFetchingMoreMessages]); // Depend on messages array and pagination state
+  }, [activeConversation?.draftMessage]);
+
+  // Auto-scroll to bottom
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   // Auto-resize textarea
   useEffect(() => {
@@ -346,6 +292,11 @@ export default function ChatBoxNode({
       )}px`;
     }
   }, [message]);
+
+  // REMOVED: The useEffect that was disconnecting edges based on `canConnect`.
+  // This was causing connections to drop during chat loading.
+  // The `isConnectable` prop on `Handle` will still prevent new connections
+  // from being made when the node is in a loading state.
 
   // Conversation management functions
   const updateConversationState = useCallback(
@@ -409,6 +360,7 @@ export default function ChatBoxNode({
     const userMessageText = message.trim();
     const timestamp = new Date();
     const optimisticUserId = generateOptimisticId();
+    // const optimisticAiId = generateOptimisticId(); // Not needed if AI message is only added on success
 
     // Clear input and draft
     setMessage("");
@@ -513,7 +465,7 @@ export default function ChatBoxNode({
     generateOptimisticId,
     saveDraftMessage,
     setConversationLoading,
-    messages.length, // Keep this dependency for title update logic
+    messages.length,
     sendChatMessageMutation,
     strategyId,
     updateConversationState,
@@ -525,6 +477,7 @@ export default function ChatBoxNode({
 
   const createNewConversation = useCallback(async () => {
     if (isAnyConversationLoading || !availableModels.length) return;
+
     try {
       const response = await createConversationMutation({
         strategyId,
@@ -533,11 +486,14 @@ export default function ChatBoxNode({
           ai_thread_peer_id: data?.id ?? "",
         },
       });
+
       const conv = response?.conversation;
       if (!conv) throw new Error("No conversation returned from API");
+
       const model =
         availableModels.find((m) => m.id === conv.ai_model_id) ||
         availableModels[0];
+
       const newConversation: Conversation = {
         id: conv.id,
         title: conv.title,
@@ -549,6 +505,7 @@ export default function ChatBoxNode({
         isDeleting: false, // Initialize new state
         isUpdatingTitle: false, // Initialize new state
       };
+
       setConversations((prev) => {
         const exists = prev.some((c) => c.id === newConversation.id);
         return exists ? prev : [newConversation, ...prev];
@@ -576,8 +533,10 @@ export default function ChatBoxNode({
   const deleteConversation = useCallback(
     async (conversationId: string) => {
       if (isAnyConversationLoading) return; // Still prevent if other global operations are pending
+
       // Set optimistic loading state for the specific conversation
       updateConversationState(conversationId, { isDeleting: true });
+
       try {
         await deleteConversationMutation({ strategyId, conversationId });
         setConversations((prev) =>
@@ -624,8 +583,10 @@ export default function ChatBoxNode({
   const handleModelSelect = useCallback(
     async (model: AIModel) => {
       if (!activeConversationId) return;
+
       // Optimistically update UI
       updateConversationState(activeConversationId, { selectedModel: model });
+
       try {
         await updateConversationAiModelMutation({
           strategyId,
@@ -702,12 +663,14 @@ export default function ChatBoxNode({
         setEditingConversationId(null);
         return;
       }
+
       // Optimistically update UI and set loading state for the specific conversation
       updateConversationState(conversation.id, {
         title: newTitle,
         isUpdatingTitle: true,
       });
       setEditingConversationId(null); // Hide the input immediately
+
       try {
         await updateConversationMutation({
           strategyId,
@@ -764,25 +727,7 @@ export default function ChatBoxNode({
     [editingTitle, saveConversationTitle]
   );
 
-  // New scroll handler for pagination
-  const handleMessagesScroll = useCallback(
-    (event: React.UIEvent<HTMLDivElement>) => {
-      const { scrollTop } = event.currentTarget;
-
-      // Check if scrolled to the very top and not already fetching
-      if (scrollTop === 0 && !isFetchingMoreMessages && activeConversationId) {
-        const pagination = activeConversationData?.conversation?.pagination;
-        if (pagination && pagination.current_page < pagination.last_page) {
-          setIsFetchingMoreMessages(true);
-          // Increment page to trigger refetch, messages useEffect will handle prepend and scroll adjustment
-          setPage((prevPage) => prevPage + 1);
-        }
-      }
-    },
-    [isFetchingMoreMessages, activeConversationId, activeConversationData]
-  ); // Depend on activeConversationData for pagination info
-
-  // Show loading spinner for initial load of the entire chat interface
+  // Show loading spinner for initial load
   if (!isHydrated || isLoadingModels || !isInitialized) {
     return (
       <NodeWrapper
@@ -1015,11 +960,7 @@ export default function ChatBoxNode({
                 </div>
               )}
               {/* Messages Area */}
-              <div
-                ref={messagesContainerRef} // Assign the new ref here
-                className="flex-1 overflow-y-auto p-4 space-y-6"
-                onScroll={handleMessagesScroll} // Add scroll handler
-              >
+              <div className="flex-1 overflow-y-auto p-4 space-y-6">
                 {!activeConversationId ? (
                   <div className="flex items-center justify-center h-full text-gray-400">
                     <div className="text-center">
@@ -1027,19 +968,7 @@ export default function ChatBoxNode({
                       <p>Select a conversation to start chatting</p>
                     </div>
                   </div>
-                ) : messages.length === 0 &&
-                  isLoadingConversation &&
-                  !isFetchingMoreMessages ? (
-                  // New: Loader for initial conversation history load
-                  <div className="flex items-center justify-center h-full text-gray-400">
-                    <div className="text-center">
-                      <Loader2 className="w-8 h-8 mx-auto mb-4 animate-spin text-blue-600" />
-                      <p className="text-gray-500">
-                        Loading conversation history...
-                      </p>
-                    </div>
-                  </div>
-                ) : messages.length === 0 && !isFetchingMoreMessages ? (
+                ) : messages.length === 0 && !isLoading ? (
                   <div className="flex items-center justify-center h-full text-gray-400">
                     <div className="text-center">
                       <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
@@ -1047,70 +976,61 @@ export default function ChatBoxNode({
                     </div>
                   </div>
                 ) : (
-                  <>
-                    {/* Loader for pagination at the top of messages */}
-                    {isFetchingMoreMessages && (
-                      <div className="flex justify-center py-2">
-                        <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+                  messages.map((msg) =>
+                    msg.sender === "user" ? (
+                      <div
+                        key={msg.id}
+                        className={`flex items-start gap-3 mb-4 text-left ${
+                          msg.isOptimistic ? "opacity-70" : ""
+                        }`}
+                        style={{ justifySelf: "end" }}
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="text-right text-sm font-semibold text-green-600 mb-1">
+                            {msg.name}
+                          </div>
+                          <div className="text-gray-800 text-sm whitespace-pre-wrap break-words">
+                            {msg.content}
+                          </div>
+                        </div>
+                        <div className="w-7 h-7 bg-green-500 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                          U
+                        </div>
                       </div>
-                    )}
-                    {messages.map((msg) =>
-                      msg.sender === "user" ? (
-                        <div
-                          key={msg.id}
-                          className={`flex items-start gap-3 mb-4 text-left ${
-                            msg.isOptimistic ? "opacity-70" : ""
-                          }`}
-                          style={{ justifySelf: "end" }}
-                        >
-                          <div className="flex-1 min-w-0">
-                            <div className="text-right text-sm font-semibold text-green-600 mb-1">
-                              {msg.name}
-                            </div>
-                            <div className="text-gray-800 text-sm whitespace-pre-wrap break-words">
-                              {msg.content}
-                            </div>
+                    ) : (
+                      <div
+                        key={msg.id}
+                        className={`flex items-start gap-3 mb-6 ${
+                          msg.isOptimistic ? "opacity-70" : ""
+                        }`}
+                      >
+                        <div className="w-7 h-7 bg-gradient-to-r from-blue-500 to-pink-500 rounded-full flex items-center justify-center text-white text-xs flex-shrink-0">
+                          🤖
+                        </div>
+                        <div className="flex-1 text-left min-w-0">
+                          <div className="text-sm font-semibold text-blue-600 mb-2">
+                            {msg.name}
                           </div>
-                          <div className="w-7 h-7 bg-green-500 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
-                            U
+                          <div className="ai-message-content text-gray-700 text-sm leading-relaxed prose prose-sm max-w-none">
+                            <ReactMarkdown>{msg.content}</ReactMarkdown>
+                          </div>
+                          <div className="flex items-center gap-4 mt-3">
+                            <button
+                              className="flex items-center gap-1 text-xs text-blue-500 hover:text-blue-600 transition-colors"
+                              onClick={() =>
+                                navigator.clipboard.writeText(msg.content)
+                              }
+                            >
+                              <Copy className="w-3 h-3" />
+                              Copy
+                            </button>
                           </div>
                         </div>
-                      ) : (
-                        <div
-                          key={msg.id}
-                          className={`flex items-start gap-3 mb-6 ${
-                            msg.isOptimistic ? "opacity-70" : ""
-                          }`}
-                        >
-                          <div className="w-7 h-7 bg-gradient-to-r from-blue-500 to-pink-500 rounded-full flex items-center justify-center text-white text-xs flex-shrink-0">
-                            🤖
-                          </div>
-                          <div className="flex-1 text-left min-w-0">
-                            <div className="text-sm font-semibold text-blue-600 mb-2">
-                              {msg.name}
-                            </div>
-                            <div className="ai-message-content text-gray-700 text-sm leading-relaxed prose prose-sm max-w-none">
-                              <ReactMarkdown>{msg.content}</ReactMarkdown>
-                            </div>
-                            <div className="flex items-center gap-4 mt-3">
-                              <button
-                                className="flex items-center gap-1 text-xs text-blue-500 hover:text-blue-600 transition-colors"
-                                onClick={() =>
-                                  navigator.clipboard.writeText(msg.content)
-                                }
-                              >
-                                <Copy className="w-3 h-3" />
-                                Copy
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      )
-                    )}
-                  </>
+                      </div>
+                    )
+                  )
                 )}
-                {/* AI thinking loader (only if not fetching older messages) */}
-                {isLoading && !isFetchingMoreMessages && (
+                {isLoading && (
                   <div className="flex items-start gap-3 mb-6">
                     <div className="w-7 h-7 bg-gradient-to-r from-blue-500 to-pink-500 rounded-full flex items-center justify-center text-white text-xs flex-shrink-0">
                       🤖
