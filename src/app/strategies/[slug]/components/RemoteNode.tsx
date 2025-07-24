@@ -312,7 +312,7 @@ export default function RemoteNode({
           setProcessingState({
             isProcessing: false,
             isComplete: false,
-            error: error?.message || "Processing failed",
+            error: error?.response?.data?.message || "Processing failed",
           });
         },
       }
@@ -475,7 +475,7 @@ export default function RemoteNode({
     if (data?.is_ready_to_interact || status?.is_ready_to_interact) {
       setCanConnect(true);
     }
-  }, [data?.is_ready_to_interact, status?.is_ready_to_interact]);
+  }, [data, status]);
 
   return (
     <NodeWrapper
@@ -650,8 +650,8 @@ export default function RemoteNode({
                     ) : aiResponse ? (
                       <div className="flex items-center gap-2">
                         <Lightbulb className="w-4 h-4 text-yellow-300" />
-                        <span className="text-sm font-medium truncate w-60">
-                          {aiResponse.title}
+                        <span className="text-sm font-medium truncate w-60 text-left">
+                          {aiResponse.title ?? "Website"}
                         </span>
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -670,11 +670,13 @@ export default function RemoteNode({
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <span className="text-sm font-medium truncate w-60 text-left">
-                              {websiteData.title}
+                              {status?.ai_title || websiteData.title}
                             </span>
                           </TooltipTrigger>
                           <TooltipContent>
-                            <p className="text-sm">{websiteData.title}</p>
+                            <p className="text-sm">
+                              {status?.ai_title || websiteData.title}
+                            </p>
                           </TooltipContent>
                         </Tooltip>
                       </div>

@@ -607,6 +607,11 @@ export default function VideoUploadNode({
           });
         },
         onError: (error: any) => {
+          setProcessingState({
+            isProcessing: false,
+            isComplete: false,
+            error: error?.response?.data?.message ?? "Something went wrong...",
+          });
           toast({
             title: "Failed to remove Video",
             description:

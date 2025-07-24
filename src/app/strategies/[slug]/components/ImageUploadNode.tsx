@@ -290,7 +290,7 @@ export default function ImageUploadNode({
           setProcessingState({
             isProcessing: false,
             isComplete: false,
-            error: error?.message || "Image upload failed",
+            error: error?.response?.data?.message || "Image upload failed",
           });
         },
       }

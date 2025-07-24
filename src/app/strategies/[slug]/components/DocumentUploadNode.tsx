@@ -159,12 +159,13 @@ export default function DocumentUploadNode({
 
   const nodeControlRef = useRef(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { setEdges } = useReactFlow();
+  const { setEdges, updateNodeData } = useReactFlow();
 
   // Document states
   const [uploadedDocument, setUploadedDocument] = useState<string | null>(null); // Stores base64 or URL
   const [documentInfo, setDocumentInfo] = useState<DocumentInfo | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [canConnect, setCanConnect] = useState(false);
 
   // Processing states
   const [processingState, setProcessingState] = useState<ProcessingState>({
@@ -427,6 +428,8 @@ export default function DocumentUploadNode({
       { peerId: data?.id, strategyId, peerType: "docs" },
       {
         onSuccess: (data) => {
+          updateNodeData(data?.id, {});
+          setCanConnect(false);
           setUploadedDocument(null);
           setDocumentInfo(null);
           setAiResponse(null);
@@ -493,7 +496,9 @@ export default function DocumentUploadNode({
               setProcessingState({
                 isProcessing: false,
                 isComplete: false,
-                error: error?.message || "Failed to re-analyze document.",
+                error:
+                  error?.response?.data?.message ||
+                  "Failed to re-analyze document.",
               });
               toast({
                 title: error?.message || "Error",
@@ -580,11 +585,13 @@ export default function DocumentUploadNode({
     }
   };
 
-  // Determine if connection should be allowed
-  const canConnect = useMemo(
-    () => data?.is_ready_to_interact || status?.is_ready_to_interact,
-    [data, status]
-  );
+  useEffect(() => {
+    if (data?.is_ready_to_interact || status?.is_ready_to_interact) {
+      setCanConnect(true);
+    } else {
+      setCanConnect(false);
+    }
+  }, [data, status]);
 
   // Remove connections when node becomes not connectable
   useEffect(() => {
@@ -712,11 +719,13 @@ export default function DocumentUploadNode({
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <span className="text-sm font-medium text-gray-700 truncate w-96 text-left">
-                                📄 {documentInfo?.name}
+                                📄 {status?.ai_title ?? documentInfo?.name}
                               </span>
                             </TooltipTrigger>
                             <TooltipContent>
-                              <p className="text-sm">{documentInfo?.name}</p>
+                              <p className="text-sm">
+                                {status?.ai_title ?? documentInfo?.name}
+                              </p>
                             </TooltipContent>
                           </Tooltip>
                         </div>
