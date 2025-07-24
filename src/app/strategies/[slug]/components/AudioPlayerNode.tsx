@@ -21,12 +21,10 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import {
   Play,
   Pause,
-  HelpCircle,
   Download,
   Copy,
   Plus,
@@ -92,9 +90,15 @@ export default function AudioPlayerNode({
   const strategyId = useParams()?.slug as string;
   const successNote = useSuccessNotifier();
 
+  // Processing states (tied to mutation)
+  const [processingState, setProcessingState] = useState<ProcessingState>({
+    isProcessing: false,
+    isComplete: false,
+    error: null,
+  });
+
   // mutations
   const { mutate: resetPeer, isPending: isReseting } = useResetPeer();
-
   const {
     mutate: uploadAudio,
     isPending: isUploading,
@@ -103,19 +107,21 @@ export default function AudioPlayerNode({
     data: uploadData,
     isSuccess: uploadSuccess,
   } = useUploadAudioContent();
-
   const {
     mutate: analyzeAudioContent,
     isPending: isAnalyzing,
     isSuccess: isAnalyzeSuccess,
   } = useAnalyzeAudioPeer();
-
   const { data: status, isPollingLoading: isStatusPollingLoading } =
     useGetPeerAnalysisStatus({
       strategyId,
       peerId: data?.id,
       peerType: "audio",
-      enabled: isAnalyzeSuccess,
+      // Enable polling only if audio is uploaded, not resetting, not yet ready, and not actively processing
+      enabled:
+        !isReseting &&
+        !data?.is_ready_to_interact &&
+        !processingState.isProcessing,
     });
 
   const nodeControlRef = useRef(null);
@@ -133,7 +139,6 @@ export default function AudioPlayerNode({
   const [fileName, setFileName] = useState<string>("");
   const [currentFile, setCurrentFile] = useState<File | null>(null); // Store the actual File object
   const [isDragOver, setIsDragOver] = useState(false);
-  const [canConnect, setCanConnect] = useState(false);
 
   // Audio player states
   const [isPlaying, setIsPlaying] = useState(false);
@@ -151,13 +156,6 @@ export default function AudioPlayerNode({
   });
   const [recordedChunks, setRecordedChunks] = useState<Blob[]>([]);
   const [showRecordingInterface, setShowRecordingInterface] = useState(false);
-
-  // Processing states (tied to mutation)
-  const [processingState, setProcessingState] = useState<ProcessingState>({
-    isProcessing: false,
-    isComplete: false,
-    error: null,
-  });
 
   // AI Response states
   const [aiResponse, setAiResponse] = useState<AIProcessingResponse | null>(
@@ -188,7 +186,6 @@ export default function AudioPlayerNode({
         try {
           const parsedTitleObj = JSON.parse(data.ai_title);
           const parsedSummaryObj = JSON.parse(data.ai_summary);
-
           setAiResponse({
             title: parsedTitleObj.title || data.title,
             peerId: data.id,
@@ -223,7 +220,6 @@ export default function AudioPlayerNode({
           error: data.error_message || null,
         });
       }
-
       setIsLoading(true); // Assume audio needs to load in the player
       setIsInitialLoadFromProps(false); // Mark as processed
     } else if (data?.dataToAutoUpload?.data) {
@@ -242,6 +238,7 @@ export default function AudioPlayerNode({
         : null,
       isComplete: uploadSuccess,
     }));
+
     if (uploadSuccess && uploadData) {
       let processedTitle = uploadData.title;
       let processedSummary = uploadData.summary;
@@ -271,10 +268,12 @@ export default function AudioPlayerNode({
         tags: processedTags,
         transcription: processedTranscription,
       });
+
       // Set uploadedAudio if the mutation returns a new URL
       if (uploadData.audioUrl) {
         setUploadedAudio(uploadData.audioUrl);
       }
+
       // Set fileName for the UI if it changed or wasn't set.
       if (!fileName && uploadData.title) {
         setFileName(uploadData.title);
@@ -300,17 +299,22 @@ export default function AudioPlayerNode({
       const updateAudioLevel = () => {
         const analyser = analyserRef.current;
         if (!analyser) return;
+
         const dataArray = new Uint8Array(analyser.frequencyBinCount);
         analyser.getByteFrequencyData(dataArray);
+
         // Calculate average audio level
         const average =
           dataArray.reduce((sum, value) => sum + value, 0) / dataArray.length;
         const normalizedLevel = Math.min(average / 128, 1); // Normalize to 0-1
+
         setRecordingState((prev) => ({ ...prev, audioLevel: normalizedLevel }));
         animationFrameRef.current = requestAnimationFrame(updateAudioLevel);
       };
+
       updateAudioLevel();
     }
+
     return () => {
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
@@ -343,6 +347,7 @@ export default function AudioPlayerNode({
       setDuration(audio.duration);
       setIsLoading(false);
     };
+
     const handleTimeUpdate = () => {
       const newCurrentTime = audio.currentTime;
       setCurrentTime(newCurrentTime);
@@ -350,16 +355,20 @@ export default function AudioPlayerNode({
         setDuration(audio.duration);
       }
     };
+
     const handleEnded = () => {
       setIsPlaying(false);
       setCurrentTime(0);
     };
+
     const handleLoadStart = () => {
       setIsLoading(true);
     };
+
     const handleCanPlay = () => {
       setIsLoading(false);
     };
+
     const handleError = (e: Event) => {
       console.error("Audio error:", e);
       setIsLoading(false);
@@ -368,6 +377,7 @@ export default function AudioPlayerNode({
         error: "Failed to load audio file.",
       }));
     };
+
     const handleLoadedData = () => {
       if (audio.duration && !isNaN(audio.duration)) {
         setDuration(audio.duration);
@@ -420,6 +430,7 @@ export default function AudioPlayerNode({
         mimeType: "audio/webm;codecs=opus",
       });
       mediaRecorderRef.current = mediaRecorder;
+
       setRecordedChunks([]);
 
       mediaRecorder.ondataavailable = (event) => {
@@ -433,6 +444,7 @@ export default function AudioPlayerNode({
       };
 
       mediaRecorder.start(100); // Collect data every 100ms
+
       setRecordingState({
         isRecording: true,
         isPaused: false,
@@ -577,50 +589,56 @@ export default function AudioPlayerNode({
   };
 
   const handleRemoveAudio = () => {
+    // Optimistically reset all local states immediately for instant UI update
+    setUploadedAudio(null);
+    setFileName("");
+    setCurrentFile(null); // Clear the stored file
+    setAiResponse(null);
+    setProcessingState({
+      isProcessing: false,
+      isComplete: false,
+      error: null,
+    });
+    setUserNotes("");
+    setIsPlaying(false);
+    setCurrentTime(0);
+    setDuration(0);
+    setShowRecordingInterface(false);
+    setIsInitialLoadFromProps(true); // Reset flag so initial data can be re-evaluated if props change
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+
+    // Optimistically update the node data in React Flow to immediately affect `canConnect`
+    updateNodeData(id, {
+      audio: "",
+      title: "",
+      ai_notes: "",
+      ai_title: "",
+      ai_summary: "",
+      is_ready_to_interact: false, // Set to false immediately
+    });
+
     resetPeer(
       { peerId: data?.id, strategyId, peerType: "audio" },
       {
         onSuccess: (data) => {
-          setCanConnect(false);
-          updateNodeData(data?.id, {
-            audio: "",
-            title: "",
-            ai_notes: "",
-            ai_title: "",
-            ai_summary: "",
-            is_ready_to_interact: false,
-          });
-          setUploadedAudio(null);
-          setFileName("");
-          setCurrentFile(null); // Clear the stored file
-          setAiResponse(null);
-          setProcessingState({
-            isProcessing: false,
-            isComplete: false,
-            error: null,
-          });
-          setUserNotes("");
-          setIsPlaying(false);
-          setCurrentTime(0);
-          setDuration(0);
-          setShowRecordingInterface(false);
-          setIsInitialLoadFromProps(true); // Reset flag so initial data can be re-evaluated if props change
-          if (fileInputRef.current) {
-            fileInputRef.current.value = "";
-          }
-
+          // Only show success notification, as states are already reset optimistically
           successNote({
             title: "Audio removed",
             description: data?.message ?? "Audio removed successfully",
           });
         },
         onError: (error: any) => {
+          // If reset fails, show error. Consider reverting states if necessary for robust error handling.
           toast({
             title: "Failed to remove audio",
             description:
               error?.response?.data?.message ?? "Something went wrong...",
             variant: "destructive",
           });
+          // For a more robust solution, you might want to revert the optimistic updates here
+          // if the backend operation truly failed and the previous state should be restored.
         },
       }
     );
@@ -651,6 +669,7 @@ export default function AudioPlayerNode({
   const togglePlayPause = () => {
     const audio = audioRef.current;
     if (!audio) return;
+
     if (isPlaying) {
       audio.pause();
       setIsPlaying(false);
@@ -720,12 +739,10 @@ export default function AudioPlayerNode({
 
   const progressValue = duration > 0 ? (currentTime / duration) * 100 : 0;
 
-  useEffect(() => {
-    // Determine if connection should be allowed based on data.is_ready_to_interact
-    setCanConnect(
-      () => data?.is_ready_to_interact || status?.is_ready_to_interact
-    );
-  }, [data, status]);
+  // Modified canConnect to immediately reflect isReseting state
+  const canConnect = useMemo(() => data?.is_ready_to_interact, [data]);
+
+  console.log({ data, canConnect, isReseting, status });
 
   // Remove connections when node becomes not connectable
   useEffect(() => {
@@ -946,6 +963,7 @@ export default function AudioPlayerNode({
                   crossOrigin="anonymous"
                   controls={false}
                 />
+
                 {/* Header with AI Title or Processing State */}
                 <div className="bg-gradient-to-r from-purple-500 to-purple-600 px-4 py-3 flex items-center justify-between text-white">
                   <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -995,6 +1013,7 @@ export default function AudioPlayerNode({
                       </div>
                     )}
                   </div>
+
                   {/* ... rest of header buttons (connect, remove, dropdown) ... */}
                   <div className="flex items-center gap-2">
                     {isStatusPollingLoading && (
@@ -1087,6 +1106,7 @@ export default function AudioPlayerNode({
                     </DropdownMenu>
                   </div>
                 </div>
+
                 {/* Processing Overlay */}
                 {processingState.isProcessing && (
                   <div className="bg-purple-50 p-4 flex items-center justify-center">
@@ -1098,6 +1118,7 @@ export default function AudioPlayerNode({
                     </div>
                   </div>
                 )}
+
                 {/* Player Controls - Different UI for Recorded vs Uploaded */}
                 <div className="p-4">
                   {fileName.includes("recording") ? (
@@ -1232,6 +1253,7 @@ export default function AudioPlayerNode({
                       </Button>
                     </div>
                   )}
+
                   {/* Error State */}
                   {processingState.error && (
                     <div className="mb-4">
@@ -1253,6 +1275,7 @@ export default function AudioPlayerNode({
                       </div>
                     </div>
                   )}
+
                   {/* Notes Input */}
                   <AiNoteInput
                     color="purple"
@@ -1272,6 +1295,7 @@ export default function AudioPlayerNode({
                       });
                     }}
                   />
+
                   {/* AI Analysis Summary */}
                   {aiResponse && aiResponse.summary && (
                     <div className="mt-4 p-4 bg-purple-50 rounded-lg border border-purple-200">

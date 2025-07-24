@@ -376,7 +376,8 @@ export default function DocumentUploadNode({
         isProcessing: false,
         isComplete: false,
         error:
-          "Unsupported file type. Please upload a PDF, Word, Excel, PowerPoint, or text document.",
+          "Unsupported file type. Please upload a PDF, Word or Excel document.",
+        // error:"Unsupported file type. Please upload a PDF, Word, Excel, PowerPoint, or text document.",
       });
     }
   };
@@ -666,7 +667,8 @@ export default function DocumentUploadNode({
                       Drag and drop a document here
                     </div>
                     <div className="text-sm text-gray-500 mt-4">
-                      Supports: PDF, Word, Excel, PowerPoint, Text, RTF, CSV
+                      {/* Supports: PDF, Word, Excel, PowerPoint, Text, RTF, CSV */}
+                      Supports: PDF, Word, Excel
                     </div>
                   </div>
                   {isDragOver && (
@@ -705,7 +707,7 @@ export default function DocumentUploadNode({
                           <FileText className="w-4 h-4 text-indigo-500" />
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <span className="text-sm font-medium text-gray-700 truncate w-96 text-left">
+                              <span className="text-sm font-medium text-gray-700 truncate w-80 text-left">
                                 {aiResponse.title}
                               </span>
                             </TooltipTrigger>
@@ -718,7 +720,7 @@ export default function DocumentUploadNode({
                         <div className="flex items-center gap-2">
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <span className="text-sm font-medium text-gray-700 truncate w-96 text-left">
+                              <span className="text-sm font-medium text-gray-700 truncate w-80 text-left">
                                 📄 {status?.ai_title ?? documentInfo?.name}
                               </span>
                             </TooltipTrigger>
