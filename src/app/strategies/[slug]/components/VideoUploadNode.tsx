@@ -771,16 +771,30 @@ export default function VideoUploadNode({
                       ) : aiResponse ? (
                         <div className="flex items-center gap-2">
                           <FileVideo className="w-4 h-4" />
-                          <span className="text-sm font-medium truncate">
-                            {aiResponse.title}
-                          </span>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="text-sm font-medium truncate w-80 text-left">
+                                {aiResponse.title}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="text-sm">{aiResponse.title}</p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                       ) : (
                         <div className="flex items-center gap-2">
                           <FileVideo className="w-4 h-4" />
-                          <span className="text-sm font-medium truncate">
-                            {fileName}
-                          </span>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="text-sm font-medium truncate w-80 text-left">
+                                {fileName}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="text-sm">{fileName}</p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                       )}
                     </div>

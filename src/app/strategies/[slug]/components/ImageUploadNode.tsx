@@ -517,15 +517,31 @@ export default function ImageUploadNode({
                       ) : aiResponse ? (
                         <div className="flex items-center gap-2">
                           <Lightbulb className="w-4 h-4 text-yellow-500" />
-                          <span className="text-sm font-medium text-gray-700 truncate">
-                            {aiResponse.title}
-                          </span>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="text-sm font-medium text-gray-700 truncate w-80">
+                                {status?.ai_title || aiResponse.title}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="text-sm">
+                                {status?.ai_title || aiResponse.title}
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                       ) : (
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium text-gray-700 truncate">
-                            📁 {fileName}
-                          </span>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="text-sm font-medium text-gray-700 truncate">
+                                📁 {fileName}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="text-sm">{fileName}</p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                       )}
                     </div>

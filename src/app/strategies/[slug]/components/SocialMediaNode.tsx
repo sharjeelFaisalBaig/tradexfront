@@ -545,18 +545,34 @@ export default function SocialMediaNode({
                           <span className="text-lg">
                             {currentPlatform?.icon}
                           </span>
-                          <span className="text-sm font-medium truncate">
-                            {data?.ai_title || aiResponse.title}
-                          </span>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="text-sm font-medium truncate w-80 text-left">
+                                {data?.ai_title || aiResponse.title}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="text-sm">
+                                {data?.ai_title || aiResponse.title}
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                       ) : (
                         <div className="flex items-center gap-2">
                           <span className="text-lg">
                             {currentPlatform?.icon}
                           </span>
-                          <span className="text-sm font-medium truncate">
-                            {socialMediaData.title}
-                          </span>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="text-sm font-medium truncate w-80 text-left">
+                                {socialMediaData.title}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="text-sm">{socialMediaData.title}</p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                       )}
                     </div>

@@ -702,15 +702,29 @@ export default function DocumentUploadNode({
                       ) : aiResponse ? (
                         <div className="flex items-center gap-2">
                           <FileText className="w-4 h-4 text-indigo-500" />
-                          <span className="text-sm font-medium text-gray-700 truncate">
-                            {aiResponse.title}
-                          </span>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="text-sm font-medium text-gray-700 truncate w-96 text-left">
+                                {aiResponse.title}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="text-sm">{aiResponse.title}</p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                       ) : (
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium text-gray-700 truncate">
-                            📄 {documentInfo?.name}
-                          </span>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="text-sm font-medium text-gray-700 truncate w-96 text-left">
+                                📄 {documentInfo?.name}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="text-sm">{documentInfo?.name}</p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                       )}
                     </div>

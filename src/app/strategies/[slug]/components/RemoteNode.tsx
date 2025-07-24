@@ -135,7 +135,7 @@ export default function RemoteNode({
     if (data?.url) {
       setWebsiteData({
         url: data.url,
-        title: data.title || data.url,
+        title: data?.ai_title || data.title || data.url,
         content: data.content || "",
         favicon: data.favicon || "🌐",
         screenshot: data.screenshot || "",
@@ -685,16 +685,33 @@ export default function RemoteNode({
                     ) : aiResponse ? (
                       <div className="flex items-center gap-2">
                         <Lightbulb className="w-4 h-4 text-yellow-300" />
-                        <span className="text-sm font-medium truncate">
+                        <span className="text-sm font-medium truncate w-60">
                           {aiResponse.title}
                         </span>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="text-sm font-medium truncate w-60">
+                              {aiResponse.title}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="text-sm">{aiResponse.title}</p>
+                          </TooltipContent>
+                        </Tooltip>
                       </div>
                     ) : (
                       <div className="flex items-center gap-2">
                         <Globe className="w-4 h-4" />
-                        <span className="text-sm font-medium truncate">
-                          {websiteData.title}
-                        </span>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="text-sm font-medium truncate w-60">
+                              {websiteData.title}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="text-sm">{websiteData.title}</p>
+                          </TooltipContent>
+                        </Tooltip>
                       </div>
                     )}
                   </div>
@@ -804,9 +821,16 @@ export default function RemoteNode({
                     <div className="flex items-center gap-2">
                       <span className="text-2xl">{websiteData.favicon}</span>
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium text-gray-800 truncate">
-                          {websiteData.title}
-                        </div>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="text-sm font-medium text-gray-800 truncate">
+                              {websiteData.title}
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="text-sm">{websiteData.title}</p>
+                          </TooltipContent>
+                        </Tooltip>
                         <div className="text-xs text-gray-500 truncate">
                           {websiteData.url}
                         </div>

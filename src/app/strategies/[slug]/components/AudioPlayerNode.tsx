@@ -959,16 +959,30 @@ export default function AudioPlayerNode({
                     ) : aiResponse?.title ? ( // Use aiResponse.title
                       <div className="flex items-center gap-2">
                         <Lightbulb className="w-4 h-4 text-yellow-300" />
-                        <span className="text-sm font-medium truncate">
-                          {aiResponse.title}
-                        </span>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="text-sm font-medium truncate w-72 text-left">
+                              {aiResponse.title}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="text-sm">{aiResponse.title}</p>
+                          </TooltipContent>
+                        </Tooltip>
                       </div>
                     ) : (
                       <div className="flex items-center gap-2">
                         <Music className="w-4 h-4" />
-                        <span className="text-sm font-medium truncate">
-                          {fileName}
-                        </span>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="text-sm font-medium truncate w-72 text-left">
+                              {fileName}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="text-sm">{fileName}</p>
+                          </TooltipContent>
+                        </Tooltip>
                       </div>
                     )}
                   </div>
