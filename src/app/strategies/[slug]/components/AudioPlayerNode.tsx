@@ -40,7 +40,6 @@ import {
   RotateCcw,
   Shield,
   CheckCircle,
-  ArrowRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import NodeWrapper from "./common/NodeWrapper";
@@ -53,6 +52,7 @@ import {
 import { useGetPeerAnalysisStatus } from "@/hooks/strategy/useGetPeerAnalysisStatus";
 import { toast } from "@/hooks/use-toast";
 import useSuccessNotifier from "@/hooks/useSuccessNotifier";
+import AiNoteInput from "./common/AiNoteInput";
 
 // Types for AI integration
 interface AIProcessingResponse {
@@ -614,10 +614,6 @@ export default function AudioPlayerNode({
         },
       }
     );
-  };
-
-  const handleNotesChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setUserNotes(e.target.value);
   };
 
   const handleReprocess = () => {
@@ -1245,57 +1241,23 @@ export default function AudioPlayerNode({
                     </div>
                   )}
                   {/* Notes Input */}
-                  <div className="flex items-center gap-2">
-                    <div className="relative flex-1 flex items-center gap-2">
-                      <Input
-                        placeholder="Add notes for AI to use..."
-                        value={userNotes}
-                        onChange={handleNotesChange}
-                        className="pr-8 border-gray-200 focus:border-purple-500 focus:ring-purple-500"
-                        disabled={processingState.isProcessing}
-                      />
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="absolute right-4 top-1/2 -translate-y-1/2 h-6 w-6 text-gray-400 hover:text-gray-600"
-                          >
-                            <HelpCircle className="w-4 h-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p className="text-sm">
-                            Add notes that will be used by AI to provide better
-                            context and insights
-                          </p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </div>
-                    <Button
-                      size="sm"
-                      type="button"
-                      disabled={
-                        processingState.isProcessing ||
-                        isAnalyzing ||
-                        !userNotes
-                      }
-                      onClick={() => {
-                        analyzeAudioContent({
-                          data: { ai_notes: userNotes },
-                          strategyId: strategyId,
-                          peerId: data?.id,
-                        });
-                      }}
-                      className="bg-purple-500 hover:bg-purple-600 text-white rounded-full w-8 h-8 p-0 disabled:opacity-50"
-                    >
-                      {isAnalyzing ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <ArrowRight className="w-4 h-4" />
-                      )}
-                    </Button>
-                  </div>
+                  <AiNoteInput
+                    color="purple"
+                    note={userNotes}
+                    setNote={(val) => setUserNotes(val ?? "")}
+                    isLoading={isAnalyzing}
+                    isInputDisabled={processingState.isProcessing}
+                    isButtonDisabled={
+                      processingState.isProcessing || isAnalyzing || !userNotes
+                    }
+                    onButtonClick={() => {
+                      analyzeAudioContent({
+                        data: { ai_notes: userNotes },
+                        strategyId: strategyId,
+                        peerId: data?.id,
+                      });
+                    }}
+                  />
                   {/* AI Analysis Summary */}
                   {aiResponse && aiResponse.summary && (
                     <div className="mt-4 p-4 bg-purple-50 rounded-lg border border-purple-200">

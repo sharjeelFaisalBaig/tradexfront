@@ -21,10 +21,8 @@ import { Input } from "@/components/ui/input";
 import {
   Globe,
   ExternalLink,
-  HelpCircle,
   Download,
   Copy,
-  ArrowRight,
   X,
   Lightbulb,
   Loader2,
@@ -42,6 +40,7 @@ import {
 import { useGetPeerAnalysisStatus } from "@/hooks/strategy/useGetPeerAnalysisStatus";
 import { toast } from "@/hooks/use-toast";
 import useSuccessNotifier from "@/hooks/useSuccessNotifier";
+import AiNoteInput from "./common/AiNoteInput";
 
 // Types for AI integration
 interface AIProcessingResponse {
@@ -382,10 +381,6 @@ export default function RemoteNode({
     );
   };
 
-  const handleNotesChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setUserNotes(e.target.value);
-  };
-
   const handleReprocess = () => {
     if (websiteUrl && urlValidation.isValid) {
       processWebsiteWithAI(websiteUrl);
@@ -520,39 +515,23 @@ export default function RemoteNode({
 
                 {/* URL Input */}
                 <div className="p-6 space-y-4">
-                  <div className="relative">
-                    <Input
-                      placeholder="Enter any website url"
-                      value={websiteUrl}
-                      onChange={handleUrlChange}
-                      onKeyDown={handleKeyPress}
-                      className={cn(
-                        "pr-12 text-base border-gray-200 focus:border-cyan-500 focus:ring-cyan-500",
-                        urlValidation.isValid &&
-                          "border-green-400 focus:border-green-500 focus:ring-green-500",
-                        websiteUrl &&
-                          !urlValidation.isValid &&
-                          "border-red-400 focus:border-red-500 focus:ring-red-500",
-                        urlValidation.warning &&
-                          "border-yellow-400 focus:border-yellow-500 focus:ring-yellow-500"
-                      )}
-                      disabled={processingState.isProcessing}
-                    />
-                    <Button
-                      onClick={() => handleUrlSubmit()}
-                      size="sm"
-                      disabled={
-                        !urlValidation.isValid || processingState.isProcessing
-                      }
-                      className="absolute right-1 top-1/2 -translate-y-1/2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-full w-8 h-8 p-0 disabled:opacity-50"
-                    >
-                      {processingState.isProcessing ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <ArrowRight className="w-4 h-4" />
-                      )}
-                    </Button>
-                  </div>
+                  <Input
+                    placeholder="Enter any website url"
+                    value={websiteUrl}
+                    onChange={handleUrlChange}
+                    onKeyDown={handleKeyPress}
+                    className={cn(
+                      "pr-12 text-base border-gray-200 focus:border-cyan-500 focus:ring-cyan-500",
+                      urlValidation.isValid &&
+                        "border-green-400 focus:border-green-500 focus:ring-green-500",
+                      websiteUrl &&
+                        !urlValidation.isValid &&
+                        "border-red-400 focus:border-red-500 focus:ring-red-500",
+                      urlValidation.warning &&
+                        "border-yellow-400 focus:border-yellow-500 focus:ring-yellow-500"
+                    )}
+                    disabled={processingState.isProcessing}
+                  />
 
                   {/* URL Validation Feedback */}
                   {websiteUrl && (
@@ -634,32 +613,17 @@ export default function RemoteNode({
                   </div>
 
                   {/* Notes Input */}
-                  <div className="relative">
-                    <Input
-                      placeholder="Add notes for AI to use..."
-                      value={userNotes}
-                      onChange={handleNotesChange}
-                      className="pr-8 border-gray-200 focus:border-cyan-500 focus:ring-cyan-500"
-                      disabled={processingState.isProcessing}
-                    />
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 text-gray-400 hover:text-gray-600"
-                        >
-                          <HelpCircle className="w-4 h-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p className="text-sm">
-                          Add notes that will be used by AI to provide better
-                          context and insights
-                        </p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
+                  <AiNoteInput
+                    color="cyan"
+                    note={userNotes}
+                    onButtonClick={handleUrlSubmit}
+                    setNote={(val) => setUserNotes(val ?? "")}
+                    isLoading={processingState.isProcessing}
+                    isInputDisabled={processingState.isProcessing}
+                    isButtonDisabled={
+                      !urlValidation.isValid || processingState.isProcessing
+                    }
+                  />
                 </div>
               </div>
             ) : (
@@ -690,7 +654,7 @@ export default function RemoteNode({
                         </span>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <span className="text-sm font-medium truncate w-60">
+                            <span className="text-sm font-medium truncate w-60 text-left">
                               {aiResponse.title}
                             </span>
                           </TooltipTrigger>
@@ -704,7 +668,7 @@ export default function RemoteNode({
                         <Globe className="w-4 h-4" />
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <span className="text-sm font-medium truncate w-60">
+                            <span className="text-sm font-medium truncate w-60 text-left">
                               {websiteData.title}
                             </span>
                           </TooltipTrigger>
@@ -876,32 +840,13 @@ export default function RemoteNode({
 
                 {/* Notes Input */}
                 <div className="px-4 pb-4">
-                  <div className="relative">
-                    <Input
-                      placeholder="Add notes for AI to use..."
-                      value={userNotes}
-                      onChange={handleNotesChange}
-                      className="pr-8 border-gray-200 focus:border-cyan-500 focus:ring-cyan-500"
-                      disabled={processingState.isProcessing}
-                    />
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 text-gray-400 hover:text-gray-600"
-                        >
-                          <HelpCircle className="w-4 h-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p className="text-sm">
-                          Add notes that will be used by AI to provide better
-                          context and insights
-                        </p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
+                  <AiNoteInput
+                    hideButton
+                    color="cyan"
+                    note={userNotes}
+                    setNote={(val) => setUserNotes(val ?? "")}
+                    isInputDisabled={processingState.isProcessing}
+                  />
                 </div>
               </div>
             )}

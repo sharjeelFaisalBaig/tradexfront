@@ -206,10 +206,6 @@ export default function ChartNode({
     }
   };
 
-  const handleNotesChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setUserNotes(e.target.value);
-  };
-
   const handleReprocess = () => {
     if (uploadedImage && fileName) {
       processImageWithAI(uploadedImage, fileName);
