@@ -1,6 +1,5 @@
 "use client";
 
-import { MouseEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -57,23 +56,31 @@ const StrategyCard = (props: StrategyCardProps) => {
                 variant="ghost"
                 size="sm"
                 className="h-6 w-6 p-0"
-                onClick={(e) => {
-                  e.stopPropagation();
-                }}
+                onClick={(e) => e.stopPropagation()}
               >
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuContent
+              align="end"
+              className="w-48"
+              onClick={(e) => e.stopPropagation()}
+            >
               <DropdownMenuItem
-                onClick={() => onEdit?.(strategy)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit?.(strategy);
+                }}
                 className="cursor-pointer"
               >
                 <PencilLine className="w-4 h-4 mr-2" />
                 Edit
               </DropdownMenuItem>
               <DropdownMenuItem
-                onClick={() => onDelete?.(strategy)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete?.(strategy);
+                }}
                 className="cursor-pointer"
               >
                 <Trash2 color="red" className="w-4 h-4 mr-2" />
@@ -84,7 +91,7 @@ const StrategyCard = (props: StrategyCardProps) => {
         </div>
 
         <div className="px-5 pt-1 pb-2">
-          {strategy.tags?.map((tag) => (
+          {strategy?.tags?.map((tag) => (
             <Badge key={tag} variant="secondary" className="text-xs mr-1">
               {tag}
             </Badge>

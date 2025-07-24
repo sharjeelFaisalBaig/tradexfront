@@ -63,7 +63,7 @@ export const useUpdateStrategy = () => {
       updateStrategy(id, data),
     onSuccess: (_data, { id }) => {
       queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.STRATEGY, id],
+        queryKey: [QUERY_KEYS.STRATEGIES, QUERY_KEYS.STRATEGY, id],
       });
     },
     // onSuccess: (_, data) => {
