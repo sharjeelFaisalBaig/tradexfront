@@ -1283,8 +1283,10 @@ export default function AudioPlayerNode({
                   <AiNoteInput
                     color="purple"
                     note={userNotes}
+                    readOnly={canConnect}
+                    hideButton={canConnect}
                     setNote={(val) => setUserNotes(val ?? "")}
-                    isLoading={isAnalyzing}
+                    isLoading={isAnalyzing || isStatusPollingLoading}
                     isInputDisabled={processingState.isProcessing}
                     isButtonDisabled={
                       processingState.isProcessing || isAnalyzing

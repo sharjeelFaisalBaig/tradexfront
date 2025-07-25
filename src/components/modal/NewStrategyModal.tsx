@@ -27,6 +27,8 @@ function NewStrategyForm({
   onClose: () => void;
   strategy?: IStrategy | null;
 }) {
+  // const pathname = usePathname();
+  // const strategyId = pathname.split("/")[2];
   const successNote = useSuccessNotifier();
   const createMutation = useCreateStrategy();
   const updateMutation = useUpdateStrategy();

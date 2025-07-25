@@ -83,7 +83,7 @@ export default function RemoteNode({
   targetPosition = Position.Right,
   data,
 }: any) {
-  // console.log("RemoteNode data:", { data });
+  console.log("RemoteNode data:", { data });
 
   const strategyId = useParams()?.slug as string;
   const successNote = useSuccessNotifier();
@@ -133,6 +133,7 @@ export default function RemoteNode({
   // If data?.url exists, show preview directly
   useEffect(() => {
     if (data?.url) {
+      setUserNotes(data?.ai_notes ?? "");
       setWebsiteData({
         url: data.url,
         title: data?.ai_title || data.title || data.url,
@@ -624,9 +625,13 @@ export default function RemoteNode({
                   <AiNoteInput
                     color="cyan"
                     note={userNotes}
+                    readOnly={canConnect}
+                    hideButton={canConnect}
                     onButtonClick={handleUrlSubmit}
                     setNote={(val) => setUserNotes(val ?? "")}
-                    isLoading={processingState.isProcessing}
+                    isLoading={
+                      processingState.isProcessing || isStatusPollingLoading
+                    }
                     isInputDisabled={processingState.isProcessing}
                     isButtonDisabled={
                       !urlValidation.isValid || processingState.isProcessing
@@ -854,8 +859,12 @@ export default function RemoteNode({
                     hideButton
                     color="cyan"
                     note={userNotes}
+                    readOnly={canConnect}
                     setNote={(val) => setUserNotes(val ?? "")}
                     isInputDisabled={processingState.isProcessing}
+                    isLoading={
+                      processingState.isProcessing || isStatusPollingLoading
+                    }
                   />
                 </div>
               </div>
