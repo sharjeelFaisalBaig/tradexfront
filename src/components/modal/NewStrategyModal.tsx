@@ -114,8 +114,12 @@ function NewStrategyForm({
           onError: onMutationError,
         });
       }
-    } catch (error) {
-      console.log({ error });
+    } catch (error: any) {
+      toast({
+        title: "Failed To Update Strategy",
+        description:
+          error?.response?.data?.message ?? "Something went wrong...",
+      });
     }
   };
 

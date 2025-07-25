@@ -424,7 +424,6 @@ export default function RemoteNode({
   const handleCopySummary = () => {
     const summary = aiResponse?.summary || "No analysis available";
     navigator.clipboard.writeText(summary);
-    console.log("Copied summary to clipboard");
   };
 
   const handleVisitWebsite = () => {

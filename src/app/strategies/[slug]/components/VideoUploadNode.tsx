@@ -99,7 +99,7 @@ export default function VideoUploadNode({
   targetPosition = Position.Right,
   data,
 }: any) {
-  console.log("Video_node_data:", data);
+  // console.log("Video_node_data:", data);
 
   const strategyId = useParams()?.slug as string;
   const successNote = useSuccessNotifier();

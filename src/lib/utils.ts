@@ -309,8 +309,6 @@ export async function getPastedContent(
 ): Promise<PastedContentType> {
   const items = e?.clipboardData?.items;
 
-  console.log({ items_items: items });
-
   if (!items) {
     return { type: "unknown", data: null };
   }
