@@ -774,6 +774,7 @@ export default function ChatBoxNode({
         const pagination = activeConversationData?.conversation?.pagination;
         if (pagination && pagination.current_page < pagination.last_page) {
           setIsFetchingMoreMessages(true);
+          refetchConversation();
           // Increment page to trigger refetch, messages useEffect will handle prepend and scroll adjustment
           setPage((prevPage) => prevPage + 1);
         }
