@@ -7,28 +7,12 @@ import {
   type DragEvent,
   type ChangeEvent,
 } from "react";
-import { Handle, Position, useReactFlow } from "@xyflow/react";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  X,
-  Plus,
-  Upload,
-  HelpCircle,
-  Lightbulb,
-  Loader2,
-  Shield,
-  CheckCircle,
-} from "lucide-react";
+import { Position, useReactFlow } from "@xyflow/react";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import NodeWrapper from "./common/NodeWrapper";
 import { useParams } from "next/navigation";
+import NodeHandle from "./common/NodeHandle";
 
 // Types for API integration
 interface AIProcessingResponse {
@@ -242,29 +226,10 @@ export default function ChartNode({
             </div>
           </TooltipProvider>
 
-          {/* <Handle
+          <NodeHandle
             type="source"
+            canConnect={canConnect}
             position={sourcePosition}
-            isConnectableEnd={canConnect}
-            isConnectable={canConnect}
-            isConnectableStart={canConnect}
-            style={{ width: "30px", height: "30px" }}
-          /> */}
-
-          <Handle
-            type="source"
-            position={sourcePosition}
-            isConnectable={canConnect}
-            style={{
-              width: 30,
-              height: 30,
-              // Remove any custom positioning
-              position: "absolute", // Ensure absolute positioning
-              [sourcePosition === Position.Right ? "right" : "left"]: -6, // Adjust for handle size
-              top: "50%",
-              transform: "translateY(-50%)",
-              zIndex: 1000,
-            }}
           />
         </div>
       </NodeWrapper>

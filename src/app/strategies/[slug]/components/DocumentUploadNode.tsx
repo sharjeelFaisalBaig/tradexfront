@@ -5,9 +5,8 @@ import {
   useEffect,
   type DragEvent,
   type ChangeEvent,
-  useMemo,
 } from "react";
-import { Handle, Position, useReactFlow } from "@xyflow/react";
+import { Position, useReactFlow } from "@xyflow/react";
 import {
   Tooltip,
   TooltipContent,
@@ -41,6 +40,7 @@ import { useGetPeerAnalysisStatus } from "@/hooks/strategy/useGetPeerAnalysisSta
 import { toast } from "@/hooks/use-toast";
 import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 import AiNoteInput from "./common/AiNoteInput";
+import NodeHandle from "./common/NodeHandle";
 
 // Types for AI integration
 interface AIProcessingResponse {
@@ -972,13 +972,10 @@ export default function DocumentUploadNode({
               )}
             </div>
           </TooltipProvider>
-          <Handle
-            position={sourcePosition}
+          <NodeHandle
             type="source"
-            isConnectableEnd={canConnect}
-            isConnectable={canConnect}
-            isConnectableStart={canConnect}
-            style={{ width: "30px", height: "30px" }}
+            canConnect={canConnect}
+            position={sourcePosition}
           />
         </div>
       </NodeWrapper>

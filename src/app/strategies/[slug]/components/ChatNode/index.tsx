@@ -2,7 +2,7 @@
 
 import type React from "react";
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
-import { Handle, Position } from "@xyflow/react";
+import { Position } from "@xyflow/react";
 import { Loader2 } from "lucide-react";
 import { useParams } from "next/navigation";
 import {
@@ -26,6 +26,7 @@ import ConversationSidebar from "./ConversationSidebar";
 import ChatMessages from "./ChatMessages";
 import ChatInputArea from "./ChatInputArea";
 import NodeWrapper from "../common/NodeWrapper";
+import NodeHandle from "../common/NodeHandle";
 
 interface ChatBoxNodeProps {
   id: string;
@@ -748,13 +749,11 @@ export default function ChatNode({
             </div>
           </div>
         </div>
-        <Handle
-          position={targetPosition}
+
+        <NodeHandle
           type="target"
-          isConnectableEnd={canConnect}
-          isConnectable={canConnect}
-          isConnectableStart={canConnect}
-          style={{ width: "30px", height: "30px" }}
+          canConnect={canConnect}
+          position={targetPosition}
         />
       </div>
     </NodeWrapper>

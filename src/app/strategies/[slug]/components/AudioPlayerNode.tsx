@@ -7,7 +7,7 @@ import {
   type ChangeEvent,
   useMemo,
 } from "react";
-import { Handle, Position, useReactFlow } from "@xyflow/react";
+import { Position, useReactFlow } from "@xyflow/react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -51,6 +51,7 @@ import { useGetPeerAnalysisStatus } from "@/hooks/strategy/useGetPeerAnalysisSta
 import { toast } from "@/hooks/use-toast";
 import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 import AiNoteInput from "./common/AiNoteInput";
+import NodeHandle from "./common/NodeHandle";
 
 // Types for AI integration
 interface AIProcessingResponse {
@@ -86,7 +87,7 @@ export default function AudioPlayerNode({
   targetPosition = Position.Right,
   data,
 }: any) {
-  // console.log("AudioPlayerNode", { data });
+  console.log("AudioPlayerNode", { data });
   const strategyId = useParams()?.slug as string;
   const successNote = useSuccessNotifier();
 
@@ -207,11 +208,11 @@ export default function AudioPlayerNode({
           });
         } catch (e) {
           console.error("Error parsing AI metadata from data props:", e);
-          setProcessingState({
-            isProcessing: false,
-            isComplete: false,
-            error: "Failed to parse AI data from props.",
-          });
+          // setProcessingState({
+          //   isProcessing: false,
+          //   isComplete: false,
+          //   error: "Failed to parse AI data from props.",
+          // });
         }
       } else {
         // Audio is present but not ready for interaction/analysis complete
@@ -312,7 +313,6 @@ export default function AudioPlayerNode({
         setRecordingState((prev) => ({ ...prev, audioLevel: normalizedLevel }));
         animationFrameRef.current = requestAnimationFrame(updateAudioLevel);
       };
-
       updateAudioLevel();
     }
 
@@ -348,7 +348,6 @@ export default function AudioPlayerNode({
       setDuration(audio.duration);
       setIsLoading(false);
     };
-
     const handleTimeUpdate = () => {
       const newCurrentTime = audio.currentTime;
       setCurrentTime(newCurrentTime);
@@ -356,20 +355,16 @@ export default function AudioPlayerNode({
         setDuration(audio.duration);
       }
     };
-
     const handleEnded = () => {
       setIsPlaying(false);
       setCurrentTime(0);
     };
-
     const handleLoadStart = () => {
       setIsLoading(true);
     };
-
     const handleCanPlay = () => {
       setIsLoading(false);
     };
-
     const handleError = (e: Event) => {
       console.error("Audio error:", e);
       setIsLoading(false);
@@ -378,7 +373,6 @@ export default function AudioPlayerNode({
         error: "Failed to load audio file.",
       }));
     };
-
     const handleLoadedData = () => {
       if (audio.duration && !isNaN(audio.duration)) {
         setDuration(audio.duration);
@@ -433,19 +427,16 @@ export default function AudioPlayerNode({
       mediaRecorderRef.current = mediaRecorder;
 
       setRecordedChunks([]);
-
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
           setRecordedChunks((prev) => [...prev, event.data]);
         }
       };
-
       mediaRecorder.onstop = () => {
         stream.getTracks().forEach((track) => track.stop());
       };
 
       mediaRecorder.start(100); // Collect data every 100ms
-
       setRecordingState({
         isRecording: true,
         isPaused: false,
@@ -590,40 +581,45 @@ export default function AudioPlayerNode({
   };
 
   const handleRemoveAudio = () => {
-    // Optimistically reset all local states immediately for instant UI update
-    setUploadedAudio(null);
-    setFileName("");
-    setCurrentFile(null); // Clear the stored file
-    setAiResponse(null);
-    setProcessingState({
-      isProcessing: false,
-      isComplete: false,
-      error: null,
-    });
-    setUserNotes("");
-    setIsPlaying(false);
-    setCurrentTime(0);
-    setDuration(0);
-    setShowRecordingInterface(false);
-    setIsInitialLoadFromProps(true); // Reset flag so initial data can be re-evaluated if props change
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-
-    // Optimistically update the node data in React Flow to immediately affect `canConnect`
-    updateNodeData(id, {
-      audio: "",
-      title: "",
-      ai_notes: "",
-      ai_title: "",
-      ai_summary: "",
-      is_ready_to_interact: false, // Set to false immediately
-    });
-
     resetPeer(
       { peerId: data?.id, strategyId, peerType: "audio" },
       {
         onSuccess: (data) => {
+          // Optimistically reset all local states immediately for instant UI update
+          setUploadedAudio(null);
+          setFileName("");
+          setCurrentFile(null); // Clear the stored file
+          setAiResponse(null);
+          setProcessingState({
+            isProcessing: false,
+            isComplete: false,
+            error: null,
+          });
+          setUserNotes("");
+          setIsPlaying(false);
+          setCurrentTime(0);
+          setDuration(0);
+          setShowRecordingInterface(false);
+          setIsInitialLoadFromProps(true); // Reset flag so initial data can be re-evaluated if props change
+          if (fileInputRef.current) {
+            fileInputRef.current.value = "";
+          }
+
+          // Optimistically update the node data in React Flow to immediately affect `canConnect`
+          updateNodeData(id, {
+            audio: "",
+            title: "",
+            ai_notes: "",
+            ai_title: "",
+            ai_summary: "",
+            is_ready_to_interact: false, // Set to false immediately
+          });
+
+          if (status?.is_ready_to_interact) {
+            status.is_ready_to_interact = false;
+            status.ai_title = "";
+          }
+
           // Only show success notification, as states are already reset optimistically
           successNote({
             title: "Audio removed",
@@ -741,9 +737,13 @@ export default function AudioPlayerNode({
   const progressValue = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   // Modified canConnect to immediately reflect isReseting state
-  const canConnect = useMemo(() => data?.is_ready_to_interact, [data]);
-
-  // console.log({ data, canConnect, isReseting, status });
+  const canConnect = useMemo(
+    () =>
+      !isReseting &&
+      (data?.is_ready_to_interact || status?.is_ready_to_interact),
+    [data?.is_ready_to_interact, status?.is_ready_to_interact, isReseting]
+  );
+  console.log({ data, canConnect, isReseting, status });
 
   // Remove connections when node becomes not connectable
   useEffect(() => {
@@ -755,7 +755,10 @@ export default function AudioPlayerNode({
   }, [canConnect, id, setEdges]);
 
   // Determine which interface to show
-  const shouldShowUploadInterface = !uploadedAudio && !showRecordingInterface;
+  const shouldShowUploadInterface = useMemo(
+    () => !uploadedAudio && !showRecordingInterface,
+    [uploadedAudio, showRecordingInterface]
+  );
 
   return (
     <NodeWrapper
@@ -1014,7 +1017,6 @@ export default function AudioPlayerNode({
                       </div>
                     )}
                   </div>
-
                   {/* ... rest of header buttons (connect, remove, dropdown) ... */}
                   <div className="flex items-center gap-2">
                     {isStatusPollingLoading && (
@@ -1339,13 +1341,10 @@ export default function AudioPlayerNode({
               </div>
             )}
           </div>
-          <Handle
-            position={sourcePosition}
+          <NodeHandle
             type="source"
-            isConnectableEnd={canConnect}
-            isConnectable={canConnect}
-            isConnectableStart={canConnect}
-            style={{ width: "30px", height: "30px" }}
+            canConnect={canConnect}
+            position={sourcePosition}
           />
         </TooltipProvider>
       </div>

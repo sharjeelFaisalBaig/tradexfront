@@ -8,7 +8,7 @@ import {
   type ChangeEvent,
   useMemo,
 } from "react";
-import { Handle, Position, useReactFlow } from "@xyflow/react";
+import { Position, useReactFlow } from "@xyflow/react";
 import {
   Tooltip,
   TooltipContent,
@@ -43,6 +43,7 @@ import { useGetPeerAnalysisStatus } from "@/hooks/strategy/useGetPeerAnalysisSta
 import { toast } from "@/hooks/use-toast";
 import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 import AiNoteInput from "./common/AiNoteInput";
+import NodeHandle from "./common/NodeHandle";
 
 // Types for AI integration
 interface AIProcessingResponse {
@@ -412,10 +413,10 @@ export default function VideoUploadNode({
   const validateVideoFile = (
     file: File
   ): { isValid: boolean; error?: string } => {
-    // Check file size (max 500MB)
-    const maxSize = 500 * 1024 * 1024; // 500MB
+    // Check file size (max 50MB)
+    const maxSize = 50 * 1024 * 1024; // 50MB
     if (file.size > maxSize) {
-      return { isValid: false, error: "File size must be less than 500MB" };
+      return { isValid: false, error: "File size must be less than 50MB" };
     }
 
     // Check file type
@@ -737,7 +738,7 @@ export default function VideoUploadNode({
                         Supported formats: MP4, WebM, MOV, AVI, WMV, FLV, 3GP,
                         MKV
                       </div>
-                      <div>Maximum file size: 500MB</div>
+                      <div>Maximum file size: 50MB</div>
                     </div>
                   </div>
 
@@ -1240,13 +1241,10 @@ export default function VideoUploadNode({
             </div>
           </TooltipProvider>
 
-          <Handle
-            position={sourcePosition}
+          <NodeHandle
             type="source"
-            isConnectableEnd={canConnect}
-            isConnectable={canConnect}
-            isConnectableStart={canConnect}
-            style={{ width: "30px", height: "30px" }}
+            canConnect={canConnect}
+            position={sourcePosition}
           />
         </div>
       </NodeWrapper>
