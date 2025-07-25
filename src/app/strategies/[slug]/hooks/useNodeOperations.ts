@@ -126,12 +126,14 @@ export const useNodeOperations = () => {
       dataToAutoUpload = {},
       peerType: tool,
       strategyId,
+      positionXY,
     }: {
       peerType: Tool;
       strategyId: string;
       dataToAutoUpload?: any;
+      positionXY?: { x?: number; y?: number };
     }) => {
-      const position = { x: 500, y: 500 };
+      const position = { x: positionXY?.x ?? 500, y: positionXY?.y ?? 500 };
       const newNode = toolToNode(tool, position);
 
       if (!newNode) return;

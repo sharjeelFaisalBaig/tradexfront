@@ -169,6 +169,11 @@ export default function VideoUploadNode({
 
   // Sync state with incoming data props (like ImageUploadNode)
   useEffect(() => {
+    // handle Droped & Pasted video
+    if (data?.dataToAutoUpload?.data) {
+      handleFileSelect(data?.dataToAutoUpload?.data);
+    }
+
     // Handle video from data.video (relative or absolute path)
     if (data?.video) {
       let apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
