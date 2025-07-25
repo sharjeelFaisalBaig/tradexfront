@@ -8,7 +8,7 @@ import {
   type ChangeEvent,
   useMemo,
 } from "react";
-import { Handle, Position, useReactFlow } from "@xyflow/react";
+import { Position, useReactFlow } from "@xyflow/react";
 import {
   Tooltip,
   TooltipContent,
@@ -37,6 +37,7 @@ import { useGetPeerAnalysisStatus } from "@/hooks/strategy/useGetPeerAnalysisSta
 import { toast } from "@/hooks/use-toast";
 import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 import AiNoteInput from "./common/AiNoteInput";
+import NodeHandle from "./common/NodeHandle";
 
 // Types for API integration
 interface AIProcessingResponse {
@@ -666,14 +667,10 @@ export default function ImageUploadNode({
               )}
             </div>
           </TooltipProvider>
-
-          <Handle
+          <NodeHandle
             type="source"
+            canConnect={canConnect}
             position={sourcePosition}
-            isConnectableEnd={canConnect}
-            isConnectable={canConnect}
-            isConnectableStart={canConnect}
-            style={{ width: "30px", height: "30px" }}
           />
         </div>
       </NodeWrapper>

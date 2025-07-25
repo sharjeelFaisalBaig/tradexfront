@@ -1,7 +1,7 @@
 "use client";
 import type React from "react";
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
-import { Handle, Position } from "@xyflow/react";
+import { Position } from "@xyflow/react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -39,6 +39,7 @@ import { getFilteredAiModels } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
 import { toast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import NodeHandle from "./common/NodeHandle";
 
 // Types
 interface AIModel {
@@ -1248,13 +1249,11 @@ export default function ChatBoxNode({
             </div>
           </div>
         </div>
-        <Handle
-          position={targetPosition}
+
+        <NodeHandle
           type="target"
-          isConnectableEnd={canConnect}
-          isConnectable={canConnect}
-          isConnectableStart={canConnect}
-          style={{ width: "30px", height: "30px" }}
+          canConnect={canConnect}
+          position={targetPosition}
         />
       </div>
     </NodeWrapper>

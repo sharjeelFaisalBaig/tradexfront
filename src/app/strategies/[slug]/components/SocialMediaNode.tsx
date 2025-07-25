@@ -4,7 +4,7 @@ import {
   useAnalyzeSocialPeer,
   useResetPeer,
 } from "@/hooks/strategy/useStrategyMutations";
-import { Handle, Position, useReactFlow } from "@xyflow/react";
+import { Position, useReactFlow } from "@xyflow/react";
 import {
   Tooltip,
   TooltipContent,
@@ -69,6 +69,7 @@ interface ProcessingState {
 import type { SocialMediaData, URLValidationResult } from "@/lib/utils";
 import { getEmbedVideoByLink } from "@/hooks/useGetEmbedVideoByLink";
 import useSuccessNotifier from "@/hooks/useSuccessNotifier";
+import NodeHandle from "./common/NodeHandle";
 
 export default function SocialMediaNode({
   id,
@@ -710,13 +711,10 @@ export default function SocialMediaNode({
               )}
             </div>
           </TooltipProvider>
-          <Handle
-            position={sourcePosition}
+          <NodeHandle
             type="source"
-            isConnectableEnd={canConnect}
-            isConnectable={canConnect}
-            isConnectableStart={canConnect}
-            style={{ width: "30px", height: "30px" }}
+            canConnect={canConnect}
+            position={sourcePosition}
           />
         </div>
       </NodeWrapper>

@@ -3,7 +3,7 @@
 import type React from "react";
 
 import { useState, useRef, useEffect, type ChangeEvent } from "react";
-import { Handle, Position, useReactFlow } from "@xyflow/react";
+import { Position, useReactFlow } from "@xyflow/react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -41,6 +41,7 @@ import { useGetPeerAnalysisStatus } from "@/hooks/strategy/useGetPeerAnalysisSta
 import { toast } from "@/hooks/use-toast";
 import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 import AiNoteInput from "./common/AiNoteInput";
+import NodeHandle from "./common/NodeHandle";
 
 // Types for AI integration
 interface AIProcessingResponse {
@@ -82,10 +83,10 @@ export default function RemoteNode({
   targetPosition = Position.Right,
   data,
 }: any) {
+  // console.log("RemoteNode data:", { data });
+
   const strategyId = useParams()?.slug as string;
   const successNote = useSuccessNotifier();
-
-  // console.log("RemoteNode data:", { data });
 
   // mutations
   const { mutate: resetPeer, isPending: isReseting } = useResetPeer();
@@ -108,7 +109,7 @@ export default function RemoteNode({
 
   // Website states
   const nodeControlRef = useRef(null);
-  const { setEdges, updateNodeData, deleteElements } = useReactFlow();
+  const { setEdges, updateNodeData } = useReactFlow();
   const [websiteUrl, setWebsiteUrl] = useState<string>("");
   const [canConnect, setCanConnect] = useState<boolean>(false);
   const [websiteData, setWebsiteData] = useState<WebsiteData | null>(null);
@@ -149,10 +150,6 @@ export default function RemoteNode({
   useEffect(() => {
     if (data?.dataToAutoUpload?.data) {
       setWebsiteUrl(data?.dataToAutoUpload?.data);
-      // const validation = validateUrl(data?.dataToAutoUpload?.data);
-      // if (validation.isValid) {
-      //   handleUrlSubmit(data?.dataToAutoUpload?.data);
-      // }
     }
   }, [data]);
 
@@ -353,7 +350,6 @@ export default function RemoteNode({
       { peerId: data?.id, strategyId, peerType: "remote" },
       {
         onSuccess: (data) => {
-          // updateNodeData(id, { ...data });
           setWebsiteUrl("");
           setWebsiteData(null);
           setAiResponse(null);
@@ -364,6 +360,16 @@ export default function RemoteNode({
           });
           setUserNotes("");
           setUrlValidation({ isValid: false });
+          updateNodeData(id, {
+            is_ready_to_interact: false,
+            ai_title: "",
+            url: "",
+          });
+
+          if (status?.is_ready_to_interact) {
+            status.is_ready_to_interact = false;
+            status.ai_title = "";
+          }
 
           successNote({
             title: "Link removed",
@@ -473,8 +479,10 @@ export default function RemoteNode({
   useEffect(() => {
     if (data?.is_ready_to_interact || status?.is_ready_to_interact) {
       setCanConnect(true);
+    } else {
+      setCanConnect(false);
     }
-  }, [data, status]);
+  }, [data, status, websiteData]);
 
   return (
     <NodeWrapper
@@ -854,13 +862,10 @@ export default function RemoteNode({
             )}
           </div>
 
-          <Handle
-            position={sourcePosition}
+          <NodeHandle
             type="source"
-            isConnectableEnd={canConnect}
-            isConnectable={canConnect}
-            isConnectableStart={canConnect}
-            style={{ width: "30px", height: "30px" }}
+            canConnect={canConnect}
+            position={sourcePosition}
           />
         </TooltipProvider>
       </div>
