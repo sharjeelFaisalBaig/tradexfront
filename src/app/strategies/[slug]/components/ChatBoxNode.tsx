@@ -164,7 +164,9 @@ export default function ChatBoxNode({
   // NEW: Flatten all messages from the infinite query data
   const allFetchedMessages = useMemo(() => {
     return (
-      conversationMessagesData?.pages.flatMap((page) => page.aiChats) ?? []
+      conversationMessagesData?.pages
+        ?.reverse()
+        ?.flatMap((page) => page.aiChats) ?? []
     );
   }, [conversationMessagesData]);
 
@@ -293,17 +295,15 @@ export default function ChatBoxNode({
         mappedFetchedMessages.map((msg) => msg.id)
       );
 
-      const currentOptimisticMessages = prevMessages.filter(
-        (msg) => msg.isOptimistic && !existingFetchedIds.has(msg.id)
-      );
+      const currentOptimisticMessages = prevMessages
+        ?.reverse()
+        .filter((msg) => msg.isOptimistic && !existingFetchedIds.has(msg.id));
 
       // Combine fetched messages with remaining optimistic messages and sort by timestamp
       const combined = [
         ...mappedFetchedMessages,
         ...currentOptimisticMessages,
       ].sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
-
-      console.log({ allFetchedMessages, mappedFetchedMessages, combined });
 
       // Adjust scroll position if loading older messages (scrolled to top)
       if (isLoadingMoreMessages && messagesContainerRef.current) {
@@ -328,9 +328,17 @@ export default function ChatBoxNode({
   // Auto-scroll to bottom when new messages are added (not during pagination)
   useEffect(() => {
     // Only scroll if not currently fetching older messages AND the last message is not an optimistic one
+    const timer = setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, 100); // Small delay to ensure render
+    return () => clearTimeout(timer);
+  }, [activeConversationId]); // Depend on messages array and pagination state
+
+  useEffect(() => {
+    // Only scroll if not currently fetching older messages AND the last message is not an optimistic one
     if (!isLoadingMoreMessages) {
       const lastMessage = messages[messages.length - 1];
-      if (lastMessage && !lastMessage.isOptimistic) {
+      if (lastMessage && lastMessage.isOptimistic) {
         const timer = setTimeout(() => {
           messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
         }, 100); // Small delay to ensure render
@@ -796,13 +804,17 @@ export default function ChatBoxNode({
   );
 
   // Show loading spinner for initial load of the entire chat interface
+  //  !isHydrated ||
+  //   isLoadingModels ||
+  //   !isInitialized ||
+  //   (activeConversationId &&
+  //     isLoadingConversationMessages &&
+  //     messages.length === 0)
   if (
     !isHydrated ||
     isLoadingModels ||
     !isInitialized ||
-    (activeConversationId &&
-      isLoadingConversationMessages &&
-      messages.length === 0)
+    (activeConversationId && isLoadingConversationMessages)
   ) {
     return (
       <NodeWrapper
