@@ -190,8 +190,6 @@ export default function ImageUploadNode({
         isComplete: true,
         error: null,
       });
-
-      console.log("🤖 AI Response:", result);
     } catch (error) {
       setProcessingState({
         isProcessing: false,

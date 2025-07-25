@@ -31,9 +31,9 @@ import {
   useUpdateConversationAiModel,
 } from "@/hooks/strategy/useStrategyMutations";
 import {
+  useConversationMessages,
   useGetAiModels,
   useGetChatTemplates,
-  useGetConversationById,
 } from "@/hooks/strategy/useStrategyQueries";
 import { getFilteredAiModels } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
@@ -98,7 +98,6 @@ export default function ChatBoxNode({
   const [activeConversationId, setActiveConversationId] = useState<
     string | null
   >(null);
-  const [page, setPage] = useState<number>(1);
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -113,6 +112,7 @@ export default function ChatBoxNode({
   const nodeControlRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null); // New ref for the scrollable messages area
 
   // Mutations
   const { mutateAsync: sendChatMessageMutation } = useSendChatMessage();
@@ -131,12 +131,18 @@ export default function ChatBoxNode({
   const { data: aiModelsData, isLoading: isLoadingModels } = useGetAiModels();
   const { data: aiTemplatesData, isLoading: isLoadingTemplates } =
     useGetChatTemplates();
-  const { data: activeConversationData, isLoading: isLoadingConversation } =
-    useGetConversationById({
-      strategyId,
-      conversationId: activeConversationId ?? "",
-      page,
-    });
+
+  // NEW: use useConversationMessages for fetching messages
+  const {
+    data: conversationMessagesData,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage: isLoadingMoreMessages, // Renamed for clarity
+    isLoading: isLoadingConversationMessages, // Renamed for clarity
+  } = useConversationMessages({
+    strategyId,
+    conversationId: activeConversationId ?? "",
+  });
 
   // Memoized values
   const availableModels: AIModel[] = useMemo(
@@ -154,6 +160,16 @@ export default function ChatBoxNode({
       ) || [],
     [aiTemplatesData]
   );
+
+  // NEW: Flatten all messages from the infinite query data
+  const allFetchedMessages = useMemo(() => {
+    return (
+      conversationMessagesData?.pages
+        ?.reverse()
+        ?.flatMap((page) => page.aiChats) ?? []
+    );
+  }, [conversationMessagesData]);
+
   const activeConversation = useMemo(
     () =>
       conversations.find((conv) => conv.id === activeConversationId) || null,
@@ -175,7 +191,7 @@ export default function ChatBoxNode({
     [conversations, createConversationLoading, updateModelLoading]
   );
 
-  const isLoading = activeConversation?.isLoading || false;
+  const isLoading = activeConversation?.isLoading || false; // This specifically refers to sending/receiving the current message
   const canConnect = !isLoading; // This controls if new connections can be made to the handle
 
   // Helper functions
@@ -237,50 +253,99 @@ export default function ChatBoxNode({
     isInitialized,
   ]);
 
-  // Load messages when active conversation changes
+  // When active conversation changes, reset messages to trigger a fresh load from useConversationMessages
   useEffect(() => {
-    if (activeConversationData?.conversation?.aiChats) {
-      const loadedMessages: Message[] =
-        activeConversationData.conversation.aiChats.flatMap((chat: any) => [
-          {
-            id: `${chat.id}_user`,
-            content: chat.prompt,
-            sender: "user" as const,
-            name: "You",
-            timestamp: parseTimestamp(chat.created_at),
-            isOptimistic: false,
-          },
-          {
-            id: `${chat.id}_ai`,
-            content: chat.response,
-            sender: "ai" as const,
-            name: chat?.ai_model,
-            timestamp: parseTimestamp(chat.updated_at),
-            isOptimistic: false,
-          },
-        ]);
-      setMessages(loadedMessages);
-    } else if (activeConversationId && !isLoadingConversation) {
-      setMessages([]);
+    if (activeConversationId) {
+      setMessages([]); // Clear messages to load new conversation from scratch
+      // The useConversationMessages hook will automatically refetch for the new conversationId
     }
+  }, [activeConversationId]);
+
+  // NEW: Load messages when allFetchedMessages changes (including pagination)
+  useEffect(() => {
+    if (!activeConversationId) {
+      setMessages([]); // Clear messages if no active conversation
+      return;
+    }
+
+    const mappedFetchedMessages: Message[] = allFetchedMessages.flatMap(
+      (chat: any) => [
+        {
+          id: `${chat.id}_user`,
+          content: chat.prompt,
+          sender: "user" as const,
+          name: "You",
+          timestamp: parseTimestamp(chat.created_at),
+          isOptimistic: false,
+        },
+        {
+          id: `${chat.id}_ai`,
+          content: chat.response,
+          sender: "ai" as const,
+          name: chat?.ai_model,
+          timestamp: parseTimestamp(chat.updated_at),
+          isOptimistic: false,
+        },
+      ]
+    );
+
+    setMessages((prevMessages) => {
+      // Filter out optimistic messages that have been replaced by fetched messages
+      const existingFetchedIds = new Set(
+        mappedFetchedMessages.map((msg) => msg.id)
+      );
+
+      const currentOptimisticMessages = prevMessages
+        ?.reverse()
+        .filter((msg) => msg.isOptimistic && !existingFetchedIds.has(msg.id));
+
+      // Combine fetched messages with remaining optimistic messages and sort by timestamp
+      const combined = [
+        ...mappedFetchedMessages,
+        ...currentOptimisticMessages,
+      ].sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+
+      // Adjust scroll position if loading older messages (scrolled to top)
+      if (isLoadingMoreMessages && messagesContainerRef.current) {
+        const oldScrollHeight = messagesContainerRef.current.scrollHeight;
+        requestAnimationFrame(() => {
+          if (messagesContainerRef.current) {
+            const newScrollHeight = messagesContainerRef.current.scrollHeight;
+            messagesContainerRef.current.scrollTop =
+              newScrollHeight - oldScrollHeight;
+          }
+        });
+      }
+      return combined;
+    });
   }, [
-    activeConversationData,
+    allFetchedMessages,
     activeConversationId,
-    isLoadingConversation,
     parseTimestamp,
+    isLoadingMoreMessages,
   ]);
 
-  // Load draft message when switching conversations
+  // Auto-scroll to bottom when new messages are added (not during pagination)
   useEffect(() => {
-    if (activeConversation?.draftMessage !== undefined) {
-      setMessage(activeConversation.draftMessage);
-    }
-  }, [activeConversation?.draftMessage]);
+    // Only scroll if not currently fetching older messages AND the last message is not an optimistic one
+    const timer = setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, 100); // Small delay to ensure render
+    return () => clearTimeout(timer);
+  }, [activeConversationId]); // Depend on messages array and pagination state
 
-  // Auto-scroll to bottom
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    // Only scroll if not currently fetching older messages AND the last message is not an optimistic one
+    if (!isLoadingMoreMessages) {
+      const lastMessage = messages[messages.length - 1];
+      if (lastMessage && lastMessage.isOptimistic) {
+        const timer = setTimeout(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        }, 100); // Small delay to ensure render
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [messages, isLoadingMoreMessages]); // Depend on messages array and pagination state
 
   // Auto-resize textarea
   useEffect(() => {
@@ -292,11 +357,6 @@ export default function ChatBoxNode({
       )}px`;
     }
   }, [message]);
-
-  // REMOVED: The useEffect that was disconnecting edges based on `canConnect`.
-  // This was causing connections to drop during chat loading.
-  // The `isConnectable` prop on `Handle` will still prevent new connections
-  // from being made when the node is in a loading state.
 
   // Conversation management functions
   const updateConversationState = useCallback(
@@ -360,7 +420,6 @@ export default function ChatBoxNode({
     const userMessageText = message.trim();
     const timestamp = new Date();
     const optimisticUserId = generateOptimisticId();
-    // const optimisticAiId = generateOptimisticId(); // Not needed if AI message is only added on success
 
     // Clear input and draft
     setMessage("");
@@ -465,7 +524,7 @@ export default function ChatBoxNode({
     generateOptimisticId,
     saveDraftMessage,
     setConversationLoading,
-    messages.length,
+    messages.length, // Keep this dependency for title update logic
     sendChatMessageMutation,
     strategyId,
     updateConversationState,
@@ -727,8 +786,36 @@ export default function ChatBoxNode({
     [editingTitle, saveConversationTitle]
   );
 
-  // Show loading spinner for initial load
-  if (!isHydrated || isLoadingModels || !isInitialized) {
+  // New scroll handler for pagination
+  const handleMessagesScroll = useCallback(
+    (event: React.UIEvent<HTMLDivElement>) => {
+      const { scrollTop } = event.currentTarget;
+      // Check if scrolled to the very top and not already fetching
+      if (
+        scrollTop === 0 &&
+        hasNextPage &&
+        !isLoadingMoreMessages &&
+        activeConversationId
+      ) {
+        fetchNextPage(); // Load older messages
+      }
+    },
+    [hasNextPage, isLoadingMoreMessages, activeConversationId, fetchNextPage]
+  );
+
+  // Show loading spinner for initial load of the entire chat interface
+  //  !isHydrated ||
+  //   isLoadingModels ||
+  //   !isInitialized ||
+  //   (activeConversationId &&
+  //     isLoadingConversationMessages &&
+  //     messages.length === 0)
+  if (
+    !isHydrated ||
+    isLoadingModels ||
+    !isInitialized ||
+    (activeConversationId && isLoadingConversationMessages)
+  ) {
     return (
       <NodeWrapper
         id={id}
@@ -960,7 +1047,11 @@ export default function ChatBoxNode({
                 </div>
               )}
               {/* Messages Area */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-6">
+              <div
+                ref={messagesContainerRef} // Assign the new ref here
+                className="flex-1 overflow-y-auto p-4 space-y-6"
+                onScroll={handleMessagesScroll} // Add scroll handler
+              >
                 {!activeConversationId ? (
                   <div className="flex items-center justify-center h-full text-gray-400">
                     <div className="text-center">
@@ -968,7 +1059,19 @@ export default function ChatBoxNode({
                       <p>Select a conversation to start chatting</p>
                     </div>
                   </div>
-                ) : messages.length === 0 && !isLoading ? (
+                ) : messages.length === 0 &&
+                  isLoadingConversationMessages &&
+                  !isLoadingMoreMessages ? (
+                  // New: Loader for initial conversation history load
+                  <div className="flex items-center justify-center h-full text-gray-400">
+                    <div className="text-center">
+                      <Loader2 className="w-8 h-8 mx-auto mb-4 animate-spin text-blue-600" />
+                      <p className="text-gray-500">
+                        Loading conversation history...
+                      </p>
+                    </div>
+                  </div>
+                ) : messages.length === 0 && !isLoadingMoreMessages ? (
                   <div className="flex items-center justify-center h-full text-gray-400">
                     <div className="text-center">
                       <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
@@ -976,61 +1079,70 @@ export default function ChatBoxNode({
                     </div>
                   </div>
                 ) : (
-                  messages.map((msg) =>
-                    msg.sender === "user" ? (
-                      <div
-                        key={msg.id}
-                        className={`flex items-start gap-3 mb-4 text-left ${
-                          msg.isOptimistic ? "opacity-70" : ""
-                        }`}
-                        style={{ justifySelf: "end" }}
-                      >
-                        <div className="flex-1 min-w-0">
-                          <div className="text-right text-sm font-semibold text-green-600 mb-1">
-                            {msg.name}
-                          </div>
-                          <div className="text-gray-800 text-sm whitespace-pre-wrap break-words">
-                            {msg.content}
-                          </div>
-                        </div>
-                        <div className="w-7 h-7 bg-green-500 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
-                          U
-                        </div>
+                  <>
+                    {/* Loader for pagination at the top of messages */}
+                    {isLoadingMoreMessages && (
+                      <div className="flex justify-center py-2">
+                        <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
                       </div>
-                    ) : (
-                      <div
-                        key={msg.id}
-                        className={`flex items-start gap-3 mb-6 ${
-                          msg.isOptimistic ? "opacity-70" : ""
-                        }`}
-                      >
-                        <div className="w-7 h-7 bg-gradient-to-r from-blue-500 to-pink-500 rounded-full flex items-center justify-center text-white text-xs flex-shrink-0">
-                          🤖
-                        </div>
-                        <div className="flex-1 text-left min-w-0">
-                          <div className="text-sm font-semibold text-blue-600 mb-2">
-                            {msg.name}
+                    )}
+                    {messages.map((msg) =>
+                      msg.sender === "user" ? (
+                        <div
+                          key={msg.id}
+                          className={`flex items-start gap-3 mb-4 text-left ${
+                            msg.isOptimistic ? "opacity-70" : ""
+                          }`}
+                          style={{ justifySelf: "end" }}
+                        >
+                          <div className="flex-1 min-w-0">
+                            <div className="text-right text-sm font-semibold text-green-600 mb-1">
+                              {msg.name}
+                            </div>
+                            <div className="text-gray-800 text-sm whitespace-pre-wrap break-words">
+                              {msg.content}
+                            </div>
                           </div>
-                          <div className="ai-message-content text-gray-700 text-sm leading-relaxed prose prose-sm max-w-none">
-                            <ReactMarkdown>{msg.content}</ReactMarkdown>
-                          </div>
-                          <div className="flex items-center gap-4 mt-3">
-                            <button
-                              className="flex items-center gap-1 text-xs text-blue-500 hover:text-blue-600 transition-colors"
-                              onClick={() =>
-                                navigator.clipboard.writeText(msg.content)
-                              }
-                            >
-                              <Copy className="w-3 h-3" />
-                              Copy
-                            </button>
+                          <div className="w-7 h-7 bg-green-500 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                            U
                           </div>
                         </div>
-                      </div>
-                    )
-                  )
+                      ) : (
+                        <div
+                          key={msg.id}
+                          className={`flex items-start gap-3 mb-6 ${
+                            msg.isOptimistic ? "opacity-70" : ""
+                          }`}
+                        >
+                          <div className="w-7 h-7 bg-gradient-to-r from-blue-500 to-pink-500 rounded-full flex items-center justify-center text-white text-xs flex-shrink-0">
+                            🤖
+                          </div>
+                          <div className="flex-1 text-left min-w-0">
+                            <div className="text-sm font-semibold text-blue-600 mb-2">
+                              {msg.name}
+                            </div>
+                            <div className="ai-message-content text-gray-700 text-sm leading-relaxed prose prose-sm max-w-none">
+                              <ReactMarkdown>{msg.content}</ReactMarkdown>
+                            </div>
+                            <div className="flex items-center gap-4 mt-3">
+                              <button
+                                className="flex items-center gap-1 text-xs text-blue-500 hover:text-blue-600 transition-colors"
+                                onClick={() =>
+                                  navigator.clipboard.writeText(msg.content)
+                                }
+                              >
+                                <Copy className="w-3 h-3" />
+                                Copy
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    )}
+                  </>
                 )}
-                {isLoading && (
+                {/* AI thinking loader (only if not fetching older messages) */}
+                {isLoading && !isLoadingMoreMessages && (
                   <div className="flex items-start gap-3 mb-6">
                     <div className="w-7 h-7 bg-gradient-to-r from-blue-500 to-pink-500 rounded-full flex items-center justify-center text-white text-xs flex-shrink-0">
                       🤖

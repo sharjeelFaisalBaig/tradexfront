@@ -99,7 +99,7 @@ export default function VideoUploadNode({
   targetPosition = Position.Right,
   data,
 }: any) {
-  console.log("Video_node_data:", data);
+  // console.log("Video_node_data:", data);
 
   const strategyId = useParams()?.slug as string;
   const successNote = useSuccessNotifier();
@@ -169,6 +169,11 @@ export default function VideoUploadNode({
 
   // Sync state with incoming data props (like ImageUploadNode)
   useEffect(() => {
+    // handle Droped & Pasted video
+    if (data?.dataToAutoUpload?.data) {
+      handleFileSelect(data?.dataToAutoUpload?.data);
+    }
+
     // Handle video from data.video (relative or absolute path)
     if (data?.video) {
       let apiUrl = process.env.NEXT_PUBLIC_API_URL || "";

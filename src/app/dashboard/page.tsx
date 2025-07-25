@@ -20,12 +20,18 @@ import { useRouter } from "next/navigation";
 import Loader from "@/components/common/Loader";
 import { Pagination } from "@/components/common/Pagination";
 import useSuccessNotifier from "@/hooks/useSuccessNotifier";
+import NewStrategyModal from "@/components/modal/NewStrategyModal";
 
 const Dashboard = () => {
   const router = useRouter();
 
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const [isForEdit, setIsForEdit] = useState<boolean>(false);
+  const [isForDelete, setIsForDelete] = useState<boolean>(false);
+  const [selectedStrategy, setSelectedStrategy] = useState<IStrategy | null>(
+    null
+  );
 
   const { data, isLoading, isError, error } = useGetStrategies();
   const strategies: IStrategy[] = useMemo(
@@ -74,6 +80,14 @@ const Dashboard = () => {
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900">
+      {isForEdit && (
+        <NewStrategyModal
+          strategy={selectedStrategy}
+          isOpen={isForEdit}
+          onClose={() => setIsForEdit(false)}
+        />
+      )}
+
       <Header />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />
@@ -138,6 +152,14 @@ const Dashboard = () => {
                     //  isFavorite={starredItems[index]}
                     onClick={() => router.push(`/strategies/${strategy.id}`)}
                     toggleStar={() => toggleStar(strategy.id)}
+                    onEdit={() => {
+                      setIsForEdit(true);
+                      setSelectedStrategy(strategy);
+                    }}
+                    onDelete={() => {
+                      setIsForDelete(true);
+                      setSelectedStrategy(strategy);
+                    }}
                   />
                 ))}
               </div>

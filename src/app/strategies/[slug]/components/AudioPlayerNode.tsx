@@ -735,7 +735,7 @@ export default function AudioPlayerNode({
     const transcription =
       aiResponse?.transcription || "No transcription available";
     navigator.clipboard.writeText(transcription);
-    console.log("Copied transcription to clipboard");
+    // console.log("Copied transcription to clipboard");
   };
 
   const progressValue = duration > 0 ? (currentTime / duration) * 100 : 0;
@@ -743,7 +743,7 @@ export default function AudioPlayerNode({
   // Modified canConnect to immediately reflect isReseting state
   const canConnect = useMemo(() => data?.is_ready_to_interact, [data]);
 
-  console.log({ data, canConnect, isReseting, status });
+  // console.log({ data, canConnect, isReseting, status });
 
   // Remove connections when node becomes not connectable
   useEffect(() => {

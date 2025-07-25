@@ -84,7 +84,7 @@ function NewStrategyForm({
     const onMutationSuccess = (data: any) => {
       successNote({
         title: strategy ? "Strategy Updated" : "Strategy Created",
-        description: `Strategy "${name}" ${
+        description: `Strategy "${data?.data?.name}" ${
           strategy ? "updated" : "created"
         } successfully.`,
       });
@@ -114,8 +114,12 @@ function NewStrategyForm({
           onError: onMutationError,
         });
       }
-    } catch (error) {
-      console.log({ error });
+    } catch (error: any) {
+      toast({
+        title: "Failed To Update Strategy",
+        description:
+          error?.response?.data?.message ?? "Something went wrong...",
+      });
     }
   };
 
@@ -229,7 +233,9 @@ export default function NewStrategyModal({
   const router = useRouter();
 
   const onSuccess = (strategyData: IStrategy) => {
-    router.push(`/strategies/${strategyData.id}`);
+    if (!strategy?.id) {
+      router.push(`/strategies/${strategyData.id}`);
+    }
   };
 
   return (

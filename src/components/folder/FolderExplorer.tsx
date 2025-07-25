@@ -6,7 +6,13 @@ import ContextMenu from "./ContextMenu";
 let folderIdCounter = 1;
 
 export default function FolderExplorer() {
-  const [folders, setFolders] = useState<{ id: string; name: string; children: { id: string; name: string; children: any[] }[] }[]>([{ id: `folder-${folderIdCounter++}`, name: "Root", children: [] }]);
+  const [folders, setFolders] = useState<
+    {
+      id: string;
+      name: string;
+      children: { id: string; name: string; children: any[] }[];
+    }[]
+  >([{ id: `folder-${folderIdCounter++}`, name: "Root", children: [] }]);
   const [contextMenu, setContextMenu] = useState({
     visible: false,
     x: 0,
@@ -14,16 +20,26 @@ export default function FolderExplorer() {
     folderId: "",
     isBackground: false,
   });
-  const [copiedFolder, setCopiedFolder] = useState<{ id: string; name: string } | null>(null);
+  const [copiedFolder, setCopiedFolder] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [duplicateName, setDuplicateName] = useState("");
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
-  const [currentFolderId, setCurrentFolderId] = useState<string>(`folder-${folderIdCounter - 1}`); // Start at Root
-  const [folderPath, setFolderPath] = useState<string[]>([`folder-${folderIdCounter - 1}`]); // Track navigation history
+  const [currentFolderId, setCurrentFolderId] = useState<string>(
+    `folder-${folderIdCounter - 1}`
+  ); // Start at Root
+  const [folderPath, setFolderPath] = useState<string[]>([
+    `folder-${folderIdCounter - 1}`,
+  ]); // Track navigation history
 
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const generateUniqueFolderName = (baseName: string, parentChildren: { id: string; name: string; children: any[] }[]) => {
+  const generateUniqueFolderName = (
+    baseName: string,
+    parentChildren: { id: string; name: string; children: any[] }[]
+  ) => {
     let newName = baseName;
     let counter = 1;
     while (parentChildren.some((folder) => folder.name === newName)) {
@@ -38,7 +54,12 @@ export default function FolderExplorer() {
     if (parentFolder) {
       const newName = generateUniqueFolderName(baseName, parentFolder.children);
       const newId = `folder-${folderIdCounter++}`;
-      setFolders((prev) => updateFolderChildren(prev, parentId, [...parentFolder.children, { id: newId, name: newName, children: [] }]));
+      setFolders((prev) =>
+        updateFolderChildren(prev, parentId, [
+          ...parentFolder.children,
+          { id: newId, name: newName, children: [] },
+        ])
+      );
       setEditingFolderId(newId);
     }
   };
@@ -47,7 +68,10 @@ export default function FolderExplorer() {
     const trimmedName = newName.trim() || "Untitled Folder";
     const folder = findFolderById(folders, id);
     const parentFolder = folder ? findParentFolder(folders, id) : null;
-    if (parentFolder && parentFolder.children.some((f) => f.name === trimmedName && f.id !== id)) {
+    if (
+      parentFolder &&
+      parentFolder.children.some((f) => f.name === trimmedName && f.id !== id)
+    ) {
       setDuplicateName(trimmedName);
       setModalOpen(true);
       return;
@@ -62,7 +86,8 @@ export default function FolderExplorer() {
     const x = e.clientX - (containerRect?.left || 0);
     const y = e.clientY - (containerRect?.top || 0);
 
-    console.log("Context Menu Triggered - folderId:", id, "isBackground:", id === "");
+    // console.log("Context Menu Triggered - folderId:", id, "isBackground:", id === "");
+
     setContextMenu({
       visible: true,
       x,
@@ -73,7 +98,13 @@ export default function FolderExplorer() {
   };
 
   const handleCloseContextMenu = () => {
-    setContextMenu({ visible: false, x: 0, y: 0, folderId: "", isBackground: false });
+    setContextMenu({
+      visible: false,
+      x: 0,
+      y: 0,
+      folderId: "",
+      isBackground: false,
+    });
   };
 
   const handleCopy = (id: string) => {
@@ -89,9 +120,17 @@ export default function FolderExplorer() {
         const baseName = copiedFolder.name.includes("- Copy")
           ? copiedFolder.name.replace("- Copy", "")
           : copiedFolder.name;
-        const newName = generateUniqueFolderName(`${baseName} - Copy`, parentFolder.children);
+        const newName = generateUniqueFolderName(
+          `${baseName} - Copy`,
+          parentFolder.children
+        );
         const newId = `folder-${folderIdCounter++}`;
-        setFolders((prev) => updateFolderChildren(prev, parentId, [...parentFolder.children, { id: newId, name: newName, children: [] }]));
+        setFolders((prev) =>
+          updateFolderChildren(prev, parentId, [
+            ...parentFolder.children,
+            { id: newId, name: newName, children: [] },
+          ])
+        );
       }
     }
     handleCloseContextMenu();
@@ -100,7 +139,13 @@ export default function FolderExplorer() {
   const handleDelete = (id: string) => {
     const parentFolder = findParentFolder(folders, id);
     if (parentFolder) {
-      setFolders((prev) => updateFolderChildren(prev, parentFolder.id, parentFolder.children.filter((f) => f.id !== id)));
+      setFolders((prev) =>
+        updateFolderChildren(
+          prev,
+          parentFolder.id,
+          parentFolder.children.filter((f) => f.id !== id)
+        )
+      );
     }
     handleCloseContextMenu();
   };
@@ -157,7 +202,10 @@ export default function FolderExplorer() {
   }, [contextMenu.visible]);
 
   // Helper functions
-  const findFolderById = (folders: any[], id: string): { id: string; name: string; children: any[] } | null => {
+  const findFolderById = (
+    folders: any[],
+    id: string
+  ): { id: string; name: string; children: any[] } | null => {
     for (let folder of folders) {
       if (folder.id === id) return folder;
       const found = findFolderById(folder.children, id);
@@ -166,7 +214,10 @@ export default function FolderExplorer() {
     return null;
   };
 
-  const findParentFolder = (folders: any[], id: string): { id: string; name: string; children: any[] } | null => {
+  const findParentFolder = (
+    folders: any[],
+    id: string
+  ): { id: string; name: string; children: any[] } | null => {
     for (let folder of folders) {
       if (folder.children.some((f: any) => f.id === id)) return folder;
       const found = findParentFolder(folder.children, id);
@@ -182,7 +233,10 @@ export default function FolderExplorer() {
   ): any[] => {
     return folders.map((folder) => {
       if (folder.id === id) return { ...folder, children: newChildren };
-      return { ...folder, children: updateFolderChildren(folder.children, id, newChildren) };
+      return {
+        ...folder,
+        children: updateFolderChildren(folder.children, id, newChildren),
+      };
     });
   };
 
@@ -193,18 +247,26 @@ export default function FolderExplorer() {
   ): any[] => {
     return folders.map((folder) => {
       if (folder.id === id) return { ...folder, name: newName };
-      return { ...folder, children: updateFolderName(folder.children, id, newName) };
+      return {
+        ...folder,
+        children: updateFolderName(folder.children, id, newName),
+      };
     });
   };
 
   const currentFolder = findFolderById(folders, currentFolderId);
 
   return (
-    <div className="p-4 relative" ref={containerRef} onContextMenu={(e) => handleContextMenu(e, currentFolderId)}>
+    <div
+      className="p-4 relative"
+      ref={containerRef}
+      onContextMenu={(e) => handleContextMenu(e, currentFolderId)}
+    >
       <div className="flex justify-between items-center mb-4">
         <div className="flex items-center">
-
-          <h2 className="text-xl font-bold">Folders - {currentFolder ? currentFolder.name : "Root"}</h2>
+          <h2 className="text-xl font-bold">
+            Folders - {currentFolder ? currentFolder.name : "Root"}
+          </h2>
         </div>
         <button
           onClick={() => createNewFolder(currentFolderId)}
@@ -251,7 +313,10 @@ export default function FolderExplorer() {
       {modalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
           <div className="bg-white p-4 rounded shadow-lg">
-            <p className="mb-4">A folder named "{duplicateName}" already exists. Please choose a different name.</p>
+            <p className="mb-4">
+              A folder named "{duplicateName}" already exists. Please choose a
+              different name.
+            </p>
             <button
               onClick={handleModalConfirm}
               className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"

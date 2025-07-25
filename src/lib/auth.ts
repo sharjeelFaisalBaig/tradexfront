@@ -55,7 +55,7 @@ export const authConfig: NextAuthConfig = {
             }
           );
           const json = await res.json();
-          console.log("response signin: " + JSON.stringify(json));
+          // console.log("response signin: " + JSON.stringify(json));
           if (json?.status && json?.data?.user?.email_verified_at === null) {
             throw new Error(
               "OtpVerificationRequired:" + json?.data?.user?.email
@@ -133,9 +133,7 @@ export const authConfig: NextAuthConfig = {
         access_token: { label: "Access Token", type: "text" },
       },
       async authorize(credentials) {
-        console.log(
-          "2FA authorize called with credentials:" + JSON.stringify(credentials)
-        );
+        // console.log( "2FA authorize called with credentials:" + JSON.stringify(credentials));
         // Accept the access_token and email from the verify-otp response
         if (credentials?.access_token && credentials?.email) {
           // Optionally, you can verify the token here

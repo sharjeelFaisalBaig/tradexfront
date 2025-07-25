@@ -21,6 +21,7 @@ import { toast } from "@/hooks/use-toast";
 import { useGetStrategies } from "@/hooks/strategy/useStrategyQueries";
 import Loader from "@/components/common/Loader";
 import { Pagination } from "@/components/common/Pagination";
+import NewStrategyModal from "@/components/modal/NewStrategyModal";
 
 const Strategies = () => {
   const router = useRouter();
@@ -28,6 +29,11 @@ const Strategies = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [starredItems, setStarredItems] = useState<boolean[]>([]);
+  const [isForEdit, setIsForEdit] = useState<boolean>(false);
+  const [isForDelete, setIsForDelete] = useState<boolean>(false);
+  const [selectedStrategy, setSelectedStrategy] = useState<IStrategy | null>(
+    null
+  );
 
   const { data, isLoading, isError, error } = useGetStrategies();
   const strategies: IStrategy[] = useMemo(
@@ -96,6 +102,14 @@ const Strategies = () => {
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900">
+      {isForEdit && (
+        <NewStrategyModal
+          strategy={selectedStrategy}
+          isOpen={isForEdit}
+          onClose={() => setIsForEdit(false)}
+        />
+      )}
+
       <Header />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />
@@ -149,7 +163,6 @@ const Strategies = () => {
               <StrategyCard
                 key={strategy.id}
                 strategy={strategy}
-                //  isFavorite={starredItems[index]}
                 isFavorite={
                   starredItems[
                     strategies.findIndex((s) => s.id === strategy.id)
@@ -157,6 +170,14 @@ const Strategies = () => {
                 }
                 onClick={() => router.push(`/strategies/${strategy.id}`)}
                 toggleStar={() => toggleStar(index)}
+                onEdit={() => {
+                  setIsForEdit(true);
+                  setSelectedStrategy(strategy);
+                }}
+                onDelete={() => {
+                  setIsForDelete(true);
+                  setSelectedStrategy(strategy);
+                }}
               />
             ))}
           </div>
