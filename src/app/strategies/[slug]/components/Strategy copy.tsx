@@ -1,6 +1,7 @@
 "use client";
-
 import { useCallback, useEffect, useMemo, useState } from "react";
+import type React from "react";
+
 import {
   ReactFlow,
   addEdge,
@@ -9,7 +10,7 @@ import {
   Background,
   useStoreApi,
   useReactFlow,
-  Connection,
+  type Connection,
   Controls,
 } from "@xyflow/react";
 import { Position } from "@xyflow/react";
@@ -22,14 +23,13 @@ import SocialMediaNode from "./SocialMediaNode";
 import VideoUploadNode from "./VideoUploadNode";
 import AnnotationNode from "./AnnotationNode";
 import StrategySidebar from "@/components/StrategySidebar";
-import { IStrategy } from "@/lib/types";
+import type { IStrategy } from "@/lib/types";
 import { toast } from "@/hooks/use-toast";
 import NewStrategyModal from "@/components/modal/NewStrategyModal";
 import { useGetStrategyById } from "@/hooks/strategy/useStrategyQueries";
 import Loader from "@/components/common/Loader";
 import ChartNode from "./ChartNode";
 import {
-  useSavePeerPositions,
   useUpdatePeerPosition,
   useConnectNodes,
 } from "@/hooks/strategy/useStrategyMutations";
@@ -43,10 +43,8 @@ const nodeDefaults = {
   sourcePosition: Position.Right,
   targetPosition: Position.Left,
 };
-
 const initialNodes: any = [];
 const initialEdges: any = [];
-
 const nodeTypes = {
   chatbox: ChatBoxNode,
   imageUploadNode: ImageUploadNode,
@@ -58,11 +56,9 @@ const nodeTypes = {
   annotationNode: AnnotationNode,
   chartNode: ChartNode,
 };
-
 const edgeTypes = {
   styledEdge: StyledEdge,
 };
-
 const MIN_DISTANCE = 150;
 
 interface StrategyProps {
@@ -71,30 +67,171 @@ interface StrategyProps {
 
 const Strategy = (props: StrategyProps) => {
   const { slug: strategyId } = props;
-
   const store = useStoreApi();
   const successNote = useSuccessNotifier();
   const { addToolNode } = useNodeOperations();
-
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
-  const { getInternalNode, getViewport } = useReactFlow();
-
+  const { getInternalNode, screenToFlowPosition } = useReactFlow(); // Added screenToFlowPosition
   const [showNewStrategyModal, setShowNewStrategyModal] =
     useState<boolean>(false);
-
-  const { mutate: savePositions } = useSavePeerPositions();
   const { mutate: updatePeerPosition } = useUpdatePeerPosition();
   const { mutate: connectNodes } = useConnectNodes();
-
   const { data, isLoading, isError, error } = useGetStrategyById(strategyId);
   const strategy: IStrategy = useMemo(() => data?.data, [data]);
+
+  // Define the type for pasted/dropped content directly in this component
+  type PastedContentType =
+    | { type: "image-file"; data: File }
+    | { type: "image-url"; data: string }
+    | { type: "audio-file"; data: File }
+    | { type: "video-file"; data: File }
+    | { type: "document-file"; data: File }
+    | { type: "youtube"; data: string }
+    | { type: "tiktok"; data: string }
+    | { type: "instagram"; data: string }
+    | { type: "facebook"; data: string }
+    | { type: "website url"; data: string }
+    | { type: "plain text"; data: string }
+    | { type: "unknown"; data: null };
+
+  // Utility function to process DataTransfer items (for both paste and drop)
+  const processDataTransferItems = useCallback(
+    async (
+      items: DataTransferItemList | undefined | null
+    ): Promise<PastedContentType> => {
+      if (!items) {
+        return { type: "unknown", data: null };
+      }
+
+      const urlRegex = /https?:\/\/[^\s]+/i;
+      const imageFileExtensionRegex = /\.(jpg|jpeg|png|gif|webp|svg)$/i;
+      const socialMediaPlatforms = [
+        {
+          name: "youtube",
+          regex:
+            /(?:https?:\/\/)?(?:www\.|m\.)?(?:youtube\.com|youtu\.be)\/(?:watch\?v=|embed\/|v\/)?([\w-]{11})(?:\S+)?/i,
+        },
+        {
+          name: "tiktok",
+          regex:
+            /(?:https?:\/\/)?(?:www\.)?(?:tiktok\.com)\/@([\w.-]+)\/video\/(\d+)(?:\S+)?/i,
+        },
+        {
+          name: "instagram",
+          regex:
+            /(?:https?:\/\/)?(?:www\.)?(?:instagram\.com)\/(?:p|reel|tv)\/([\w-]+)(?:\S+)?/i,
+        },
+        {
+          name: "facebook",
+          regex:
+            /(?:https?:\/\/)?(?:www\.)?(?:facebook\.com)\/(?:video\.php\?v=|watch\/\?v=|permalink\.php\?story_fbid=|groups\/[\w.-]+\/permalink\/)?([\w.-]+)(?:\S+)?/i,
+        },
+      ] as const;
+
+      const itemPromises: Promise<PastedContentType | null>[] = [];
+
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (item.kind === "file") {
+          const file = item.getAsFile();
+          if (!file) {
+            itemPromises.push(Promise.resolve(null));
+            continue;
+          }
+          if (file.type.startsWith("image/")) {
+            itemPromises.push(
+              Promise.resolve({ type: "image-file", data: file })
+            );
+          } else if (file.type.startsWith("video/")) {
+            itemPromises.push(
+              Promise.resolve({ type: "video-file", data: file })
+            );
+          } else if (file.type.startsWith("audio/")) {
+            itemPromises.push(
+              Promise.resolve({ type: "audio-file", data: file })
+            );
+          } else if (
+            file.type.startsWith("application/pdf") ||
+            file.type.startsWith("application/msword") ||
+            file.type.startsWith(
+              "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            ) ||
+            file.type.startsWith(
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            ) ||
+            file.type.startsWith(
+              "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+            )
+          ) {
+            itemPromises.push(
+              Promise.resolve({ type: "document-file", data: file })
+            );
+          } else {
+            itemPromises.push(Promise.resolve(null));
+          }
+        } else if (item.kind == "string") {
+          const stringPromise = new Promise<PastedContentType | null>(
+            (resolve) => {
+              item.getAsString((text) => {
+                if (urlRegex.test(text)) {
+                  if (imageFileExtensionRegex.test(text)) {
+                    resolve({ type: "image-url", data: text });
+                  } else {
+                    let matchedPlatform: PastedContentType["type"] =
+                      "website url";
+                    for (const p of socialMediaPlatforms) {
+                      if (p.regex.test(text)) {
+                        matchedPlatform = p.name;
+                        break;
+                      }
+                    }
+                    resolve({ type: matchedPlatform, data: text });
+                  }
+                } else {
+                  resolve({ type: "plain text", data: text });
+                }
+              });
+            }
+          );
+          itemPromises.push(stringPromise);
+        }
+      }
+
+      const potentialResults = (await Promise.all(itemPromises)).filter(
+        Boolean
+      ) as PastedContentType[];
+
+      const prioritizedOrder: PastedContentType["type"][] = [
+        "image-file",
+        "video-file",
+        "audio-file",
+        "document-file",
+        "image-url",
+        "youtube",
+        "tiktok",
+        "instagram",
+        "facebook",
+        "website url",
+        "plain text",
+      ];
+
+      let finalPastedItem: PastedContentType = { type: "unknown", data: null };
+      for (const type of prioritizedOrder) {
+        const found = potentialResults.find((result) => result.type === type);
+        if (found) {
+          finalPastedItem = found;
+          break;
+        }
+      }
+      return finalPastedItem;
+    },
+    []
+  ); // Empty dependency array as it doesn't depend on component state/props [^3]
 
   // Handle initial node creation and loading from flows
   useEffect(() => {
     if (!strategy) return;
-
-    // Helper to check if flows is empty (all peer arrays are empty)
     const flows = strategy.flows;
     const isEmptyFlows =
       Array.isArray(flows) &&
@@ -119,9 +256,8 @@ const Strategy = (props: StrategyProps) => {
     } else {
       const flow = flows[0];
       if (!flow) return;
-
       const nodesFromFlows: any[] = [];
-      const pushNodes = (peers: any[], type: string, labelKey = "title") => {
+      const pushNodes = (peers: any[], type: string) => {
         if (!Array.isArray(peers)) return;
         peers.forEach((peer) => {
           nodesFromFlows.push({
@@ -133,7 +269,6 @@ const Strategy = (props: StrategyProps) => {
           });
         });
       };
-
       pushNodes(flow.annotationPeers, "annotationNode");
       pushNodes(flow.aiImagePeers, "imageUploadNode");
       pushNodes(flow.aiAudioPeers, "audioPlayerNode");
@@ -142,10 +277,8 @@ const Strategy = (props: StrategyProps) => {
       pushNodes(flow.aiSocialMediaPeers, "socialMediaNode");
       pushNodes(flow.aiRemotePeers, "remoteNode");
       pushNodes(flow.aiThreadPeers, "chatbox");
-
       setNodes(nodesFromFlows);
 
-      // ✅ Safely set edges
       if (
         Array.isArray(flow.strategyFlowEdges) &&
         flow.strategyFlowEdges.length > 0
@@ -157,10 +290,9 @@ const Strategy = (props: StrategyProps) => {
           type: "styledEdge",
           animated: true,
         }));
-
         setEdges(edgesFromFlows);
       } else {
-        setEdges([]); // fallback to empty
+        setEdges([]);
       }
     }
   }, [strategy]);
@@ -180,39 +312,36 @@ const Strategy = (props: StrategyProps) => {
     setShowNewStrategyModal((prev) => !prev);
   };
 
+  // Renamed from handleCreateNodeOnPaste and modified to accept optional position
+  const handleCreateNode = useCallback(
+    (type: string, data?: any, position?: { x: number; y: number }) => {
+      // IMPORTANT: Ensure your useNodeOperations hook's addToolNode function
+      // accepts position_x and position_y parameters and uses them.
+      // Refer to the previous example for how to modify useNodeOperations.ts
+      addToolNode({
+        peerType: type,
+        strategyId,
+        dataToAutoUpload: { data },
+        positionXY: { x: position?.x, y: position?.y },
+      });
+    },
+    [addToolNode, strategyId]
+  );
+
   // Add paste event handler for images
   useEffect(() => {
-    // Define the type for pasted content
-    type PastedContentType =
-      | { type: "image-file"; data: File }
-      | { type: "image-url"; data: string }
-      | { type: "audio-file"; data: File }
-      | { type: "video-file"; data: File }
-      | { type: "document-file"; data: File }
-      | { type: "youtube"; data: string }
-      | { type: "tiktok"; data: string }
-      | { type: "instagram"; data: string }
-      | { type: "facebook"; data: string }
-      | { type: "website url"; data: string }
-      | { type: "plain text"; data: string }
-      | { type: "unknown"; data: null };
-
     const handlePaste = async (e: ClipboardEvent) => {
       const target = e.target as HTMLElement;
-
       // Ignore if user is typing/pasting in an input, textarea, or any editable element
       if (
         target.tagName === "INPUT" ||
         target.tagName === "TEXTAREA" ||
         target.isContentEditable
       ) {
-        return; // Don't run board paste logic
+        return;
       }
 
       const items = e.clipboardData?.items;
-
-      console.log("Clipboard items:", items);
-
       if (!items) {
         console.log("No clipboard items found.");
         return;
@@ -221,7 +350,6 @@ const Strategy = (props: StrategyProps) => {
       // Prevent default paste behavior for all relevant types upfront
       for (let i = 0; i < items.length; i++) {
         const item = items[i];
-
         if (
           item.kind === "file" ||
           (item.kind === "string" &&
@@ -233,176 +361,36 @@ const Strategy = (props: StrategyProps) => {
         }
       }
 
-      // Make regex more permissive
-      const urlRegex = /https?:\/\/[^\s]+/i;
-      // const urlRegex = /^(https?:\/\/[^\s$.?#].[^\s]*)$/i;
-      const imageFileExtensionRegex = /\.(jpg|jpeg|png|gif|webp|svg)$/i;
-      const socialMediaPlatforms = [
-        {
-          name: "youtube",
-          regex:
-            /(?:https?:\/\/)?(?:www\.|m\.)?(?:youtube\.com|youtu\.be)\/(?:watch\?v=|embed\/|v\/)?([\w-]{11})(?:\S+)?/i,
-        },
-        {
-          name: "tiktok",
-          regex:
-            /(?:https?:\/\/)?(?:www\.)?(?:tiktok\.com)\/@([\w.-]+)\/video\/(\d+)(?:\S+)?/i,
-        },
-        {
-          name: "instagram",
-          regex:
-            /(?:https?:\/\/)?(?:www\.)?(?:instagram\.com)\/(?:p|reel|tv)\/([\w-]+)(?:\S+)?/i,
-        },
-        {
-          name: "facebook",
-          regex:
-            /(?:https?:\/\/)?(?:www\.)?(?:facebook\.com)\/(?:video\.php\?v=|watch\/\?v=|permalink\.php\?story_fbid=|groups\/[\w.-]+\/permalink\/|)?([\w.-]+)(?:\S+)?/i,
-        },
-      ] as const;
-
-      const itemPromises: Promise<PastedContentType | null>[] = [];
-
-      for (let i = 0; i < items.length; i++) {
-        const item = items[i];
-
-        if (item.kind === "file") {
-          const file = item.getAsFile();
-          if (!file) {
-            console.log(`Item ${i} (file): getAsFile() returned null.`);
-
-            itemPromises.push(Promise.resolve(null)); // Push a resolved null promise
-            continue;
-          }
-
-          if (file.type.startsWith("image/")) {
-            itemPromises.push(
-              Promise.resolve({ type: "image-file", data: file })
-            );
-          } else if (file.type.startsWith("video/")) {
-            itemPromises.push(
-              Promise.resolve({ type: "video-file", data: file })
-            );
-          } else if (file.type.startsWith("audio/")) {
-            itemPromises.push(
-              Promise.resolve({ type: "audio-file", data: file })
-            );
-          } else if (
-            file.type.startsWith("application/pdf") ||
-            file.type.startsWith("application/msword") ||
-            file.type.startsWith(
-              "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-            ) ||
-            file.type.startsWith(
-              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            ) || // .xlsx
-            file.type.startsWith(
-              "application/vnd.openxmlformats-officedocument.presentationml.presentation"
-            ) // .pptx
-          ) {
-            itemPromises.push(
-              Promise.resolve({ type: "document-file", data: file })
-            );
-          } else {
-            itemPromises.push(Promise.resolve(null));
-          }
-        } else if (item.kind == "string") {
-          // Wrap getAsString in a Promise to handle its asynchronous nature
-          const stringPromise = new Promise<PastedContentType | null>(
-            (resolve) => {
-              item.getAsString((text) => {
-                if (urlRegex.test(text)) {
-                  if (imageFileExtensionRegex.test(text)) {
-                    resolve({ type: "image-url", data: text });
-                  } else {
-                    let matchedPlatform: PastedContentType["type"] =
-                      "website url";
-                    for (const p of socialMediaPlatforms) {
-                      if (p.regex.test(text)) {
-                        matchedPlatform = p.name;
-                        break;
-                      }
-                    }
-                    resolve({ type: matchedPlatform, data: text });
-                  }
-                } else {
-                  // Always resolve plain text (no null)
-                  resolve({ type: "plain text", data: text });
-                }
-              });
-            }
-          );
-          itemPromises.push(stringPromise);
-          // Push the promise, don't await yet
-        }
-      }
-
-      // Await all promises after the loop has collected them
-      const potentialResults = (await Promise.all(itemPromises)).filter(
-        Boolean
-      ) as PastedContentType[];
-      console.log("All collected and filtered results:", potentialResults);
-
-      // Define the order of priority for content types
-      // Files are prioritized over URLs, and specific URLs over general ones, then plain text.
-      const prioritizedOrder: PastedContentType["type"][] = [
-        "image-file",
-        "video-file",
-        "audio-file",
-        "document-file",
-        "image-url", // Prioritize image URLs after actual files
-        "youtube",
-        "tiktok",
-        "instagram",
-        "facebook",
-        "website url",
-        "plain text",
-      ];
-
-      let finalPastedItem: PastedContentType = { type: "unknown", data: null };
-      for (const type of prioritizedOrder) {
-        const found = potentialResults.find((result) => result.type === type);
-        if (found) {
-          finalPastedItem = found;
-          break; // Found the highest priority item, stop searching
-        }
-      }
-
-      console.log("Final Pasted Item Result:", finalPastedItem);
+      const finalPastedItem = await processDataTransferItems(items);
 
       if (finalPastedItem.type !== "unknown") {
         console.log("Known Pasted Item:", finalPastedItem);
-
-        // Call addToolNode based on the detected type
+        // Call handleCreateNode based on the detected type
         switch (finalPastedItem.type) {
           case "plain text":
-            handleCreateNodeOnPaste(
-              "annotation",
-              finalPastedItem.data as string
-            );
+            handleCreateNode("annotation", finalPastedItem.data as string);
             break;
           case "youtube":
           case "tiktok":
           case "instagram":
           case "facebook":
-            handleCreateNodeOnPaste("social", finalPastedItem.data as string);
+            handleCreateNode("social", finalPastedItem.data as string);
             break;
           case "website url":
-            handleCreateNodeOnPaste("remote", finalPastedItem.data as string);
+            handleCreateNode("remote", finalPastedItem.data as string);
             break;
           case "image-file":
-            handleCreateNodeOnPaste("image", finalPastedItem.data as File);
-            break;
           case "image-url": // Image URL is handled as an image type, but with a string URL
-            handleCreateNodeOnPaste("image", finalPastedItem.data as string);
+            handleCreateNode("image", finalPastedItem.data); // data can be File or string
             break;
           case "video-file":
-            handleCreateNodeOnPaste("video", finalPastedItem.data as File);
+            handleCreateNode("video", finalPastedItem.data as File);
             break;
           case "document-file":
-            handleCreateNodeOnPaste("document", finalPastedItem.data as File);
+            handleCreateNode("document", finalPastedItem.data as File);
             break;
           case "audio-file":
-            handleCreateNodeOnPaste("audio", finalPastedItem.data as File);
+            handleCreateNode("audio", finalPastedItem.data as File);
             break;
           default:
             // @ts-ignore
@@ -416,19 +404,17 @@ const Strategy = (props: StrategyProps) => {
 
     // Add event listener to the document
     document.addEventListener("paste", handlePaste);
-
     // Cleanup function to remove the event listener when the component unmounts
     return () => {
       document.removeEventListener("paste", handlePaste);
     };
-  }, []); // addToolNode The empty dependency array ensures this effect runs once on mount and cleans up on unmount [^3].
+  }, [handleCreateNode, processDataTransferItems]); // Dependencies updated [^3]
 
   const onConnect = useCallback(
     (params: Connection) => {
       const sourceNode = nodes.find((n) => n.id === params.source);
       const targetNode = nodes.find((n) => n.id === params.target);
       const edgeId = `edge-${params.source}-${params.target}-${Date.now()}`;
-
       if (!sourceNode || !targetNode) return;
 
       setEdges((eds) =>
@@ -463,7 +449,6 @@ const Strategy = (props: StrategyProps) => {
           onError: (error: any) => {
             // 3. Revert edge on failure
             setEdges((eds) => eds.filter((e) => e.id !== edgeId));
-
             toast({
               title: "Connection failed",
               description:
@@ -477,61 +462,59 @@ const Strategy = (props: StrategyProps) => {
     [setEdges, nodes, connectNodes, strategy, toast]
   );
 
-  const getClosestEdge = useCallback((node: any) => {
-    const { nodeLookup } = store.getState();
-    const internalNode: any = getInternalNode(node.id);
-
-    const closestNode = Array.from(nodeLookup.values()).reduce(
-      (res: any, n: any) => {
-        if (n.id !== internalNode.id) {
-          const dx =
-            n.internals.positionAbsolute.x -
-            internalNode.internals.positionAbsolute.x;
-          const dy =
-            n.internals.positionAbsolute.y -
-            internalNode.internals.positionAbsolute.y;
-          const d = Math.sqrt(dx * dx + dy * dy);
-
-          if (d < res.distance && d < MIN_DISTANCE) {
-            res.distance = d;
-            res.node = n;
+  const getClosestEdge = useCallback(
+    (node: any) => {
+      const { nodeLookup } = store.getState();
+      const internalNode: any = getInternalNode(node.id);
+      const closestNode = Array.from(nodeLookup.values()).reduce(
+        (res: any, n: any) => {
+          if (n.id !== internalNode.id) {
+            const dx =
+              n.internals.positionAbsolute.x -
+              internalNode.internals.positionAbsolute.x;
+            const dy =
+              n.internals.positionAbsolute.y -
+              internalNode.internals.positionAbsolute.y;
+            const d = Math.sqrt(dx * dx + dy * dy);
+            if (d < res.distance && d < MIN_DISTANCE) {
+              res.distance = d;
+              res.node = n;
+            }
           }
+          return res;
+        },
+        {
+          distance: Number.MAX_VALUE,
+          node: null,
         }
+      );
 
-        return res;
-      },
-      {
-        distance: Number.MAX_VALUE,
-        node: null,
+      if (!closestNode.node) {
+        return null;
       }
-    );
 
-    if (!closestNode.node) {
-      return null;
-    }
+      const closeNodeIsSource =
+        closestNode.node.internals.positionAbsolute.x <
+        internalNode.internals.positionAbsolute.x;
 
-    const closeNodeIsSource =
-      closestNode.node.internals.positionAbsolute.x <
-      internalNode.internals.positionAbsolute.x;
-
-    return {
-      id: closeNodeIsSource
-        ? `${closestNode.node.id}-${node.id}`
-        : `${node.id}-${closestNode.node.id}`,
-      source: closeNodeIsSource ? closestNode.node.id : node.id,
-      target: closeNodeIsSource ? node.id : closestNode.node.id,
-      type: "styledEdge",
-      animated: true,
-    };
-  }, []);
+      return {
+        id: closeNodeIsSource
+          ? `${closestNode.node.id}-${node.id}`
+          : `${node.id}-${closestNode.node.id}`,
+        source: closeNodeIsSource ? closestNode.node.id : node.id,
+        target: closeNodeIsSource ? node.id : closestNode.node.id,
+        type: "styledEdge",
+        animated: true,
+      };
+    },
+    [getInternalNode, store]
+  ); // Added getInternalNode, store to dependencies [^3]
 
   const onNodeDrag = useCallback(
     (_: any, node: any) => {
       const closeEdge: any = getClosestEdge(node);
-
       setEdges((es) => {
         const nextEdges = es.filter((e: any) => e.className !== "temp");
-
         if (
           closeEdge &&
           !nextEdges.find(
@@ -544,7 +527,6 @@ const Strategy = (props: StrategyProps) => {
           closeEdge.animated = true;
           nextEdges.push(closeEdge);
         }
-
         return nextEdges;
       });
     },
@@ -553,13 +535,9 @@ const Strategy = (props: StrategyProps) => {
 
   const onNodeDragStop = useCallback(
     (_: any, node: any) => {
-      console.log({ Node_ID: node.id, Node_Position: node.position });
-
       const closeEdge: any = getClosestEdge(node);
-
       setEdges((es) => {
         const nextEdges = es.filter((e: any) => e.className !== "temp");
-
         if (
           closeEdge &&
           !nextEdges.find(
@@ -571,20 +549,10 @@ const Strategy = (props: StrategyProps) => {
           closeEdge.animated = true;
           nextEdges.push(closeEdge);
         }
-
         return nextEdges;
       });
 
       const peerType = getPeerTypeFromNodeType(node.type);
-
-      console.log("NODE_POSITION_UPDATE", {
-        node,
-        strategyId: strategy?.id,
-        peerId: node.id,
-        peerType: `peerType: (${peerType}) | node: (${node.type})`,
-        position_x: node.position.x,
-        position_y: node.position.y,
-      });
 
       // ✅ Mutation call for updating peer position
       if (node.id && node?.type && strategy?.id) {
@@ -600,14 +568,6 @@ const Strategy = (props: StrategyProps) => {
     [getClosestEdge, setEdges, strategy?.id, updatePeerPosition]
   );
 
-  const handleCreateNodeOnPaste = (type: string, data?: any) => {
-    addToolNode({
-      peerType: type,
-      strategyId,
-      dataToAutoUpload: { data }, // ({nodeType, strategyId, dataToAutoUpload})
-    });
-  };
-
   const defaultEdgeOptions = {
     type: "styledEdge",
     animated: true,
@@ -616,6 +576,86 @@ const Strategy = (props: StrategyProps) => {
       stroke: "#6b7280",
     },
   };
+
+  // New drag and drop handlers
+  const onDragOver = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+  }, []);
+
+  const onDrop = useCallback(
+    async (event: React.DragEvent) => {
+      event.preventDefault();
+
+      const finalDroppedItem = await processDataTransferItems(
+        event.dataTransfer.items
+      );
+
+      if (finalDroppedItem.type !== "unknown") {
+        const position = screenToFlowPosition({
+          x: event.clientX,
+          y: event.clientY,
+        });
+        console.log(
+          "Known Dropped Item:",
+          finalDroppedItem,
+          "at position:",
+          position
+        );
+
+        switch (finalDroppedItem.type) {
+          case "plain text":
+            handleCreateNode(
+              "annotation",
+              finalDroppedItem.data as string,
+              position
+            );
+            break;
+          case "youtube":
+          case "tiktok":
+          case "instagram":
+          case "facebook":
+            handleCreateNode(
+              "social",
+              finalDroppedItem.data as string,
+              position
+            );
+            break;
+          case "website url":
+            handleCreateNode(
+              "remote",
+              finalDroppedItem.data as string,
+              position
+            );
+            break;
+          case "image-file":
+          case "image-url":
+            handleCreateNode("image", finalDroppedItem.data, position);
+            break;
+          case "video-file":
+            handleCreateNode("video", finalDroppedItem.data as File, position);
+            break;
+          case "document-file":
+            handleCreateNode(
+              "document",
+              finalDroppedItem.data as File,
+              position
+            );
+            break;
+          case "audio-file":
+            handleCreateNode("audio", finalDroppedItem.data as File, position);
+            break;
+          default:
+            // @ts-ignore
+            console.log("Unhandled dropped item type:", finalDroppedItem.type);
+            break;
+        }
+      } else {
+        console.log("Dropped Item Type: Unknown");
+      }
+    },
+    [screenToFlowPosition, handleCreateNode, processDataTransferItems]
+  );
 
   if (isLoading) {
     return (
@@ -644,7 +684,6 @@ const Strategy = (props: StrategyProps) => {
           onClose={toggleNewStrategyModal}
         />
       )}
-
       <StrategyHeader
         strategy={strategy}
         onEditStrategy={toggleNewStrategyModal}
@@ -670,7 +709,6 @@ const Strategy = (props: StrategyProps) => {
             panOnScrollSpeed={0.5}
             defaultEdgeOptions={defaultEdgeOptions}
             elementsSelectable={true}
-            // new props
             fitView
             fitViewOptions={{
               padding: 0.5,
@@ -679,6 +717,9 @@ const Strategy = (props: StrategyProps) => {
             }}
             minZoom={0.1}
             maxZoom={2}
+            // New drag and drop props
+            onDragOver={onDragOver}
+            onDrop={onDrop}
           >
             <Background />
             <Controls />
