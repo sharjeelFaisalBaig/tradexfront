@@ -1,4 +1,5 @@
 "use client";
+
 import type React from "react";
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { Handle, Position } from "@xyflow/react";
@@ -34,6 +35,7 @@ import {
   useConversationMessages,
   useGetAiModels,
   useGetChatTemplates,
+  useGetConversationById,
 } from "@/hooks/strategy/useStrategyQueries";
 import { getFilteredAiModels } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
@@ -98,6 +100,7 @@ export default function ChatBoxNode({
   const [activeConversationId, setActiveConversationId] = useState<
     string | null
   >(null);
+  // const [page, setPage] = useState<number>(1);
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -107,6 +110,7 @@ export default function ChatBoxNode({
   const [editingTitle, setEditingTitle] = useState("");
   const [isInitialized, setIsInitialized] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
+  const [isFetchingMoreMessages, setIsFetchingMoreMessages] = useState(false); // New state for pagination loading
 
   // Refs
   const nodeControlRef = useRef<HTMLDivElement>(null);
@@ -132,16 +136,32 @@ export default function ChatBoxNode({
   const { data: aiTemplatesData, isLoading: isLoadingTemplates } =
     useGetChatTemplates();
 
-  // NEW: use useConversationMessages for fetching messages
+  // const {
+  //   data: activeConversationData,
+  //   isLoading: isLoadingConversation,
+  //   refetch: refetchConversation,
+  // } = useGetConversationById({
+  //   strategyId,
+  //   conversationId: activeConversationId ?? "",
+  //   page, // Pass the page parameter for pagination
+  // });
+
   const {
-    data: conversationMessagesData,
-    fetchNextPage,
+    data: activeConversationData,
+    fetchNextPage: fetchConversationNextPage,
     hasNextPage,
-    isFetchingNextPage: isLoadingMoreMessages, // Renamed for clarity
-    isLoading: isLoadingConversationMessages, // Renamed for clarity
+    isFetchingNextPage,
+    isLoading: isLoadingConversation,
   } = useConversationMessages({
     strategyId,
     conversationId: activeConversationId ?? "",
+  });
+
+  console.log({
+    activeConversationData,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoadingConversation,
   });
 
   // Memoized values
@@ -160,14 +180,6 @@ export default function ChatBoxNode({
       ) || [],
     [aiTemplatesData]
   );
-
-  // NEW: Flatten all messages from the infinite query data
-  const allFetchedMessages = useMemo(() => {
-    return (
-      conversationMessagesData?.pages.flatMap((page) => page.aiChats) ?? []
-    );
-  }, [conversationMessagesData]);
-
   const activeConversation = useMemo(
     () =>
       conversations.find((conv) => conv.id === activeConversationId) || null,
@@ -188,7 +200,6 @@ export default function ChatBoxNode({
       updateModelLoading,
     [conversations, createConversationLoading, updateModelLoading]
   );
-
   const isLoading = activeConversation?.isLoading || false; // This specifically refers to sending/receiving the current message
   const canConnect = !isLoading; // This controls if new connections can be made to the handle
 
@@ -251,23 +262,24 @@ export default function ChatBoxNode({
     isInitialized,
   ]);
 
-  // When active conversation changes, reset messages to trigger a fresh load from useConversationMessages
-  useEffect(() => {
-    if (activeConversationId) {
-      setMessages([]); // Clear messages to load new conversation from scratch
-      // The useConversationMessages hook will automatically refetch for the new conversationId
-    }
-  }, [activeConversationId]);
+  // When active conversation changes, reset page and clear messages
+  // useEffect(() => {
+  //   if (activeConversationId) {
+  //     setPage(1); // Reset page to 1 for the new conversation
+  //     setMessages([]); // Clear messages to load new conversation from scratch
+  //   }
+  // }, [activeConversationId]);
 
-  // NEW: Load messages when allFetchedMessages changes (including pagination)
+  // Load messages when active conversation data changes (including pagination)
   useEffect(() => {
-    if (!activeConversationId) {
-      setMessages([]); // Clear messages if no active conversation
-      return;
-    }
+    // MODIFIED: Check for activeConversationData.conversation instead of aiChats
 
-    const mappedFetchedMessages: Message[] = allFetchedMessages.flatMap(
-      (chat: any) => [
+    // @ts-ignore
+    if (activeConversationData?.conversation) {
+      // @ts-ignore
+      const { aiChats, pagination } = activeConversationData.conversation;
+
+      const newLoadedMessages: Message[] = aiChats.flatMap((chat: any) => [
         {
           id: `${chat.id}_user`,
           content: chat.prompt,
@@ -284,30 +296,37 @@ export default function ChatBoxNode({
           timestamp: parseTimestamp(chat.updated_at),
           isOptimistic: false,
         },
-      ]
-    );
+      ]);
 
-    setMessages((prevMessages) => {
-      // Filter out optimistic messages that have been replaced by fetched messages
-      const existingFetchedIds = new Set(
-        mappedFetchedMessages.map((msg) => msg.id)
-      );
+      // Capture old scroll height before updating messages, if fetching more pages
+      let oldScrollHeight = 0;
+      if (isFetchingMoreMessages && messagesContainerRef.current) {
+        oldScrollHeight = messagesContainerRef.current.scrollHeight;
+      }
 
-      const currentOptimisticMessages = prevMessages.filter(
-        (msg) => msg.isOptimistic && !existingFetchedIds.has(msg.id)
-      );
+      console.log({ oldScrollHeight, isFetchingMoreMessages });
 
-      // Combine fetched messages with remaining optimistic messages and sort by timestamp
-      const combined = [
-        ...mappedFetchedMessages,
-        ...currentOptimisticMessages,
-      ].sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+      setMessages((prevMessages) => {
+        // If it's the first page or switching conversation, replace messages
+        if (pagination.current_page === 1) {
+          return newLoadedMessages;
+        } else {
+          // If fetching more pages, prepend new messages
+          // Filter out duplicates in case of overlapping data or previous optimistic messages
+          const existingMessageIds = new Set(prevMessages.map((msg) => msg.id));
+          const filteredNewMessages = newLoadedMessages.filter(
+            (msg) => !existingMessageIds.has(msg.id)
+          );
 
-      console.log({ allFetchedMessages, mappedFetchedMessages, combined });
+          console.log({ existingMessageIds, filteredNewMessages });
 
-      // Adjust scroll position if loading older messages (scrolled to top)
-      if (isLoadingMoreMessages && messagesContainerRef.current) {
-        const oldScrollHeight = messagesContainerRef.current.scrollHeight;
+          return [...filteredNewMessages, ...prevMessages];
+        }
+      });
+
+      // After updating messages, if we were fetching more messages, adjust scroll position
+      if (isFetchingMoreMessages && messagesContainerRef.current) {
+        // Use requestAnimationFrame to ensure DOM has updated before calculating new scrollHeight
         requestAnimationFrame(() => {
           if (messagesContainerRef.current) {
             const newScrollHeight = messagesContainerRef.current.scrollHeight;
@@ -315,29 +334,35 @@ export default function ChatBoxNode({
               newScrollHeight - oldScrollHeight;
           }
         });
+        setIsFetchingMoreMessages(false); // Reset pagination loading state
       }
-      return combined;
-    });
+    } else if (activeConversationId && !isLoadingConversation) {
+      // If activeConversationData.conversation is null/undefined and not loading, clear messages
+      setMessages([]);
+    }
   }, [
-    allFetchedMessages,
+    activeConversationData,
     activeConversationId,
+    isLoadingConversation, // Include this to handle initial load states properly
     parseTimestamp,
-    isLoadingMoreMessages,
+    isFetchingMoreMessages,
   ]);
 
   // Auto-scroll to bottom when new messages are added (not during pagination)
-  useEffect(() => {
-    // Only scroll if not currently fetching older messages AND the last message is not an optimistic one
-    if (!isLoadingMoreMessages) {
-      const lastMessage = messages[messages.length - 1];
-      if (lastMessage && !lastMessage.isOptimistic) {
-        const timer = setTimeout(() => {
-          messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-        }, 100); // Small delay to ensure render
-        return () => clearTimeout(timer);
-      }
-    }
-  }, [messages, isLoadingMoreMessages]); // Depend on messages array and pagination state
+  // useEffect(() => {
+  //   // Only scroll if not currently fetching older messages
+  //   if (!isFetchingMoreMessages) {
+  //     // Check if the last message was just added (not an optimistic one)
+  //     const lastMessage = messages[messages.length - 1];
+  //     if (lastMessage && !lastMessage.isOptimistic) {
+  //       // Use a small timeout to ensure DOM has rendered the new message
+  //       const timer = setTimeout(() => {
+  //         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  //       }, 100); // Small delay to ensure render
+  //       return () => clearTimeout(timer);
+  //     }
+  //   }
+  // }, [messages, isFetchingMoreMessages]); // Depend on messages array and pagination state
 
   // Auto-resize textarea
   useEffect(() => {
@@ -528,7 +553,6 @@ export default function ChatBoxNode({
 
   const createNewConversation = useCallback(async () => {
     if (isAnyConversationLoading || !availableModels.length) return;
-
     try {
       const response = await createConversationMutation({
         strategyId,
@@ -537,14 +561,11 @@ export default function ChatBoxNode({
           ai_thread_peer_id: data?.id ?? "",
         },
       });
-
       const conv = response?.conversation;
       if (!conv) throw new Error("No conversation returned from API");
-
       const model =
         availableModels.find((m) => m.id === conv.ai_model_id) ||
         availableModels[0];
-
       const newConversation: Conversation = {
         id: conv.id,
         title: conv.title,
@@ -556,7 +577,6 @@ export default function ChatBoxNode({
         isDeleting: false, // Initialize new state
         isUpdatingTitle: false, // Initialize new state
       };
-
       setConversations((prev) => {
         const exists = prev.some((c) => c.id === newConversation.id);
         return exists ? prev : [newConversation, ...prev];
@@ -584,10 +604,8 @@ export default function ChatBoxNode({
   const deleteConversation = useCallback(
     async (conversationId: string) => {
       if (isAnyConversationLoading) return; // Still prevent if other global operations are pending
-
       // Set optimistic loading state for the specific conversation
       updateConversationState(conversationId, { isDeleting: true });
-
       try {
         await deleteConversationMutation({ strategyId, conversationId });
         setConversations((prev) =>
@@ -634,10 +652,8 @@ export default function ChatBoxNode({
   const handleModelSelect = useCallback(
     async (model: AIModel) => {
       if (!activeConversationId) return;
-
       // Optimistically update UI
       updateConversationState(activeConversationId, { selectedModel: model });
-
       try {
         await updateConversationAiModelMutation({
           strategyId,
@@ -714,14 +730,12 @@ export default function ChatBoxNode({
         setEditingConversationId(null);
         return;
       }
-
       // Optimistically update UI and set loading state for the specific conversation
       updateConversationState(conversation.id, {
         title: newTitle,
         isUpdatingTitle: true,
       });
       setEditingConversationId(null); // Hide the input immediately
-
       try {
         await updateConversationMutation({
           strategyId,
@@ -782,28 +796,28 @@ export default function ChatBoxNode({
   const handleMessagesScroll = useCallback(
     (event: React.UIEvent<HTMLDivElement>) => {
       const { scrollTop } = event.currentTarget;
+
       // Check if scrolled to the very top and not already fetching
-      if (
-        scrollTop === 0 &&
-        hasNextPage &&
-        !isLoadingMoreMessages &&
-        activeConversationId
-      ) {
-        fetchNextPage(); // Load older messages
+      if (scrollTop === 0 && !isFetchingMoreMessages && activeConversationId) {
+        if (hasNextPage) {
+          fetchConversationNextPage();
+        }
+
+        // const pagination = activeConversationData?.conversation?.pagination;
+        // if (pagination && pagination.current_page < pagination.last_page) {
+        //   // fetchNextPage();
+        //   // setIsFetchingMoreMessages(true);
+        //   // refetchConversation();
+        //   // Increment page to trigger refetch, messages useEffect will handle prepend and scroll adjustment
+        //   // setPage((prevPage) => prevPage + 1);
+        // }
       }
     },
-    [hasNextPage, isLoadingMoreMessages, activeConversationId, fetchNextPage]
-  );
+    [isFetchingMoreMessages, activeConversationId, activeConversationData]
+  ); // Depend on activeConversationData for pagination info
 
   // Show loading spinner for initial load of the entire chat interface
-  if (
-    !isHydrated ||
-    isLoadingModels ||
-    !isInitialized ||
-    (activeConversationId &&
-      isLoadingConversationMessages &&
-      messages.length === 0)
-  ) {
+  if (!isHydrated || isLoadingModels || !isInitialized) {
     return (
       <NodeWrapper
         id={id}
@@ -1048,8 +1062,8 @@ export default function ChatBoxNode({
                     </div>
                   </div>
                 ) : messages.length === 0 &&
-                  isLoadingConversationMessages &&
-                  !isLoadingMoreMessages ? (
+                  isLoadingConversation &&
+                  !isFetchingMoreMessages ? (
                   // New: Loader for initial conversation history load
                   <div className="flex items-center justify-center h-full text-gray-400">
                     <div className="text-center">
@@ -1059,7 +1073,7 @@ export default function ChatBoxNode({
                       </p>
                     </div>
                   </div>
-                ) : messages.length === 0 && !isLoadingMoreMessages ? (
+                ) : messages.length === 0 && !isFetchingMoreMessages ? (
                   <div className="flex items-center justify-center h-full text-gray-400">
                     <div className="text-center">
                       <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
@@ -1069,7 +1083,7 @@ export default function ChatBoxNode({
                 ) : (
                   <>
                     {/* Loader for pagination at the top of messages */}
-                    {isLoadingMoreMessages && (
+                    {isFetchingMoreMessages && (
                       <div className="flex justify-center py-2">
                         <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
                       </div>
@@ -1130,7 +1144,7 @@ export default function ChatBoxNode({
                   </>
                 )}
                 {/* AI thinking loader (only if not fetching older messages) */}
-                {isLoading && !isLoadingMoreMessages && (
+                {isLoading && !isFetchingMoreMessages && (
                   <div className="flex items-start gap-3 mb-6">
                     <div className="w-7 h-7 bg-gradient-to-r from-blue-500 to-pink-500 rounded-full flex items-center justify-center text-white text-xs flex-shrink-0">
                       🤖
