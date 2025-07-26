@@ -5,6 +5,7 @@ import {
   useEffect,
   type DragEvent,
   type ChangeEvent,
+  useMemo,
 } from "react";
 import { Position, useReactFlow } from "@xyflow/react";
 import {
@@ -165,7 +166,6 @@ export default function DocumentUploadNode({
   const [uploadedDocument, setUploadedDocument] = useState<string | null>(null); // Stores base64 or URL
   const [documentInfo, setDocumentInfo] = useState<DocumentInfo | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
-  const [canConnect, setCanConnect] = useState(false);
 
   // Processing states
   const [processingState, setProcessingState] = useState<ProcessingState>({
@@ -425,31 +425,50 @@ export default function DocumentUploadNode({
   };
 
   const handleRemoveDocument = () => {
+    updateNodeData(data?.id, {});
+    setUploadedDocument(null);
+    setDocumentInfo(null);
+    setAiResponse(null);
+    setProcessingState({
+      isProcessing: false,
+      isComplete: false,
+      error: null,
+    });
+    setUploadState({ isUploading: false, isSuccess: false, error: null });
+    setUserNotes("");
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+
+    updateNodeData(id, {
+      is_ready_to_interact: false,
+      document_peer_media: "",
+      ai_title: "",
+      ai_notes: "",
+      url: "",
+    });
+
+    if (data?.is_ready_to_interact) {
+      data.is_ready_to_interact = false;
+      data.document_peer_media = "";
+      data.ai_title = "";
+      data.ai_notes = "";
+      data.url = "";
+    }
+
+    if (status?.is_ready_to_interact) {
+      status.is_ready_to_interact = false;
+      status.ai_title = "";
+    }
+
+    successNote({
+      title: "Document removed",
+      description: "Document removed successfully",
+    });
+
     resetPeer(
       { peerId: data?.id, strategyId, peerType: "docs" },
       {
-        onSuccess: (data) => {
-          updateNodeData(data?.id, {});
-          setCanConnect(false);
-          setUploadedDocument(null);
-          setDocumentInfo(null);
-          setAiResponse(null);
-          setProcessingState({
-            isProcessing: false,
-            isComplete: false,
-            error: null,
-          });
-          setUploadState({ isUploading: false, isSuccess: false, error: null });
-          setUserNotes("");
-          if (fileInputRef.current) {
-            fileInputRef.current.value = "";
-          }
-
-          successNote({
-            title: "Document removed",
-            description: data?.message ?? "Document removed successfully",
-          });
-        },
         onError: (error: any) => {
           toast({
             title: "Failed to remove Document",
@@ -586,13 +605,13 @@ export default function DocumentUploadNode({
     }
   };
 
-  useEffect(() => {
-    if (data?.is_ready_to_interact || status?.is_ready_to_interact) {
-      setCanConnect(true);
-    } else {
-      setCanConnect(false);
-    }
-  }, [data, status]);
+  // Modified canConnect to immediately reflect isReseting state
+  const canConnect = useMemo(
+    () =>
+      !isReseting &&
+      (data?.is_ready_to_interact || status?.is_ready_to_interact),
+    [data?.is_ready_to_interact, status?.is_ready_to_interact, isReseting]
+  );
 
   // Remove connections when node becomes not connectable
   useEffect(() => {
@@ -601,7 +620,7 @@ export default function DocumentUploadNode({
         edges.filter((edge) => edge.source !== id && edge.target !== id)
       );
     }
-  }, [canConnect, id, setEdges]);
+  }, [canConnect, id, setEdges, data]);
 
   const DocumentIcon = documentInfo
     ? getDocumentIcon(documentInfo.type)

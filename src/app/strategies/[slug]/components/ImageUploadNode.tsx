@@ -78,7 +78,7 @@ export default function ImageUploadNode({
 
   const nodeControlRef = useRef(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { setEdges } = useReactFlow();
+  const { setEdges, updateNodeData } = useReactFlow();
 
   // Image states
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
@@ -339,28 +339,49 @@ export default function ImageUploadNode({
   };
 
   const handleRemoveImage = () => {
+    setUploadedImage(null);
+    setFileName("");
+    setUserNotes("");
+    setAiResponse(null);
+    setProcessingState({
+      isProcessing: false,
+      isComplete: false,
+      error: null,
+    });
+
+    updateNodeData(data?.id, {
+      image: "",
+      title: "",
+      ai_notes: "",
+      ai_title: "",
+      is_ready_to_interact: false, // Set to false immediately
+    });
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+
+    if (data?.is_ready_to_interact) {
+      data.is_ready_to_interact = false;
+      data.ai_title = "";
+      data.ai_notes = "";
+      data.title = "";
+      data.image = "";
+    }
+
+    if (status?.is_ready_to_interact) {
+      status.is_ready_to_interact = false;
+      status.ai_title = "";
+    }
+
+    successNote({
+      title: "Image removed",
+      description: "Image removed successfully",
+    });
+
     resetPeer(
       { peerId: data?.id, strategyId, peerType: "image" },
       {
-        onSuccess: (data) => {
-          setUploadedImage(null);
-          setFileName("");
-          setAiResponse(null);
-          setProcessingState({
-            isProcessing: false,
-            isComplete: false,
-            error: null,
-          });
-          setUserNotes("");
-          if (fileInputRef.current) {
-            fileInputRef.current.value = "";
-          }
-
-          successNote({
-            title: "Image removed",
-            description: data?.message ?? "Image removed successfully",
-          });
-        },
         onError: (error: any) => {
           toast({
             title: "Failed to remove Image",
@@ -387,11 +408,12 @@ export default function ImageUploadNode({
     }
   }, [data?.imageUrl, data?.fileName]);
 
-  // Determine if connection should be allowed
-  // const canConnect: any = (processingState.isComplete && !processingState.error) || data?.is_ready_to_interact;
+  // Modified canConnect to immediately reflect isReseting state
   const canConnect = useMemo(
-    () => data?.is_ready_to_interact || status?.is_ready_to_interact,
-    [data, status]
+    () =>
+      !isReseting &&
+      (data?.is_ready_to_interact || status?.is_ready_to_interact),
+    [data?.is_ready_to_interact, status?.is_ready_to_interact, isReseting]
   );
 
   // Remove connections when node becomes not connectable
@@ -401,7 +423,7 @@ export default function ImageUploadNode({
         edges.filter((edge) => edge.source !== id && edge.target !== id)
       );
     }
-  }, [canConnect, id, setEdges]);
+  }, [canConnect, id, setEdges, data]);
 
   return (
     <>

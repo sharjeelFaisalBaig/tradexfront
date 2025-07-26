@@ -82,7 +82,7 @@ export default function SocialMediaNode({
 
   const strategyId = useParams()?.slug as string;
   const nodeControlRef = useRef(null);
-  const { setEdges } = useReactFlow();
+  const { setEdges, updateNodeData } = useReactFlow();
   const successNote = useSuccessNotifier();
 
   // URL and validation states
@@ -268,27 +268,47 @@ export default function SocialMediaNode({
 
   // Reset all states
   const handleReset = () => {
+    setSocialUrl("");
+    setSocialMediaData(null);
+    setUrlValidation({ isValid: false });
+    setAiResponse(null);
+    setProcessingState({
+      isProcessing: false,
+      isComplete: false,
+      error: null,
+    });
+    setUserNotes("");
+    setIsLoading(false);
+
+    updateNodeData(id, {
+      video: "",
+      title: "",
+      ai_notes: "",
+      ai_title: "",
+      is_ready_to_interact: false, // Set to false immediately
+    });
+
+    if (data?.is_ready_to_interact) {
+      data.is_ready_to_interact = false;
+      data.ai_title = "";
+      data.ai_notes = "";
+      data.title = "";
+      data.video = "";
+    }
+
+    if (status?.is_ready_to_interact) {
+      status.is_ready_to_interact = false;
+      status.ai_title = "";
+    }
+
+    successNote({
+      title: "Social media link removed",
+      description: "Social media link removed successfully",
+    });
+
     resetPeer(
       { peerId: data?.id, strategyId, peerType: "social_media" },
       {
-        onSuccess: (data) => {
-          setSocialUrl("");
-          setSocialMediaData(null);
-          setUrlValidation({ isValid: false });
-          setAiResponse(null);
-          setProcessingState({
-            isProcessing: false,
-            isComplete: false,
-            error: null,
-          });
-          setUserNotes("");
-          setIsLoading(false);
-          successNote({
-            title: "Social media link removed",
-            description:
-              data?.message ?? "Social media link removed successfully",
-          });
-        },
         onError: (error: any) => {
           toast({
             title: "Failed to remove social media link",
@@ -328,22 +348,6 @@ export default function SocialMediaNode({
     return num.toString();
   };
 
-  // Allow connection if processing is complete and no error
-  // const canConnect = (processingState.isComplete && !processingState.error) || data?.is_ready_to_interact;
-  const canConnect = useMemo(
-    () => data?.is_ready_to_interact || status?.is_ready_to_interact,
-    [data, status]
-  );
-
-  // Remove connections if node is not connectable
-  useEffect(() => {
-    if (!canConnect) {
-      setEdges((edges) =>
-        edges.filter((edge) => edge.source !== id && edge.target !== id)
-      );
-    }
-  }, [canConnect, id, setEdges]);
-
   // Update processing state if backend status is ready
   useEffect(() => {
     if (status?.is_ready_to_interact) {
@@ -365,6 +369,23 @@ export default function SocialMediaNode({
         : null,
     [socialMediaData]
   );
+
+  // Modified canConnect to immediately reflect isReseting state
+  const canConnect = useMemo(
+    () =>
+      !isReseting &&
+      (data?.is_ready_to_interact || status?.is_ready_to_interact),
+    [data?.is_ready_to_interact, status?.is_ready_to_interact, isReseting]
+  );
+
+  // Remove connections when node becomes not connectable
+  useEffect(() => {
+    if (!canConnect) {
+      setEdges((edges) =>
+        edges.filter((edge) => edge.source !== id && edge.target !== id)
+      );
+    }
+  }, [canConnect, id, setEdges, data]);
 
   return (
     <>

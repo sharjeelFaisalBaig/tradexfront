@@ -581,51 +581,57 @@ export default function AudioPlayerNode({
   };
 
   const handleRemoveAudio = () => {
+    // Optimistically reset all local states immediately for instant UI update
+    setUploadedAudio(null);
+    setFileName("");
+    setCurrentFile(null); // Clear the stored file
+    setAiResponse(null);
+    setProcessingState({
+      isProcessing: false,
+      isComplete: false,
+      error: null,
+    });
+    setUserNotes("");
+    setIsPlaying(false);
+    setCurrentTime(0);
+    setDuration(0);
+    setShowRecordingInterface(false);
+    setIsInitialLoadFromProps(true); // Reset flag so initial data can be re-evaluated if props change
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+
+    // Optimistically update the node data in React Flow to immediately affect `canConnect`
+    updateNodeData(id, {
+      audio: "",
+      title: "",
+      ai_notes: "",
+      ai_title: "",
+      is_ready_to_interact: false, // Set to false immediately
+    });
+
+    if (data?.is_ready_to_interact) {
+      data.is_ready_to_interact = false;
+      data.ai_title = "";
+      data.ai_notes = "";
+      data.title = "";
+      data.audio = "";
+    }
+
+    if (status?.is_ready_to_interact) {
+      status.is_ready_to_interact = false;
+      status.ai_title = "";
+    }
+
+    // Only show success notification, as states are already reset optimistically
+    successNote({
+      title: "Audio removed",
+      description: "Audio removed successfully",
+    });
+
     resetPeer(
       { peerId: data?.id, strategyId, peerType: "audio" },
       {
-        onSuccess: (data) => {
-          // Optimistically reset all local states immediately for instant UI update
-          setUploadedAudio(null);
-          setFileName("");
-          setCurrentFile(null); // Clear the stored file
-          setAiResponse(null);
-          setProcessingState({
-            isProcessing: false,
-            isComplete: false,
-            error: null,
-          });
-          setUserNotes("");
-          setIsPlaying(false);
-          setCurrentTime(0);
-          setDuration(0);
-          setShowRecordingInterface(false);
-          setIsInitialLoadFromProps(true); // Reset flag so initial data can be re-evaluated if props change
-          if (fileInputRef.current) {
-            fileInputRef.current.value = "";
-          }
-
-          // Optimistically update the node data in React Flow to immediately affect `canConnect`
-          updateNodeData(id, {
-            audio: "",
-            title: "",
-            ai_notes: "",
-            ai_title: "",
-            ai_summary: "",
-            is_ready_to_interact: false, // Set to false immediately
-          });
-
-          if (status?.is_ready_to_interact) {
-            status.is_ready_to_interact = false;
-            status.ai_title = "";
-          }
-
-          // Only show success notification, as states are already reset optimistically
-          successNote({
-            title: "Audio removed",
-            description: data?.message ?? "Audio removed successfully",
-          });
-        },
         onError: (error: any) => {
           // If reset fails, show error. Consider reverting states if necessary for robust error handling.
           toast({
@@ -743,7 +749,6 @@ export default function AudioPlayerNode({
       (data?.is_ready_to_interact || status?.is_ready_to_interact),
     [data?.is_ready_to_interact, status?.is_ready_to_interact, isReseting]
   );
-  console.log({ data, canConnect, isReseting, status });
 
   // Remove connections when node becomes not connectable
   useEffect(() => {
@@ -752,7 +757,7 @@ export default function AudioPlayerNode({
         edges.filter((edge) => edge.source !== id && edge.target !== id)
       );
     }
-  }, [canConnect, id, setEdges]);
+  }, [canConnect, id, setEdges, data]);
 
   // Determine which interface to show
   const shouldShowUploadInterface = useMemo(

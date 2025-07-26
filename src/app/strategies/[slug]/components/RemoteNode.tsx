@@ -2,7 +2,7 @@
 
 import type React from "react";
 
-import { useState, useRef, useEffect, type ChangeEvent } from "react";
+import { useState, useRef, useEffect, type ChangeEvent, useMemo } from "react";
 import { Position, useReactFlow } from "@xyflow/react";
 import {
   DropdownMenu,
@@ -111,7 +111,6 @@ export default function RemoteNode({
   const nodeControlRef = useRef(null);
   const { setEdges, updateNodeData } = useReactFlow();
   const [websiteUrl, setWebsiteUrl] = useState<string>("");
-  const [canConnect, setCanConnect] = useState<boolean>(false);
   const [websiteData, setWebsiteData] = useState<WebsiteData | null>(null);
   const [urlValidation, setUrlValidation] = useState<URLValidationResult>({
     isValid: false,
@@ -347,36 +346,41 @@ export default function RemoteNode({
   };
 
   const handleRemoveWebsite = () => {
+    setWebsiteUrl("");
+    setWebsiteData(null);
+    setAiResponse(null);
+    setProcessingState({
+      isProcessing: false,
+      isComplete: false,
+      error: null,
+    });
+    setUserNotes("");
+    setUrlValidation({ isValid: false });
+    updateNodeData(id, {
+      is_ready_to_interact: false,
+      ai_title: "",
+      url: "",
+    });
+
+    if (data?.is_ready_to_interact) {
+      data.is_ready_to_interact = false;
+      data.ai_title = "";
+      data.url = "";
+    }
+
+    if (status?.is_ready_to_interact) {
+      status.is_ready_to_interact = false;
+      status.ai_title = "";
+    }
+
+    successNote({
+      title: "Link removed",
+      description: "Link removed successfully",
+    });
+
     resetPeer(
       { peerId: data?.id, strategyId, peerType: "remote" },
       {
-        onSuccess: (data) => {
-          setWebsiteUrl("");
-          setWebsiteData(null);
-          setAiResponse(null);
-          setProcessingState({
-            isProcessing: false,
-            isComplete: false,
-            error: null,
-          });
-          setUserNotes("");
-          setUrlValidation({ isValid: false });
-          updateNodeData(id, {
-            is_ready_to_interact: false,
-            ai_title: "",
-            url: "",
-          });
-
-          if (status?.is_ready_to_interact) {
-            status.is_ready_to_interact = false;
-            status.ai_title = "";
-          }
-
-          successNote({
-            title: "Link removed",
-            description: data?.message ?? "Link removed successfully",
-          });
-        },
         onError: (error: any) => {
           toast({
             title: "Failed to remove Link",
@@ -439,15 +443,6 @@ export default function RemoteNode({
     }
   };
 
-  // Remove connections when node becomes not connectable
-  useEffect(() => {
-    if (!canConnect) {
-      setEdges((edges) =>
-        edges.filter((edge) => edge.source !== id && edge.target !== id)
-      );
-    }
-  }, [canConnect, id, setEdges, data]);
-
   // Optionally, handle mutation error globally
   useEffect(() => {
     if (isAnalyzeError && analyzeError) {
@@ -477,13 +472,22 @@ export default function RemoteNode({
     }
   }, [status]);
 
+  // Modified canConnect to immediately reflect isReseting state
+  const canConnect = useMemo(
+    () =>
+      !isReseting &&
+      (data?.is_ready_to_interact || status?.is_ready_to_interact),
+    [data?.is_ready_to_interact, status?.is_ready_to_interact, isReseting]
+  );
+
+  // Remove connections when node becomes not connectable
   useEffect(() => {
-    if (data?.is_ready_to_interact || status?.is_ready_to_interact) {
-      setCanConnect(true);
-    } else {
-      setCanConnect(false);
+    if (!canConnect) {
+      setEdges((edges) =>
+        edges.filter((edge) => edge.source !== id && edge.target !== id)
+      );
     }
-  }, [data, status, websiteData]);
+  }, [canConnect, id, setEdges, data]);
 
   return (
     <NodeWrapper
