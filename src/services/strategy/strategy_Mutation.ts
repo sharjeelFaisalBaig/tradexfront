@@ -392,9 +392,7 @@ export const analyzeImagePeer = async ({
 }: {
   strategyId: string;
   peerId: string;
-  data: {
-    ai_notes?: string;
-  };
+  data: { ai_notes?: string };
 }) => {
   const res = await axiosInstance.post(
     endpoints.STRATEGY.ANALYZE_PEER({
@@ -404,6 +402,11 @@ export const analyzeImagePeer = async ({
     }),
     data
   );
+
+  if (res.status !== 200 || res.data?.success === false) {
+    throw new Error(res.data?.message || "Analyze failed");
+  }
+
   return res.data;
 };
 

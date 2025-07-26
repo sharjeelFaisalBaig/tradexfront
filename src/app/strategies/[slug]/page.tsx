@@ -1,9 +1,9 @@
+import { Suspense } from "react";
 import { ReactFlowProvider } from "@xyflow/react";
+import Loader from "@/components/common/Loader";
 import Strategy from "./components/Strategy";
 import "@xyflow/react/dist/style.css";
 import "../../reactflow.css";
-import { Suspense } from "react";
-import Loader from "@/components/common/Loader";
 
 interface PageProps {
   params: Promise<{ slug: string }>;

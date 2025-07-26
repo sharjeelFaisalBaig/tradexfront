@@ -1,7 +1,6 @@
 "use client";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type React from "react";
-
 import {
   ReactFlow,
   addEdge,
@@ -38,13 +37,17 @@ import StrategyHeader from "@/components/StrategyHeader";
 import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 import ChatBoxNode from "./ChatBoxNode";
 import { useNodeOperations } from "../hooks/useNodeOperations";
+import { UndoRedoControls } from "./common/UndoRedoControls";
+import { useUndoRedo } from "@/hooks/useUndoRedo";
 
 const nodeDefaults = {
   sourcePosition: Position.Right,
   targetPosition: Position.Left,
 };
+
 const initialNodes: any = [];
 const initialEdges: any = [];
+
 const nodeTypes = {
   chatbox: ChatBoxNode,
   imageUploadNode: ImageUploadNode,
@@ -56,9 +59,11 @@ const nodeTypes = {
   annotationNode: AnnotationNode,
   chartNode: ChartNode,
 };
+
 const edgeTypes = {
   styledEdge: StyledEdge,
 };
+
 const MIN_DISTANCE = 150;
 
 interface StrategyProps {
@@ -72,13 +77,95 @@ const Strategy = (props: StrategyProps) => {
   const { addToolNode } = useNodeOperations();
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
-  const { getInternalNode, screenToFlowPosition } = useReactFlow(); // Added screenToFlowPosition
+  const { getInternalNode, screenToFlowPosition } = useReactFlow();
   const [showNewStrategyModal, setShowNewStrategyModal] =
     useState<boolean>(false);
+
+  // Initialize undo/redo functionality
+  const {
+    saveToHistory,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    clearHistory,
+    resetUndoRedoFlag,
+  } = useUndoRedo(initialNodes, initialEdges);
+
   const { mutate: updatePeerPosition } = useUpdatePeerPosition();
   const { mutate: connectNodes } = useConnectNodes();
   const { data, isLoading, isError, error } = useGetStrategyById(strategyId);
   const strategy: IStrategy = useMemo(() => data?.data, [data]);
+
+  // Track when nodes or edges change to save to history
+  const [lastSavedState, setLastSavedState] = useState({
+    nodes: initialNodes,
+    edges: initialEdges,
+  });
+
+  // Save to history when nodes or edges change (debounced)
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      // Only save if the state actually changed
+      const nodesChanged =
+        JSON.stringify(nodes) !== JSON.stringify(lastSavedState.nodes);
+      const edgesChanged =
+        JSON.stringify(edges) !== JSON.stringify(lastSavedState.edges);
+
+      if (nodesChanged || edgesChanged) {
+        saveToHistory(nodes, edges);
+        setLastSavedState({ nodes, edges });
+      }
+
+      // Reset the undo/redo flag after a delay
+      resetUndoRedoFlag();
+    }, 500); // 500ms debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [nodes, edges, saveToHistory, resetUndoRedoFlag, lastSavedState]);
+
+  // Keyboard shortcuts for undo/redo
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const key = event.key.toLowerCase(); // Normalize case (z or Z → z)
+
+      // Ctrl/Cmd + Z (Undo)
+      if ((event.ctrlKey || event.metaKey) && !event.shiftKey && key === "z") {
+        event.preventDefault();
+        handleUndo();
+      }
+
+      // Ctrl/Cmd + Y (Redo) or Ctrl+Shift+Z (Redo)
+      else if (
+        (event.ctrlKey || event.metaKey) &&
+        (key === "y" || (event.shiftKey && key === "z"))
+      ) {
+        event.preventDefault();
+        handleRedo();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  // Handle undo operation
+  const handleUndo = useCallback(() => {
+    const previousState = undo();
+    if (previousState) {
+      setNodes(previousState.nodes);
+      setEdges(previousState.edges);
+    }
+  }, [undo, setNodes, setEdges]);
+
+  // Handle redo operation
+  const handleRedo = useCallback(() => {
+    const nextState = redo();
+    if (nextState) {
+      setNodes(nextState.nodes);
+      setEdges(nextState.edges);
+    }
+  }, [redo, setNodes, setEdges]);
 
   // Define the type for pasted/dropped content directly in this component
   type PastedContentType =
@@ -139,6 +226,7 @@ const Strategy = (props: StrategyProps) => {
             itemPromises.push(Promise.resolve(null));
             continue;
           }
+
           if (file.type.startsWith("image/")) {
             itemPromises.push(
               Promise.resolve({ type: "image-file", data: file })
@@ -224,14 +312,16 @@ const Strategy = (props: StrategyProps) => {
           break;
         }
       }
+
       return finalPastedItem;
     },
     []
-  ); // Empty dependency array as it doesn't depend on component state/props [^3]
+  );
 
   // Handle initial node creation and loading from flows
   useEffect(() => {
     if (!strategy) return;
+
     const flows = strategy.flows;
     const isEmptyFlows =
       Array.isArray(flows) &&
@@ -253,9 +343,12 @@ const Strategy = (props: StrategyProps) => {
 
     if (!flows || flows.length === 0 || isEmptyFlows) {
       console.log("Nodes not exists");
+      // Clear history when loading empty strategy
+      clearHistory([], []);
     } else {
       const flow = flows[0];
       if (!flow) return;
+
       const nodesFromFlows: any[] = [];
       const pushNodes = (peers: any[], type: string) => {
         if (!Array.isArray(peers)) return;
@@ -269,6 +362,7 @@ const Strategy = (props: StrategyProps) => {
           });
         });
       };
+
       pushNodes(flow.annotationPeers, "annotationNode");
       pushNodes(flow.aiImagePeers, "imageUploadNode");
       pushNodes(flow.aiAudioPeers, "audioPlayerNode");
@@ -277,6 +371,7 @@ const Strategy = (props: StrategyProps) => {
       pushNodes(flow.aiSocialMediaPeers, "socialMediaNode");
       pushNodes(flow.aiRemotePeers, "remoteNode");
       pushNodes(flow.aiThreadPeers, "chatbox");
+
       setNodes(nodesFromFlows);
 
       if (
@@ -294,8 +389,12 @@ const Strategy = (props: StrategyProps) => {
       } else {
         setEdges([]);
       }
+
+      // Initialize history with loaded data
+      // @ts-ignore
+      clearHistory(nodesFromFlows, flow.strategyFlowEdges || []);
     }
-  }, [strategy]);
+  }, [strategy, setNodes, setEdges, clearHistory]);
 
   useEffect(() => {
     if (error) {
@@ -315,9 +414,6 @@ const Strategy = (props: StrategyProps) => {
   // Renamed from handleCreateNodeOnPaste and modified to accept optional position
   const handleCreateNode = useCallback(
     (type: string, data?: any, position?: { x: number; y: number }) => {
-      // IMPORTANT: Ensure your useNodeOperations hook's addToolNode function
-      // accepts position_x and position_y parameters and uses them.
-      // Refer to the previous example for how to modify useNodeOperations.ts
       addToolNode({
         peerType: type,
         strategyId,
@@ -362,7 +458,6 @@ const Strategy = (props: StrategyProps) => {
       }
 
       const finalPastedItem = await processDataTransferItems(items);
-
       if (finalPastedItem.type !== "unknown") {
         console.log("Known Pasted Item:", finalPastedItem);
         // Call handleCreateNode based on the detected type
@@ -380,8 +475,8 @@ const Strategy = (props: StrategyProps) => {
             handleCreateNode("remote", finalPastedItem.data as string);
             break;
           case "image-file":
-          case "image-url": // Image URL is handled as an image type, but with a string URL
-            handleCreateNode("image", finalPastedItem.data); // data can be File or string
+          case "image-url":
+            handleCreateNode("image", finalPastedItem.data);
             break;
           case "video-file":
             handleCreateNode("video", finalPastedItem.data as File);
@@ -404,17 +499,19 @@ const Strategy = (props: StrategyProps) => {
 
     // Add event listener to the document
     document.addEventListener("paste", handlePaste);
+
     // Cleanup function to remove the event listener when the component unmounts
     return () => {
       document.removeEventListener("paste", handlePaste);
     };
-  }, [handleCreateNode, processDataTransferItems]); // Dependencies updated [^3]
+  }, [handleCreateNode, processDataTransferItems]);
 
   const onConnect = useCallback(
     (params: Connection) => {
       const sourceNode = nodes.find((n) => n.id === params.source);
       const targetNode = nodes.find((n) => n.id === params.target);
       const edgeId = `edge-${params.source}-${params.target}-${Date.now()}`;
+
       if (!sourceNode || !targetNode) return;
 
       setEdges((eds) =>
@@ -429,7 +526,7 @@ const Strategy = (props: StrategyProps) => {
         )
       );
 
-      // 2. Backend request
+      // Backend request
       connectNodes(
         {
           strategyId: strategy?.id,
@@ -447,7 +544,7 @@ const Strategy = (props: StrategyProps) => {
             });
           },
           onError: (error: any) => {
-            // 3. Revert edge on failure
+            // Revert edge on failure
             setEdges((eds) => eds.filter((e) => e.id !== edgeId));
             toast({
               title: "Connection failed",
@@ -459,13 +556,14 @@ const Strategy = (props: StrategyProps) => {
         }
       );
     },
-    [setEdges, nodes, connectNodes, strategy, toast]
+    [setEdges, nodes, connectNodes, strategy, toast, successNote]
   );
 
   const getClosestEdge = useCallback(
     (node: any) => {
       const { nodeLookup } = store.getState();
       const internalNode: any = getInternalNode(node.id);
+
       const closestNode = Array.from(nodeLookup.values()).reduce(
         (res: any, n: any) => {
           if (n.id !== internalNode.id) {
@@ -476,11 +574,13 @@ const Strategy = (props: StrategyProps) => {
               n.internals.positionAbsolute.y -
               internalNode.internals.positionAbsolute.y;
             const d = Math.sqrt(dx * dx + dy * dy);
+
             if (d < res.distance && d < MIN_DISTANCE) {
               res.distance = d;
               res.node = n;
             }
           }
+
           return res;
         },
         {
@@ -508,13 +608,15 @@ const Strategy = (props: StrategyProps) => {
       };
     },
     [getInternalNode, store]
-  ); // Added getInternalNode, store to dependencies [^3]
+  );
 
   const onNodeDrag = useCallback(
     (_: any, node: any) => {
       const closeEdge: any = getClosestEdge(node);
+
       setEdges((es) => {
         const nextEdges = es.filter((e: any) => e.className !== "temp");
+
         if (
           closeEdge &&
           !nextEdges.find(
@@ -527,6 +629,7 @@ const Strategy = (props: StrategyProps) => {
           closeEdge.animated = true;
           nextEdges.push(closeEdge);
         }
+
         return nextEdges;
       });
     },
@@ -536,8 +639,10 @@ const Strategy = (props: StrategyProps) => {
   const onNodeDragStop = useCallback(
     (_: any, node: any) => {
       const closeEdge: any = getClosestEdge(node);
+
       setEdges((es) => {
         const nextEdges = es.filter((e: any) => e.className !== "temp");
+
         if (
           closeEdge &&
           !nextEdges.find(
@@ -549,12 +654,12 @@ const Strategy = (props: StrategyProps) => {
           closeEdge.animated = true;
           nextEdges.push(closeEdge);
         }
+
         return nextEdges;
       });
 
       const peerType = getPeerTypeFromNodeType(node.type);
-
-      // ✅ Mutation call for updating peer position
+      // Mutation call for updating peer position
       if (node.id && node?.type && strategy?.id) {
         updatePeerPosition({
           strategyId: strategy?.id,
@@ -596,6 +701,7 @@ const Strategy = (props: StrategyProps) => {
           x: event.clientX,
           y: event.clientY,
         });
+
         console.log(
           "Known Dropped Item:",
           finalDroppedItem,
@@ -657,14 +763,6 @@ const Strategy = (props: StrategyProps) => {
     [screenToFlowPosition, handleCreateNode, processDataTransferItems]
   );
 
-  if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#f6f8fb] dark:bg-gray-900">
-        <Loader text="Loading strategy..." />
-      </div>
-    );
-  }
-
   if (isError) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -686,44 +784,62 @@ const Strategy = (props: StrategyProps) => {
       )}
       <StrategyHeader
         strategy={strategy}
+        isLoadingStrategy={isLoading}
         onEditStrategy={toggleNewStrategyModal}
       />
       <div className="flex flex-1 overflow-hidden">
         <StrategySidebar strategyId={strategyId} />
         <main className="relative flex-1 overflow-y-auto p-6">
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            nodeTypes={nodeTypes}
-            edgeTypes={edgeTypes}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onNodeDrag={onNodeDrag}
-            onNodeDragStop={onNodeDragStop}
-            onConnect={onConnect}
-            defaultViewport={{ x: 0, y: 0, zoom: 0.7578582832551992 }}
-            zoomOnScroll={true}
-            zoomOnPinch={true}
-            zoomOnDoubleClick={false}
-            panOnScroll={true}
-            panOnScrollSpeed={0.5}
-            defaultEdgeOptions={defaultEdgeOptions}
-            elementsSelectable={true}
-            fitView
-            fitViewOptions={{
-              padding: 0.5,
-              includeHiddenNodes: false,
-              duration: 300,
-            }}
-            minZoom={0.1}
-            maxZoom={2}
-            // New drag and drop props
-            onDragOver={onDragOver}
-            onDrop={onDrop}
-          >
-            <Background />
-            <Controls />
-          </ReactFlow>
+          {isLoading ? (
+            <div className="h-full flex items-center justify-center bg-[#f6f8fb] dark:bg-gray-900">
+              <Loader text="Loading strategy..." />
+            </div>
+          ) : (
+            <>
+              {/* Undo/Redo Controls */}
+              <div className="absolute top-4 left-4 z-10"></div>
+              <ReactFlow
+                nodes={nodes}
+                edges={edges}
+                nodeTypes={nodeTypes}
+                edgeTypes={edgeTypes}
+                onNodesChange={onNodesChange}
+                onEdgesChange={onEdgesChange}
+                onNodeDrag={onNodeDrag}
+                onNodeDragStop={onNodeDragStop}
+                onConnect={onConnect}
+                defaultViewport={{ x: 0, y: 0, zoom: 0.7578582832551992 }}
+                zoomOnScroll={true}
+                zoomOnPinch={true}
+                zoomOnDoubleClick={false}
+                panOnScroll={true}
+                panOnScrollSpeed={0.5}
+                defaultEdgeOptions={defaultEdgeOptions}
+                elementsSelectable={true}
+                fitView
+                fitViewOptions={{
+                  padding: 0.5,
+                  includeHiddenNodes: false,
+                  duration: 300,
+                }}
+                minZoom={0.1}
+                maxZoom={2}
+                onDragOver={onDragOver}
+                onDrop={onDrop}
+              >
+                <Background />
+
+                <Controls>
+                  <UndoRedoControls
+                    onUndo={handleUndo}
+                    onRedo={handleRedo}
+                    canUndo={canUndo}
+                    canRedo={canRedo}
+                  />
+                </Controls>
+              </ReactFlow>
+            </>
+          )}
         </main>
       </div>
     </div>

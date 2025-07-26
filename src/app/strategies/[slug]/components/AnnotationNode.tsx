@@ -25,6 +25,7 @@ import { useParams } from "next/navigation";
 import { useUpdateAnnotationContent } from "@/hooks/strategy/useStrategyMutations";
 import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 import { toast } from "@/hooks/use-toast";
+import { useUndoRedo } from "@/hooks/useUndoRedo";
 
 interface AnnotationNodeData {
   id?: string;
@@ -233,6 +234,15 @@ export default function AnnotationNode({
 
     setIsEditing(false);
 
+    setNodeData(data);
+    updateNodeData(id, { ...annotationData });
+    setContent(annotationData?.annotation_message ?? "");
+    setCurrentTheme(annotationData?.data?.color);
+    successNote({
+      title: "Annotation Node Updated",
+      description: "Annotation node updated successfully",
+    });
+
     updateAnnotation(
       {
         peerId: nodeData?.id ?? "",
@@ -240,16 +250,6 @@ export default function AnnotationNode({
         data: annotationData,
       },
       {
-        onSuccess: (data) => {
-          setNodeData(data);
-          updateNodeData(id, { ...data });
-          setContent(data?.data?.annotation_message ?? "");
-          setCurrentTheme(data?.data?.data?.color);
-          successNote({
-            title: "Annotation Node Updated",
-            description: "Annotation node updated successfully",
-          });
-        },
         onError: (error: any) => {
           toast({
             title: error?.message || "Failed To Update Node",

@@ -10,6 +10,30 @@ import { Input } from "@/components/ui/input";
 import { ArrowRight, HelpCircle, Loader2 } from "lucide-react";
 import { useRef } from "react";
 
+// Predefined color classes for Tailwind to generate at build time
+const colorClasses: Record<string, { input: string; button: string }> = {
+  purple: {
+    input: "focus:border-purple-500 focus:ring-purple-500",
+    button: "bg-purple-500 hover:bg-purple-600",
+  },
+  blue: {
+    input: "focus:border-blue-500 focus:ring-blue-500",
+    button: "bg-blue-500 hover:bg-blue-600",
+  },
+  cyan: {
+    input: "focus:border-cyan-500 focus:ring-cyan-500",
+    button: "bg-cyan-500 hover:bg-cyan-600",
+  },
+  red: {
+    input: "focus:border-red-500 focus:ring-red-500",
+    button: "bg-red-500 hover:bg-red-600",
+  },
+  green: {
+    input: "focus:border-green-500 focus:ring-green-500",
+    button: "bg-green-500 hover:bg-green-600",
+  },
+};
+
 interface AiNoteInputProps {
   color?: "purple" | "blue" | "red" | "green" | "cyan"; // restrict to valid colors
   note?: string;
@@ -19,6 +43,7 @@ interface AiNoteInputProps {
   isInputDisabled?: boolean;
   isButtonDisabled?: boolean;
   hideButton?: boolean;
+  readOnly?: boolean;
 }
 
 const AiNoteInput = (props: AiNoteInputProps) => {
@@ -31,37 +56,16 @@ const AiNoteInput = (props: AiNoteInputProps) => {
     isInputDisabled,
     isButtonDisabled,
     hideButton,
+    readOnly,
   } = props;
-
-  // Predefined color classes for Tailwind to generate at build time
-  const colorClasses: Record<string, { input: string; button: string }> = {
-    purple: {
-      input: "focus:border-purple-500 focus:ring-purple-500",
-      button: "bg-purple-500 hover:bg-purple-600",
-    },
-    blue: {
-      input: "focus:border-blue-500 focus:ring-blue-500",
-      button: "bg-blue-500 hover:bg-blue-600",
-    },
-    cyan: {
-      input: "focus:border-cyan-500 focus:ring-cyan-500",
-      button: "bg-cyan-500 hover:bg-cyan-600",
-    },
-    red: {
-      input: "focus:border-red-500 focus:ring-red-500",
-      button: "bg-red-500 hover:bg-red-600",
-    },
-    green: {
-      input: "focus:border-green-500 focus:ring-green-500",
-      button: "bg-green-500 hover:bg-green-600",
-    },
-  };
 
   const selectedColor = colorClasses[color] || colorClasses.purple;
 
   const inputRef = useRef<HTMLInputElement | any>(null);
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (hideButton || readOnly || isLoading) return;
+
     if (e.key === "Enter") {
       e.preventDefault();
       onButtonClick?.();
@@ -74,10 +78,13 @@ const AiNoteInput = (props: AiNoteInputProps) => {
       <div className="relative flex-1 flex items-center gap-2">
         <Input
           ref={inputRef}
+          readOnly={readOnly}
           placeholder="Add notes for AI to use..."
           value={note}
           onChange={(e) => setNote(e?.target?.value)}
-          className={`pr-8 border-gray-200 ${selectedColor.input}`}
+          className={`pr-8 border-gray-200 ${selectedColor.input} ${
+            readOnly || isLoading ? "cursor-not-allowed" : ""
+          }`}
           disabled={isInputDisabled}
           onKeyDown={handleKeyPress}
         />
@@ -99,7 +106,9 @@ const AiNoteInput = (props: AiNoteInputProps) => {
           </TooltipContent>
         </Tooltip>
       </div>
-      {!hideButton && (
+      {hideButton || readOnly ? (
+        <></>
+      ) : (
         <Button
           size="sm"
           type="button"

@@ -584,34 +584,44 @@ export default function VideoUploadNode({
   };
 
   const handleRemoveVideo = () => {
+    setUploadedVideo(null);
+    setFileName("");
+    setVideoMetadata(null);
+    setAiResponse(null);
+    setProcessingState({
+      isProcessing: false,
+      isComplete: false,
+      error: null,
+    });
+    setUploadState({ isUploading: false, isSuccess: false, error: null });
+    setUserNotes("");
+    setIsPlaying(false);
+    setCurrentTime(0);
+    setDuration(0);
+    setUploadedFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+
+    if (data?.is_ready_to_interact) {
+      data.is_ready_to_interact = false;
+      data.ai_title = "";
+      data.video = "";
+    }
+
+    if (status?.is_ready_to_interact) {
+      status.is_ready_to_interact = false;
+      status.ai_title = "";
+    }
+
+    successNote({
+      title: "Video removed",
+      description: data?.message ?? "Video removed successfully",
+    });
+
     resetPeer(
       { peerId: data?.id, strategyId, peerType: "video" },
       {
-        onSuccess: (data) => {
-          setUploadedVideo(null);
-          setFileName("");
-          setVideoMetadata(null);
-          setAiResponse(null);
-          setProcessingState({
-            isProcessing: false,
-            isComplete: false,
-            error: null,
-          });
-          setUploadState({ isUploading: false, isSuccess: false, error: null });
-          setUserNotes("");
-          setIsPlaying(false);
-          setCurrentTime(0);
-          setDuration(0);
-          setUploadedFile(null);
-          if (fileInputRef.current) {
-            fileInputRef.current.value = "";
-          }
-
-          successNote({
-            title: "Video removed",
-            description: data?.message ?? "Video removed successfully",
-          });
-        },
         onError: (error: any) => {
           setProcessingState({
             isProcessing: false,
@@ -667,11 +677,12 @@ export default function VideoUploadNode({
     fileName.toLowerCase().endsWith(".webm") ||
     videoMetadata?.type === "video/webm";
 
-  // Determine if connection should be allowed
-  // const canConnect: any = processingState.isComplete && aiResponse && !processingState.error;
+  // Modified canConnect to immediately reflect isReseting state
   const canConnect = useMemo(
-    () => data?.is_ready_to_interact || status?.is_ready_to_interact,
-    [data, status]
+    () =>
+      !isReseting &&
+      (data?.is_ready_to_interact || status?.is_ready_to_interact),
+    [data?.is_ready_to_interact, status?.is_ready_to_interact, isReseting]
   );
 
   // Remove connections when node becomes not connectable
@@ -681,7 +692,7 @@ export default function VideoUploadNode({
         edges.filter((edge) => edge.source !== id && edge.target !== id)
       );
     }
-  }, [canConnect, id, setEdges]);
+  }, [canConnect, id, setEdges, data]);
 
   return (
     <>
@@ -1221,12 +1232,14 @@ export default function VideoUploadNode({
                     <AiNoteInput
                       color="blue"
                       note={userNotes}
-                      setNote={(val) => setUserNotes(val ?? "")}
-                      isLoading={isAnalyzing}
+                      readOnly={canConnect}
+                      hideButton={canConnect}
+                      isLoading={isAnalyzing || isStatusPollingLoading}
                       isInputDisabled={processingState.isProcessing}
                       isButtonDisabled={
                         processingState.isProcessing || isAnalyzing
                       }
+                      setNote={(val) => setUserNotes(val ?? "")}
                       onButtonClick={() => {
                         analyzeVideoContent({
                           data: { ai_notes: userNotes },

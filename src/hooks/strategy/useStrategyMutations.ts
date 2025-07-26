@@ -63,14 +63,9 @@ export const useUpdateStrategy = () => {
       updateStrategy(id, data),
     onSuccess: (_data, { id }) => {
       queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.STRATEGIES, QUERY_KEYS.STRATEGY, id],
+        queryKey: [QUERY_KEYS.STRATEGY, id],
       });
     },
-    // onSuccess: (_, data) => {
-    //   queryClient.invalidateQueries({
-    //     queryKey: [QUERY_KEYS.STRATEGIES, QUERY_KEYS.STRATEGY, data.id],
-    //   });
-    // },
   });
 };
 
@@ -395,11 +390,11 @@ export const useDeleteAnnotationPeer = () => {
       strategyId: string;
       peerId: string;
     }) => deleteAnnotationPeer({ strategyId, peerId }),
-    onSuccess: (_data, { strategyId }) => {
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.STRATEGY, strategyId],
-      });
-    },
+    // onSuccess: (_data, { strategyId }) => {
+    //   queryClient.invalidateQueries({
+    //     queryKey: [QUERY_KEYS.STRATEGY, strategyId],
+    //   });
+    // },
   });
 };
 
@@ -414,11 +409,11 @@ export const useDeleteImagePeer = () => {
       strategyId: string;
       peerId: string;
     }) => deleteImagePeer({ strategyId, peerId }),
-    onSuccess: (_data, { strategyId }) => {
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.STRATEGY, strategyId],
-      });
-    },
+    // onSuccess: (_data, { strategyId }) => {
+    //   queryClient.invalidateQueries({
+    //     queryKey: [QUERY_KEYS.STRATEGY, strategyId],
+    //   });
+    // },
   });
 };
 
@@ -433,11 +428,11 @@ export const useDeleteAudioPeer = () => {
       strategyId: string;
       peerId: string;
     }) => deleteAudioPeer({ strategyId, peerId }),
-    onSuccess: (_data, { strategyId }) => {
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.STRATEGY, strategyId],
-      });
-    },
+    // onSuccess: (_data, { strategyId }) => {
+    //   queryClient.invalidateQueries({
+    //     queryKey: [QUERY_KEYS.STRATEGY, strategyId],
+    //   });
+    // },
   });
 };
 
@@ -452,11 +447,11 @@ export const useDeleteVideoPeer = () => {
       strategyId: string;
       peerId: string;
     }) => deleteVideoPeer({ strategyId, peerId }),
-    onSuccess: (_data, { strategyId }) => {
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.STRATEGY, strategyId],
-      });
-    },
+    // onSuccess: (_data, { strategyId }) => {
+    //   queryClient.invalidateQueries({
+    //     queryKey: [QUERY_KEYS.STRATEGY, strategyId],
+    //   });
+    // },
   });
 };
 
@@ -471,11 +466,11 @@ export const useDeleteDocumentPeer = () => {
       strategyId: string;
       peerId: string;
     }) => deleteDocumentPeer({ strategyId, peerId }),
-    onSuccess: (_data, { strategyId }) => {
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.STRATEGY, strategyId],
-      });
-    },
+    // onSuccess: (_data, { strategyId }) => {
+    //   queryClient.invalidateQueries({
+    //     queryKey: [QUERY_KEYS.STRATEGY, strategyId],
+    //   });
+    // },
   });
 };
 
@@ -490,11 +485,11 @@ export const useDeleteSocialPeer = () => {
       strategyId: string;
       peerId: string;
     }) => deleteSocialPeer({ strategyId, peerId }),
-    onSuccess: (_data, { strategyId }) => {
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.STRATEGY, strategyId],
-      });
-    },
+    // onSuccess: (_data, { strategyId }) => {
+    //   queryClient.invalidateQueries({
+    //     queryKey: [QUERY_KEYS.STRATEGY, strategyId],
+    //   });
+    // },
   });
 };
 
@@ -509,11 +504,11 @@ export const useDeleteRemotePeer = () => {
       strategyId: string;
       peerId: string;
     }) => deleteRemotePeer({ strategyId, peerId }),
-    onSuccess: (_data, { strategyId }) => {
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.STRATEGY, strategyId],
-      });
-    },
+    // onSuccess: (_data, { strategyId }) => {
+    //   queryClient.invalidateQueries({
+    //     queryKey: [QUERY_KEYS.STRATEGY, strategyId],
+    //   });
+    // },
   });
 };
 
@@ -528,11 +523,11 @@ export const useDeleteThreadPeer = () => {
       strategyId: string;
       peerId: string;
     }) => deleteThreadPeer({ strategyId, peerId }),
-    onSuccess: (_data, { strategyId }) => {
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.STRATEGY, strategyId],
-      });
-    },
+    // onSuccess: (_data, { strategyId }) => {
+    //   queryClient.invalidateQueries({
+    //     queryKey: [QUERY_KEYS.STRATEGY, strategyId],
+    //   });
+    // },
   });
 };
 
@@ -826,11 +821,11 @@ export const useResetPeer = () => {
       peerType: string;
       strategyId: string;
     }) => resetPeer({ strategyId, peerId, peerType }),
-    onSuccess: (_data, { strategyId }) => {
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.STRATEGY, strategyId],
-      });
-    },
+    // onSuccess: (_data, { strategyId }) => {
+    //   queryClient.invalidateQueries({
+    //     queryKey: [QUERY_KEYS.STRATEGY, strategyId],
+    //   });
+    // },
   });
 };
 

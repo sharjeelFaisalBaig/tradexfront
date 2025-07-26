@@ -234,10 +234,21 @@ export const useNodeOperations = () => {
       };
 
       const mutation = deleteMutationMap[nodeType];
+
       if (mutation) {
+        removeNodeFromState();
         mutation(
           { strategyId, peerId: nodeId },
-          { onSuccess: removeNodeFromState }
+          {
+            onError: (error: any) => {
+              toast({
+                title: "Failed to delete node",
+                description:
+                  error?.response?.data?.message ?? "Something went wrong...",
+                variant: "destructive",
+              });
+            },
+          }
         );
       } else {
         // fallback: just remove from state
