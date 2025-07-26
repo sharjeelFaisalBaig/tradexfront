@@ -20,10 +20,15 @@ import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 
 interface HeaderInterface {
   strategy?: IStrategy | null;
+  isLoadingStrategy?: boolean;
   onEditStrategy?: (data?: IStrategy | null) => void;
 }
 
-const StrategyHeader = ({ strategy, onEditStrategy }: HeaderInterface) => {
+const StrategyHeader = ({
+  strategy,
+  onEditStrategy,
+  isLoadingStrategy,
+}: HeaderInterface) => {
   const router = useRouter();
   const successNote = useSuccessNotifier();
   const [showNotifications, setShowNotifications] = useState(false);
@@ -47,12 +52,15 @@ const StrategyHeader = ({ strategy, onEditStrategy }: HeaderInterface) => {
               <ChevronLeft className="!text-lg" />
               Back
             </Button>
-            <h3 className="text-xl font-medium">{strategy?.name ?? ""}</h3>
+            <h3 className="text-xl font-medium">
+              {isLoadingStrategy ? "Loading strategy..." : strategy?.name ?? ""}
+            </h3>
             <Button
               size="sm"
               variant="ghost"
               className="flex items-center rounded-10p"
               onClick={() => onEditStrategy?.(strategy)}
+              disabled={isLoadingStrategy}
             >
               <PencilLine />
             </Button>

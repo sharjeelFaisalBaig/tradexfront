@@ -763,14 +763,6 @@ const Strategy = (props: StrategyProps) => {
     [screenToFlowPosition, handleCreateNode, processDataTransferItems]
   );
 
-  if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#f6f8fb] dark:bg-gray-900">
-        <Loader text="Loading strategy..." />
-      </div>
-    );
-  }
-
   if (isError) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -792,53 +784,61 @@ const Strategy = (props: StrategyProps) => {
       )}
       <StrategyHeader
         strategy={strategy}
+        isLoadingStrategy={isLoading}
         onEditStrategy={toggleNewStrategyModal}
       />
       <div className="flex flex-1 overflow-hidden">
         <StrategySidebar strategyId={strategyId} />
         <main className="relative flex-1 overflow-y-auto p-6">
-          {/* Undo/Redo Controls */}
-          <div className="absolute top-4 left-4 z-10">
-            <UndoRedoControls
-              onUndo={handleUndo}
-              onRedo={handleRedo}
-              canUndo={canUndo}
-              canRedo={canRedo}
-            />
-          </div>
-
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            nodeTypes={nodeTypes}
-            edgeTypes={edgeTypes}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onNodeDrag={onNodeDrag}
-            onNodeDragStop={onNodeDragStop}
-            onConnect={onConnect}
-            defaultViewport={{ x: 0, y: 0, zoom: 0.7578582832551992 }}
-            zoomOnScroll={true}
-            zoomOnPinch={true}
-            zoomOnDoubleClick={false}
-            panOnScroll={true}
-            panOnScrollSpeed={0.5}
-            defaultEdgeOptions={defaultEdgeOptions}
-            elementsSelectable={true}
-            fitView
-            fitViewOptions={{
-              padding: 0.5,
-              includeHiddenNodes: false,
-              duration: 300,
-            }}
-            minZoom={0.1}
-            maxZoom={2}
-            onDragOver={onDragOver}
-            onDrop={onDrop}
-          >
-            <Background />
-            <Controls />
-          </ReactFlow>
+          {isLoading ? (
+            <div className="h-full flex items-center justify-center bg-[#f6f8fb] dark:bg-gray-900">
+              <Loader text="Loading strategy..." />
+            </div>
+          ) : (
+            <>
+              {/* Undo/Redo Controls */}
+              <div className="absolute top-4 left-4 z-10">
+                <UndoRedoControls
+                  onUndo={handleUndo}
+                  onRedo={handleRedo}
+                  canUndo={canUndo}
+                  canRedo={canRedo}
+                />
+              </div>
+              <ReactFlow
+                nodes={nodes}
+                edges={edges}
+                nodeTypes={nodeTypes}
+                edgeTypes={edgeTypes}
+                onNodesChange={onNodesChange}
+                onEdgesChange={onEdgesChange}
+                onNodeDrag={onNodeDrag}
+                onNodeDragStop={onNodeDragStop}
+                onConnect={onConnect}
+                defaultViewport={{ x: 0, y: 0, zoom: 0.7578582832551992 }}
+                zoomOnScroll={true}
+                zoomOnPinch={true}
+                zoomOnDoubleClick={false}
+                panOnScroll={true}
+                panOnScrollSpeed={0.5}
+                defaultEdgeOptions={defaultEdgeOptions}
+                elementsSelectable={true}
+                fitView
+                fitViewOptions={{
+                  padding: 0.5,
+                  includeHiddenNodes: false,
+                  duration: 300,
+                }}
+                minZoom={0.1}
+                maxZoom={2}
+                onDragOver={onDragOver}
+                onDrop={onDrop}
+              >
+                <Background />
+                <Controls />
+              </ReactFlow>
+            </>
+          )}
         </main>
       </div>
     </div>

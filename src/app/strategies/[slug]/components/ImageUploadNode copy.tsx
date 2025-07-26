@@ -16,7 +16,15 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
-import { X, Plus, Upload, Lightbulb, Loader2 } from "lucide-react";
+import {
+  X,
+  Plus,
+  Upload,
+  Lightbulb,
+  Loader2,
+  Shield,
+  CheckCircle,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import NodeWrapper from "./common/NodeWrapper";
 import {
@@ -30,7 +38,6 @@ import { toast } from "@/hooks/use-toast";
 import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 import AiNoteInput from "./common/AiNoteInput";
 import NodeHandle from "./common/NodeHandle";
-import IsReadyToInteract from "./common/IsReadyToInteract";
 
 // Types for API integration
 interface AIProcessingResponse {
@@ -60,19 +67,13 @@ export default function ImageUploadNode({
   const successNote = useSuccessNotifier();
 
   const { mutate: resetPeer, isPending: isReseting } = useResetPeer();
-  const {
-    mutate: uploadImageContent,
-    isPending: isUploading,
-    isError: isUploadError,
-    error: uploadError,
-  } = useUploadImageContent();
+  const { mutate: uploadImageContent, isPending: isUploading } =
+    useUploadImageContent();
 
   const {
     mutate: analyzeImageContent,
     isPending: isAnalyzing,
     isSuccess: isAnalyzeSuccess,
-    isError: isAnalyzeError,
-    error: analyzeError,
   } = useAnalyzeImagePeer();
 
   const nodeControlRef = useRef(null);
@@ -80,22 +81,22 @@ export default function ImageUploadNode({
   const { setEdges, updateNodeData } = useReactFlow();
 
   // Image states
-  const [isDragOver, setIsDragOver] = useState(false);
-  const [fileName, setFileName] = useState<string>("");
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
-
-  // AI Response states
-  const [userNotes, setUserNotes] = useState<string>("");
-  const [aiResponse, setAiResponse] = useState<AIProcessingResponse | null>(
-    null
-  );
+  const [fileName, setFileName] = useState<string>("");
+  const [isDragOver, setIsDragOver] = useState(false);
 
   // Processing states
   const [processingState, setProcessingState] = useState<ProcessingState>({
     isProcessing: false,
     isComplete: false,
-    error: "",
+    error: null,
   });
+
+  // AI Response states
+  const [aiResponse, setAiResponse] = useState<AIProcessingResponse | null>(
+    null
+  );
+  const [userNotes, setUserNotes] = useState<string>("");
 
   // Only poll for status if analysis is successful
   const { data: status, isPollingLoading: isStatusPollingLoading } =
@@ -152,6 +153,54 @@ export default function ImageUploadNode({
     }
   }, [data]);
 
+  // AI responses for different image types
+  const processImage = (filename: string): AIProcessingResponse => {
+    return {
+      title: "Urban Sunset Photography",
+      peerId: "peer_7x9k2m4n8p",
+      analysis:
+        "This image captures a stunning urban sunset with warm golden tones illuminating modern architecture. The composition demonstrates excellent use of natural lighting and geometric patterns.",
+      confidence: 0.94,
+      tags: ["sunset", "urban", "architecture", "golden hour", "cityscape"],
+    };
+  };
+
+  // API Integration Function
+  const processImageWithAI = async (imageData: string, filename: string) => {
+    setProcessingState({
+      isProcessing: true,
+      isComplete: false,
+      error: null,
+    });
+
+    try {
+      // Simulate API processing time (2-4 seconds)
+      const processingTime = Math.random() * 2000 + 2000;
+
+      await new Promise((resolve) => setTimeout(resolve, processingTime));
+
+      // throw new Error("AI service temporarily unavailable")
+
+      // Get AI response
+      const result = processImage(filename);
+
+      // Update states with API response
+      setAiResponse(result);
+      setProcessingState({
+        isProcessing: false,
+        isComplete: true,
+        error: null,
+      });
+    } catch (error) {
+      setProcessingState({
+        isProcessing: false,
+        isComplete: false,
+        error: error instanceof Error ? error.message : "Processing failed",
+      });
+      console.error("AI Processing Error:", error);
+    }
+  };
+
   const handleFileSelect = (file: File) => {
     // Supported formats: JPEG, PNG, WEBP, GIF (static only)
     const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
@@ -198,30 +247,19 @@ export default function ImageUploadNode({
 
   // Helper to handle valid image
   const proceedWithImage = (file: File) => {
-    console.log("proceedWithImage FUnction called...!");
-
     setProcessingState({
       isProcessing: true,
       isComplete: false,
       error: null,
     });
-
     setFileName(file.name);
 
+    // Show the selected image immediately
     const reader = new FileReader();
-    reader.onload = (e) => setUploadedImage(e.target?.result as string);
-    reader.onerror = () =>
-      setProcessingState(() => ({
-        isProcessing: false,
-        isComplete: false,
-        error: "Failed to read image file",
-      }));
-    reader.onabort = () =>
-      setProcessingState(() => ({
-        isProcessing: false,
-        isComplete: false,
-        error: "Image reading aborted",
-      }));
+    reader.onload = (e) => {
+      const imageData = e.target?.result as string;
+      setUploadedImage(imageData);
+    };
     reader.readAsDataURL(file);
 
     const formData = new FormData();
@@ -229,36 +267,31 @@ export default function ImageUploadNode({
     formData.append("title", "");
     formData.append("description", "");
 
-    const handleError = (message: string, error: any) => {
-      console.log("handleError called");
-
-      setProcessingState(() => ({
-        isProcessing: false,
-        isComplete: false,
-        error: error?.response?.data?.message || message,
-      }));
-    };
-
     uploadImageContent(
-      { strategyId, peerId: data?.id, data: formData },
       {
-        onSuccess: (response) => {
-          if (response?.imageUrl) setUploadedImage(response.imageUrl);
-
-          analyzeImageContent(
-            { strategyId, peerId: data?.id, data: { ai_notes: userNotes } },
-            {
-              onSuccess: () =>
-                setProcessingState(() => ({
-                  isProcessing: false,
-                  isComplete: true,
-                  error: null,
-                })),
-              onError: (error) => handleError("Failed to analyze image", error),
-            }
-          );
+        strategyId: strategyId,
+        peerId: data?.id,
+        data: formData,
+      },
+      {
+        onSuccess: (response: any) => {
+          // If response has imageUrl, show it (replace preview with uploaded url)
+          if (response?.imageUrl) {
+            setUploadedImage(response.imageUrl);
+          }
+          setProcessingState({
+            isProcessing: false,
+            isComplete: true,
+            error: null,
+          });
         },
-        onError: (error) => handleError("Failed to upload image", error),
+        onError: (error: any) => {
+          setProcessingState({
+            isProcessing: false,
+            isComplete: false,
+            error: error?.response?.data?.message || "Image upload failed",
+          });
+        },
       }
     );
   };
@@ -361,6 +394,12 @@ export default function ImageUploadNode({
     );
   };
 
+  const handleReprocess = () => {
+    if (uploadedImage && fileName) {
+      processImageWithAI(uploadedImage, fileName);
+    }
+  };
+
   // If data has imageUrl and is_ready_to_interact, show image and allow connect
   useEffect(() => {
     if (data?.imageUrl) {
@@ -385,28 +424,6 @@ export default function ImageUploadNode({
       );
     }
   }, [canConnect, id, setEdges, data]);
-
-  // dont remove it
-  //  // on call
-  //   setProcessingState({
-  //     isProcessing: true,
-  //     isComplete: false,
-  //     error: null,
-  //   });
-  //   // on success
-  //   setProcessingState({
-  //     isProcessing: false,
-  //     isComplete: true,
-  //     error: null,
-  //   });
-  //   // on error
-  //   setProcessingState({
-  //     isProcessing: false,
-  //     isComplete: false,
-  //     error: error instanceof Error ? error.message : "Processing failed",
-  //   });
-
-  console.log({ processingState, isAnalyzeError, analyzeError, uploadError });
 
   return (
     <>
@@ -545,12 +562,45 @@ export default function ImageUploadNode({
                     </div>
 
                     <div className="flex items-center gap-2">
-                      {!processingState.isProcessing && uploadedImage && (
-                        <IsReadyToInteract
-                          canConnect={canConnect}
-                          isLoading={isStatusPollingLoading}
-                        />
+                      {isStatusPollingLoading && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="text-sm">Preparing to connect...</p>
+                          </TooltipContent>
+                        </Tooltip>
                       )}
+
+                      {canConnect && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <CheckCircle className="w-4 h-4 text-green-500" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="text-sm">
+                              Ready to connect to other nodes
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+
+                      {!canConnect &&
+                        !isStatusPollingLoading &&
+                        !processingState.isProcessing &&
+                        uploadedImage && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Shield className="w-4 h-4 text-yellow-500" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="text-sm">
+                                Complete analysis to enable connections
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
                     </div>
                   </div>
 
@@ -594,39 +644,7 @@ export default function ImageUploadNode({
                   </div>
 
                   {/* Error State */}
-                  {(isAnalyzeError || isUploadError) && (
-                    <div className="px-4">
-                      <div className="bg-red-50 p-3 rounded-lg">
-                        <div className="text-xs text-red-600 font-medium mb-1">
-                          Processing Error
-                        </div>
-                        <div className="text-sm text-red-700 mb-2">
-                          {isAnalyzeError
-                            ? // @ts-ignore
-                              analyzeError?.response?.data?.message
-                            : ""}
-                          {isUploadError
-                            ? // @ts-ignore
-                              uploadError?.response?.data?.message
-                            : ""}
-                        </div>
-                        <Button
-                          onClick={() => {
-                            if (isUploadError) {
-                            }
-                            if (isAnalyzeError) {
-                            }
-                          }}
-                          size="sm"
-                          variant="outline"
-                          className="text-red-600 border-red-200 hover:bg-red-50 bg-transparent"
-                        >
-                          Retry Processing
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                  {/* {processingState.error && (
+                  {processingState.error && (
                     <div className="px-4">
                       <div className="bg-red-50 p-3 rounded-lg">
                         <div className="text-xs text-red-600 font-medium mb-1">
@@ -636,12 +654,7 @@ export default function ImageUploadNode({
                           {processingState.error}
                         </div>
                         <Button
-                          onClick={() => {
-                            if (isUploadError) {
-                            }
-                            if (isAnalyzeError) {
-                            }
-                          }}
+                          onClick={handleReprocess}
                           size="sm"
                           variant="outline"
                           className="text-red-600 border-red-200 hover:bg-red-50 bg-transparent"
@@ -650,15 +663,15 @@ export default function ImageUploadNode({
                         </Button>
                       </div>
                     </div>
-                  )} */}
+                  )}
 
                   {/* Notes Input */}
                   <div className="px-4 pb-4">
                     <AiNoteInput
                       color="blue"
                       note={userNotes}
-                      // readOnly={canConnect}
-                      // hideButton={canConnect}
+                      readOnly={canConnect}
+                      hideButton={canConnect}
                       isLoading={isAnalyzing || isStatusPollingLoading}
                       setNote={(val) => setUserNotes(val ?? "")}
                       isInputDisabled={processingState.isProcessing}
