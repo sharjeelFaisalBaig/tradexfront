@@ -34,8 +34,6 @@ export const useUndoRedo = (
       data: { ...n.data }, // Clone file state or any other dynamic data
     }));
 
-  console.log({ cloneNodes });
-
   // Save current state to history
   const saveToHistory = useCallback(
     (nodes: Node[], edges: Edge[]) => {
