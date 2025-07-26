@@ -24,6 +24,44 @@ export const UndoRedoControls = ({
 }: UndoRedoControlsProps) => {
   return (
     <TooltipProvider>
+      <div className="flex flex-col">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              onClick={onUndo}
+              disabled={!canUndo}
+              className="react-flow__controls-button react-flow__controls-interactive"
+            >
+              <img src="/undo-2.svg" alt="" className="h-4 w-4" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Undo (Ctrl+Z)</p>
+          </TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              onClick={onRedo}
+              disabled={!canRedo}
+              className="react-flow__controls-button react-flow__controls-interactive"
+            >
+              <img src="/redo-2.svg" alt="" className="h-4 w-4" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Redo (Ctrl+Y)</p>
+          </TooltipContent>
+        </Tooltip>
+      </div>
+    </TooltipProvider>
+  );
+
+  return (
+    <TooltipProvider>
       <div className="flex gap-2 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-md border">
         <Tooltip>
           <TooltipTrigger asChild>

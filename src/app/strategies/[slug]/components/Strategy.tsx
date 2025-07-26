@@ -797,14 +797,7 @@ const Strategy = (props: StrategyProps) => {
           ) : (
             <>
               {/* Undo/Redo Controls */}
-              <div className="absolute top-4 left-4 z-10">
-                <UndoRedoControls
-                  onUndo={handleUndo}
-                  onRedo={handleRedo}
-                  canUndo={canUndo}
-                  canRedo={canRedo}
-                />
-              </div>
+              <div className="absolute top-4 left-4 z-10"></div>
               <ReactFlow
                 nodes={nodes}
                 edges={edges}
@@ -835,7 +828,15 @@ const Strategy = (props: StrategyProps) => {
                 onDrop={onDrop}
               >
                 <Background />
-                <Controls />
+
+                <Controls>
+                  <UndoRedoControls
+                    onUndo={handleUndo}
+                    onRedo={handleRedo}
+                    canUndo={canUndo}
+                    canRedo={canRedo}
+                  />
+                </Controls>
               </ReactFlow>
             </>
           )}
