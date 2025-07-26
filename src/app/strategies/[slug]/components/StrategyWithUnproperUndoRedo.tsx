@@ -39,7 +39,7 @@ import StrategyHeader from "@/components/StrategyHeader";
 import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 import ChatBoxNode from "./ChatBoxNode";
 import { useNodeOperations } from "../hooks/useNodeOperations";
-import { useUndoRedo } from "@/hooks/useUndoRedo";
+import { useUndoRedo } from "@/hooks/useUndoRedo copy";
 import { UndoRedoControls } from "./common/UndoRedoControls";
 
 const nodeDefaults = {
