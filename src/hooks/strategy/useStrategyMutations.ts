@@ -523,11 +523,11 @@ export const useDeleteThreadPeer = () => {
       strategyId: string;
       peerId: string;
     }) => deleteThreadPeer({ strategyId, peerId }),
-    onSuccess: (_data, { strategyId }) => {
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.STRATEGY, strategyId],
-      });
-    },
+    // onSuccess: (_data, { strategyId }) => {
+    //   queryClient.invalidateQueries({
+    //     queryKey: [QUERY_KEYS.STRATEGY, strategyId],
+    //   });
+    // },
   });
 };
 

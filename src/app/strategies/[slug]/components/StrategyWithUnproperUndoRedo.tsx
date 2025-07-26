@@ -1,7 +1,6 @@
 "use client";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type React from "react";
-
 import {
   ReactFlow,
   addEdge,
@@ -12,6 +11,7 @@ import {
   useReactFlow,
   type Connection,
   Controls,
+  Edge,
 } from "@xyflow/react";
 import { Position } from "@xyflow/react";
 import ImageUploadNode from "./ImageUploadNode";
@@ -32,19 +32,24 @@ import ChartNode from "./ChartNode";
 import {
   useUpdatePeerPosition,
   useConnectNodes,
+  useDisconnectNodes,
 } from "@/hooks/strategy/useStrategyMutations";
 import { getPeerTypeFromNodeType } from "@/lib/utils";
 import StrategyHeader from "@/components/StrategyHeader";
 import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 import ChatBoxNode from "./ChatBoxNode";
 import { useNodeOperations } from "../hooks/useNodeOperations";
+import { useUndoRedo } from "@/hooks/useUndoRedo";
+import { UndoRedoControls } from "./common/UndoRedoControls";
 
 const nodeDefaults = {
   sourcePosition: Position.Right,
   targetPosition: Position.Left,
 };
+
 const initialNodes: any = [];
 const initialEdges: any = [];
+
 const nodeTypes = {
   chatbox: ChatBoxNode,
   imageUploadNode: ImageUploadNode,
@@ -56,9 +61,11 @@ const nodeTypes = {
   annotationNode: AnnotationNode,
   chartNode: ChartNode,
 };
+
 const edgeTypes = {
   styledEdge: StyledEdge,
 };
+
 const MIN_DISTANCE = 150;
 
 interface StrategyProps {
@@ -69,16 +76,488 @@ const Strategy = (props: StrategyProps) => {
   const { slug: strategyId } = props;
   const store = useStoreApi();
   const successNote = useSuccessNotifier();
-  const { addToolNode } = useNodeOperations();
+  const { addToolNode, deleteNode } = useNodeOperations();
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
-  const { getInternalNode, screenToFlowPosition } = useReactFlow(); // Added screenToFlowPosition
+  const { getInternalNode, screenToFlowPosition } = useReactFlow();
   const [showNewStrategyModal, setShowNewStrategyModal] =
     useState<boolean>(false);
+
   const { mutate: updatePeerPosition } = useUpdatePeerPosition();
   const { mutate: connectNodes } = useConnectNodes();
+  const { mutate: disconnectNodes } = useDisconnectNodes();
   const { data, isLoading, isError, error } = useGetStrategyById(strategyId);
   const strategy: IStrategy = useMemo(() => data?.data, [data]);
+
+  // Track when nodes or edges change to save to history
+  const [lastSavedState, setLastSavedState] = useState({
+    nodes: initialNodes,
+    edges: initialEdges,
+  });
+
+  // API call handler for undo/redo operations
+  const handleApiCall = useCallback(
+    async (actionMetadata: any, isUndo: boolean, isRedo: boolean) => {
+      const {
+        type,
+        nodeData,
+        edgeData,
+        nodeId,
+        edgeId,
+        previousPosition,
+        newPosition,
+        sourceNodeId,
+        targetNodeId,
+      } = actionMetadata;
+
+      console.log(`🌐 API Handler called:`, {
+        action: type,
+        isUndo,
+        isRedo,
+        description: actionMetadata.description,
+        metadata: actionMetadata,
+      });
+
+      try {
+        switch (type) {
+          case "NODE_CREATE":
+            if (isUndo) {
+              // API: Delete the node that was created
+              console.log(`🗑️ Action: UNDO Node Creation → API: deleteNode`);
+              console.log(
+                `📡 API Call: deleteNode(${nodeId}, ${getPeerTypeFromNodeType(
+                  nodeData?.type
+                )}, ${strategyId})`
+              );
+
+              if (nodeId && nodeData?.type) {
+                const peerType = getPeerTypeFromNodeType(nodeData.type);
+                deleteNode(nodeId, peerType, strategyId);
+              }
+            } else if (isRedo) {
+              // API: Recreate the node
+              console.log(`➕ Action: REDO Node Creation → API: addToolNode`);
+              console.log(
+                `📡 API Call: addToolNode({ peerType: ${getPeerTypeFromNodeType(
+                  nodeData?.type
+                )}, strategyId: ${strategyId}, positionXY: ${JSON.stringify(
+                  nodeData?.position
+                )} })`
+              );
+
+              if (nodeData) {
+                const peerType = getPeerTypeFromNodeType(nodeData.type);
+                addToolNode({
+                  peerType: peerType,
+                  strategyId,
+                  positionXY: {
+                    x: nodeData.position?.x,
+                    y: nodeData.position?.y,
+                  },
+                });
+              }
+            }
+            break;
+
+          case "NODE_DELETE":
+            if (isUndo) {
+              // API: Recreate the deleted node
+              console.log(`➕ Action: UNDO Node Deletion → API: addToolNode`);
+              console.log(
+                `📡 API Call: addToolNode({ peerType: ${getPeerTypeFromNodeType(
+                  nodeData?.type
+                )}, strategyId: ${strategyId}, positionXY: ${JSON.stringify(
+                  nodeData?.position
+                )} })`
+              );
+
+              if (nodeData) {
+                const peerType = getPeerTypeFromNodeType(nodeData.type);
+                addToolNode({
+                  peerType: peerType,
+                  strategyId,
+                  positionXY: {
+                    x: nodeData.position?.x,
+                    y: nodeData.position?.y,
+                  },
+                });
+              }
+            } else if (isRedo) {
+              // API: Delete the node again
+              console.log(`🗑️ Action: REDO Node Deletion → API: deleteNode`);
+              console.log(
+                `📡 API Call: deleteNode(${nodeId}, ${getPeerTypeFromNodeType(
+                  nodeData?.type
+                )}, ${strategyId})`
+              );
+
+              if (nodeId && nodeData?.type) {
+                const peerType = getPeerTypeFromNodeType(nodeData.type);
+                deleteNode(nodeId, peerType, strategyId);
+              }
+            }
+            break;
+
+          case "NODE_MOVE":
+            // API: Update node position
+            const targetPosition = isUndo ? previousPosition : newPosition;
+            console.log(
+              `📍 Action: ${
+                isUndo ? "UNDO" : isRedo ? "REDO" : ""
+              } Node Move → API: updatePeerPosition`
+            );
+            console.log(
+              `📡 API Call: updatePeerPosition({ strategyId: ${
+                strategy?.id
+              }, peerId: ${nodeId}, peerType: ${getPeerTypeFromNodeType(
+                nodeData?.type
+              )}, position_x: ${targetPosition?.x}, position_y: ${
+                targetPosition?.y
+              } })`
+            );
+
+            if (nodeId && nodeData?.type && targetPosition) {
+              const peerType = getPeerTypeFromNodeType(nodeData.type);
+              updatePeerPosition({
+                strategyId: strategy?.id,
+                peerId: nodeId,
+                peerType: peerType,
+                position_x: targetPosition.x,
+                position_y: targetPosition.y,
+              });
+            }
+            break;
+
+          case "EDGE_CREATE":
+            if (isUndo) {
+              // API: Disconnect the nodes
+              console.log(
+                `🔌 Action: UNDO Edge Creation → API: disconnectNodes`
+              );
+
+              if (sourceNodeId && targetNodeId) {
+                const sourceNode = nodes.find((n) => n.id === sourceNodeId);
+                if (sourceNode) {
+                  const sourcePeerType = getPeerTypeFromNodeType(
+                    sourceNode.type ?? ""
+                  );
+                  console.log(
+                    `📡 API Call: disconnectNodes({ strategyId: ${strategyId}, data: { source_peer_type: ${sourcePeerType}, source_peer_id: ${sourceNodeId}, thread_peer_id: ${targetNodeId} } })`
+                  );
+
+                  disconnectNodes({
+                    strategyId: strategyId,
+                    data: {
+                      source_peer_type: sourcePeerType,
+                      source_peer_id: sourceNodeId,
+                      thread_peer_id: targetNodeId,
+                    },
+                  });
+                }
+              }
+            } else if (isRedo) {
+              // API: Reconnect the nodes
+              console.log(`🔗 Action: REDO Edge Creation → API: connectNodes`);
+
+              if (sourceNodeId && targetNodeId) {
+                const sourceNode = nodes.find((n) => n.id === sourceNodeId);
+                if (sourceNode) {
+                  const sourcePeerType = getPeerTypeFromNodeType(
+                    sourceNode.type ?? ""
+                  );
+                  console.log(
+                    `📡 API Call: connectNodes({ strategyId: ${strategy?.id}, data: { source_peer_type: ${sourcePeerType}, source_peer_id: ${sourceNodeId}, thread_peer_id: ${targetNodeId} } })`
+                  );
+
+                  connectNodes({
+                    strategyId: strategy?.id,
+                    data: {
+                      source_peer_type: sourcePeerType,
+                      source_peer_id: sourceNodeId,
+                      thread_peer_id: targetNodeId,
+                    },
+                  });
+                }
+              }
+            }
+            break;
+
+          case "EDGE_DELETE":
+            if (isUndo) {
+              // API: Reconnect the nodes
+              console.log(`🔗 Action: UNDO Edge Deletion → API: connectNodes`);
+
+              if (sourceNodeId && targetNodeId) {
+                const sourceNode = nodes.find((n) => n.id === sourceNodeId);
+                if (sourceNode) {
+                  const sourcePeerType = getPeerTypeFromNodeType(
+                    sourceNode.type ?? ""
+                  );
+                  console.log(
+                    `📡 API Call: connectNodes({ strategyId: ${strategy?.id}, data: { source_peer_type: ${sourcePeerType}, source_peer_id: ${sourceNodeId}, thread_peer_id: ${targetNodeId} } })`
+                  );
+
+                  connectNodes({
+                    strategyId: strategy?.id,
+                    data: {
+                      source_peer_type: sourcePeerType,
+                      source_peer_id: sourceNodeId,
+                      thread_peer_id: targetNodeId,
+                    },
+                  });
+                }
+              }
+            } else if (isRedo) {
+              // API: Disconnect the nodes again
+              console.log(
+                `🔌 Action: REDO Edge Deletion → API: disconnectNodes`
+              );
+
+              if (sourceNodeId && targetNodeId) {
+                const sourceNode = nodes.find((n) => n.id === sourceNodeId);
+                if (sourceNode) {
+                  const sourcePeerType = getPeerTypeFromNodeType(
+                    sourceNode.type ?? ""
+                  );
+                  console.log(
+                    `📡 API Call: disconnectNodes({ strategyId: ${strategyId}, data: { source_peer_type: ${sourcePeerType}, source_peer_id: ${sourceNodeId}, thread_peer_id: ${targetNodeId} } })`
+                  );
+
+                  disconnectNodes({
+                    strategyId: strategyId,
+                    data: {
+                      source_peer_type: sourcePeerType,
+                      source_peer_id: sourceNodeId,
+                      thread_peer_id: targetNodeId,
+                    },
+                  });
+                }
+              }
+            }
+            break;
+
+          default:
+            console.log(`⚠️ Unhandled action type: ${type}`);
+        }
+      } catch (error) {
+        console.error(`❌ API call failed for ${type}:`, error);
+        throw error;
+      }
+    },
+    [
+      updatePeerPosition,
+      connectNodes,
+      strategy?.id,
+      nodes,
+      getPeerTypeFromNodeType,
+      deleteNode,
+      addToolNode,
+      strategyId,
+      disconnectNodes,
+    ]
+  );
+
+  // Initialize undo/redo functionality
+  const {
+    saveToHistory,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    clearHistory,
+    resetUndoRedoFlag,
+    getCurrentAction,
+  } = useUndoRedo(initialNodes, initialEdges, { onApiCall: handleApiCall });
+
+  // Save to history when nodes or edges change (debounced)
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      // Detect node changes
+      const currentNodeIds = new Set(nodes.map((n) => n.id));
+      const lastNodeIds = new Set(
+        lastSavedState.nodes.map((n: { id: string }) => n.id)
+      );
+
+      // Check for new nodes (created)
+      const newNodes = nodes.filter((n) => !lastNodeIds.has(n.id));
+      if (newNodes.length > 0) {
+        newNodes.forEach((node) => {
+          console.log(`➕ Detected: Node created - ${node.id} (${node.type})`);
+          saveToHistory(nodes, edges, {
+            type: "NODE_CREATE",
+            nodeId: node.id,
+            nodeData: node,
+            description: `Created ${node.type} node: ${node.id}`,
+            timestamp: Date.now(),
+          });
+        });
+      }
+
+      // Check for deleted nodes
+      const deletedNodes = lastSavedState.nodes.filter(
+        (n: { id: string }) => !currentNodeIds.has(n.id)
+      );
+      if (deletedNodes.length > 0) {
+        deletedNodes.forEach((node: any) => {
+          console.log(`🗑️ Detected: Node deleted - ${node.id} (${node.type})`);
+          saveToHistory(nodes, edges, {
+            type: "NODE_DELETE",
+            nodeId: node.id,
+            nodeData: node,
+            description: `Deleted ${node.type} node: ${node.id}`,
+            timestamp: Date.now(),
+          });
+        });
+      }
+
+      // Detect edge changes
+      const currentEdgeIds = new Set(edges.map((e) => e.id));
+      const lastEdgeIds = new Set(
+        lastSavedState.edges.map((e: { id: string }) => e.id)
+      );
+
+      // Check for new edges (created) - but skip if we already handled this in onConnect
+      const newEdges = edges.filter(
+        (e) => !lastEdgeIds.has(e.id) && !e.id.startsWith("edge-")
+      );
+      if (newEdges.length > 0) {
+        newEdges.forEach((edge) => {
+          console.log(`🔗 Detected: Edge created - ${edge.id}`);
+          saveToHistory(nodes, edges, {
+            type: "EDGE_CREATE",
+            edgeId: edge.id,
+            sourceNodeId: edge.source,
+            targetNodeId: edge.target,
+            edgeData: edge,
+            description: `Connected nodes: ${edge.source} → ${edge.target}`,
+            timestamp: Date.now(),
+          });
+        });
+      }
+
+      // Check for deleted edges
+      const deletedEdges = lastSavedState.edges.filter(
+        (e: { id: string }) => !currentEdgeIds.has(e.id)
+      );
+      if (deletedEdges.length > 0) {
+        deletedEdges.forEach((edge: Edge) => {
+          console.log(`🔌 Detected: Edge deleted - ${edge.id}`);
+
+          // API: Disconnect nodes when edge is deleted
+          const sourceNode = nodes.find((n) => n.id === edge.source);
+          if (sourceNode) {
+            const sourcePeerType = getPeerTypeFromNodeType(
+              sourceNode.type ?? ""
+            );
+            console.log(
+              `📡 API Call: DISCONNECT_NODES(${edge.source}, ${edge.target}, ${sourcePeerType})`
+            );
+
+            // Use your actual disconnectNodes function
+            disconnectNodes({
+              strategyId: strategyId,
+              data: {
+                source_peer_type: sourcePeerType,
+                source_peer_id: edge.source,
+                thread_peer_id: edge.target,
+              },
+            });
+          }
+
+          saveToHistory(nodes, edges, {
+            type: "EDGE_DELETE",
+            edgeId: edge.id,
+            sourceNodeId: edge.source,
+            targetNodeId: edge.target,
+            edgeData: edge,
+            description: `Disconnected nodes: ${edge.source} → ${edge.target}`,
+            timestamp: Date.now(),
+          });
+        });
+      }
+
+      setLastSavedState({ nodes, edges });
+      resetUndoRedoFlag();
+    }, 500); // 500ms debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [
+    nodes,
+    edges,
+    saveToHistory,
+    resetUndoRedoFlag,
+    lastSavedState,
+    strategyId,
+    disconnectNodes,
+    getPeerTypeFromNodeType,
+  ]);
+
+  // Keyboard shortcuts for undo/redo
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (
+        (event.ctrlKey || event.metaKey) &&
+        !event.shiftKey &&
+        event.key === "z"
+      ) {
+        event.preventDefault();
+        handleUndo();
+      } else if (
+        (event.ctrlKey || event.metaKey) &&
+        (event.key === "y" || (event.shiftKey && event.key === "Z"))
+      ) {
+        event.preventDefault();
+        handleRedo();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  // Handle undo operation
+  const handleUndo = useCallback(async () => {
+    try {
+      console.log(`🔄 User triggered UNDO`);
+
+      const previousState = await undo();
+
+      console.log({ previousState });
+
+      if (previousState) {
+        console.log(`✅ UNDO completed, restoring state`);
+        setNodes(previousState.nodes);
+        setEdges(previousState.edges);
+      }
+    } catch (error) {
+      console.error(`❌ UNDO failed:`, error);
+      toast({
+        title: "Undo failed",
+        description: "Failed to undo the last action. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }, [undo, setNodes, setEdges, toast]);
+
+  // Handle redo operation
+  const handleRedo = useCallback(async () => {
+    try {
+      console.log(`🔄 User triggered REDO`);
+      const nextState = await redo();
+      if (nextState) {
+        console.log(`✅ REDO completed, restoring state`);
+        setNodes(nextState.nodes);
+        setEdges(nextState.edges);
+      }
+    } catch (error) {
+      console.error(`❌ REDO failed:`, error);
+      toast({
+        title: "Redo failed",
+        description: "Failed to redo the last action. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }, [redo, setNodes, setEdges, toast]);
 
   // Define the type for pasted/dropped content directly in this component
   type PastedContentType =
@@ -139,6 +618,7 @@ const Strategy = (props: StrategyProps) => {
             itemPromises.push(Promise.resolve(null));
             continue;
           }
+
           if (file.type.startsWith("image/")) {
             itemPromises.push(
               Promise.resolve({ type: "image-file", data: file })
@@ -224,14 +704,16 @@ const Strategy = (props: StrategyProps) => {
           break;
         }
       }
+
       return finalPastedItem;
     },
     []
-  ); // Empty dependency array as it doesn't depend on component state/props [^3]
+  );
 
   // Handle initial node creation and loading from flows
   useEffect(() => {
     if (!strategy) return;
+
     const flows = strategy.flows;
     const isEmptyFlows =
       Array.isArray(flows) &&
@@ -253,9 +735,12 @@ const Strategy = (props: StrategyProps) => {
 
     if (!flows || flows.length === 0 || isEmptyFlows) {
       console.log("Nodes not exists");
+      // Clear history when loading empty strategy
+      clearHistory([], []);
     } else {
       const flow = flows[0];
       if (!flow) return;
+
       const nodesFromFlows: any[] = [];
       const pushNodes = (peers: any[], type: string) => {
         if (!Array.isArray(peers)) return;
@@ -269,6 +754,7 @@ const Strategy = (props: StrategyProps) => {
           });
         });
       };
+
       pushNodes(flow.annotationPeers, "annotationNode");
       pushNodes(flow.aiImagePeers, "imageUploadNode");
       pushNodes(flow.aiAudioPeers, "audioPlayerNode");
@@ -277,6 +763,7 @@ const Strategy = (props: StrategyProps) => {
       pushNodes(flow.aiSocialMediaPeers, "socialMediaNode");
       pushNodes(flow.aiRemotePeers, "remoteNode");
       pushNodes(flow.aiThreadPeers, "chatbox");
+
       setNodes(nodesFromFlows);
 
       if (
@@ -294,8 +781,12 @@ const Strategy = (props: StrategyProps) => {
       } else {
         setEdges([]);
       }
+
+      // Initialize history with loaded data
+      // @ts-ignore
+      clearHistory(nodesFromFlows, flow.strategyFlowEdges || []);
     }
-  }, [strategy]);
+  }, [strategy, setNodes, setEdges, clearHistory]);
 
   useEffect(() => {
     if (error) {
@@ -315,15 +806,20 @@ const Strategy = (props: StrategyProps) => {
   // Renamed from handleCreateNodeOnPaste and modified to accept optional position
   const handleCreateNode = useCallback(
     (type: string, data?: any, position?: { x: number; y: number }) => {
-      // IMPORTANT: Ensure your useNodeOperations hook's addToolNode function
-      // accepts position_x and position_y parameters and uses them.
-      // Refer to the previous example for how to modify useNodeOperations.ts
+      console.log(`➕ Action: Creating node of type ${type}`);
+
+      // API: Create node request will be triggered by addToolNode
+      console.log(`📡 API Call: CREATE_NODE will be triggered by addToolNode`);
+
       addToolNode({
         peerType: type,
         strategyId,
         dataToAutoUpload: { data },
         positionXY: { x: position?.x, y: position?.y },
       });
+
+      // Note: We'll save to history in the useEffect that monitors node changes
+      // This ensures we capture the actual node data after creation
     },
     [addToolNode, strategyId]
   );
@@ -362,7 +858,6 @@ const Strategy = (props: StrategyProps) => {
       }
 
       const finalPastedItem = await processDataTransferItems(items);
-
       if (finalPastedItem.type !== "unknown") {
         console.log("Known Pasted Item:", finalPastedItem);
         // Call handleCreateNode based on the detected type
@@ -380,8 +875,8 @@ const Strategy = (props: StrategyProps) => {
             handleCreateNode("remote", finalPastedItem.data as string);
             break;
           case "image-file":
-          case "image-url": // Image URL is handled as an image type, but with a string URL
-            handleCreateNode("image", finalPastedItem.data); // data can be File or string
+          case "image-url":
+            handleCreateNode("image", finalPastedItem.data);
             break;
           case "video-file":
             handleCreateNode("video", finalPastedItem.data as File);
@@ -404,19 +899,26 @@ const Strategy = (props: StrategyProps) => {
 
     // Add event listener to the document
     document.addEventListener("paste", handlePaste);
+
     // Cleanup function to remove the event listener when the component unmounts
     return () => {
       document.removeEventListener("paste", handlePaste);
     };
-  }, [handleCreateNode, processDataTransferItems]); // Dependencies updated [^3]
+  }, [handleCreateNode, processDataTransferItems]);
 
   const onConnect = useCallback(
     (params: Connection) => {
       const sourceNode = nodes.find((n) => n.id === params.source);
       const targetNode = nodes.find((n) => n.id === params.target);
       const edgeId = `edge-${params.source}-${params.target}-${Date.now()}`;
+
       if (!sourceNode || !targetNode) return;
 
+      console.log(
+        `🔗 Action: Connecting nodes ${params.source} → ${params.target}`
+      );
+
+      // 1. Update UI state
       setEdges((eds) =>
         addEdge(
           {
@@ -429,7 +931,10 @@ const Strategy = (props: StrategyProps) => {
         )
       );
 
-      // 2. Backend request
+      // 2. API: Backend request to connect nodes
+      console.log(
+        `📡 API Call: CONNECT_NODES(${params.source}, ${params.target})`
+      );
       connectNodes(
         {
           strategyId: strategy?.id,
@@ -441,13 +946,43 @@ const Strategy = (props: StrategyProps) => {
         },
         {
           onSuccess: () => {
+            console.log(`✅ API: Node connection successful`);
             successNote({
               title: "Nodes connected",
               description: "Successfully connected nodes.",
             });
+
+            // 3. Save to history after successful API call
+            saveToHistory(
+              nodes,
+              [
+                ...edges,
+                {
+                  ...params,
+                  type: "styledEdge",
+                  animated: true,
+                  id: edgeId,
+                },
+              ],
+              {
+                type: "EDGE_CREATE",
+                edgeId,
+                sourceNodeId: params.source,
+                targetNodeId: params.target,
+                edgeData: {
+                  ...params,
+                  type: "styledEdge",
+                  animated: true,
+                  id: edgeId,
+                },
+                description: `Connected nodes: ${params.source} → ${params.target}`,
+                timestamp: Date.now(),
+              }
+            );
           },
           onError: (error: any) => {
-            // 3. Revert edge on failure
+            console.error(`❌ API: Node connection failed:`, error);
+            // 4. Revert edge on failure
             setEdges((eds) => eds.filter((e) => e.id !== edgeId));
             toast({
               title: "Connection failed",
@@ -459,13 +994,24 @@ const Strategy = (props: StrategyProps) => {
         }
       );
     },
-    [setEdges, nodes, connectNodes, strategy, toast]
+    [
+      setEdges,
+      nodes,
+      edges,
+      connectNodes,
+      strategy,
+      toast,
+      successNote,
+      saveToHistory,
+      getPeerTypeFromNodeType,
+    ]
   );
 
   const getClosestEdge = useCallback(
     (node: any) => {
       const { nodeLookup } = store.getState();
       const internalNode: any = getInternalNode(node.id);
+
       const closestNode = Array.from(nodeLookup.values()).reduce(
         (res: any, n: any) => {
           if (n.id !== internalNode.id) {
@@ -476,11 +1022,13 @@ const Strategy = (props: StrategyProps) => {
               n.internals.positionAbsolute.y -
               internalNode.internals.positionAbsolute.y;
             const d = Math.sqrt(dx * dx + dy * dy);
+
             if (d < res.distance && d < MIN_DISTANCE) {
               res.distance = d;
               res.node = n;
             }
           }
+
           return res;
         },
         {
@@ -508,13 +1056,15 @@ const Strategy = (props: StrategyProps) => {
       };
     },
     [getInternalNode, store]
-  ); // Added getInternalNode, store to dependencies [^3]
+  );
 
   const onNodeDrag = useCallback(
     (_: any, node: any) => {
       const closeEdge: any = getClosestEdge(node);
+
       setEdges((es) => {
         const nextEdges = es.filter((e: any) => e.className !== "temp");
+
         if (
           closeEdge &&
           !nextEdges.find(
@@ -527,6 +1077,7 @@ const Strategy = (props: StrategyProps) => {
           closeEdge.animated = true;
           nextEdges.push(closeEdge);
         }
+
         return nextEdges;
       });
     },
@@ -536,8 +1087,10 @@ const Strategy = (props: StrategyProps) => {
   const onNodeDragStop = useCallback(
     (_: any, node: any) => {
       const closeEdge: any = getClosestEdge(node);
+
       setEdges((es) => {
         const nextEdges = es.filter((e: any) => e.className !== "temp");
+
         if (
           closeEdge &&
           !nextEdges.find(
@@ -549,13 +1102,22 @@ const Strategy = (props: StrategyProps) => {
           closeEdge.animated = true;
           nextEdges.push(closeEdge);
         }
+
         return nextEdges;
       });
 
+      console.log(
+        `📍 Action: Node ${node.id} moved to position (${node.position.x}, ${node.position.y})`
+      );
+
       const peerType = getPeerTypeFromNodeType(node.type);
 
-      // ✅ Mutation call for updating peer position
+      // API: Update peer position in backend
       if (node.id && node?.type && strategy?.id) {
+        console.log(
+          `📡 API Call: UPDATE_POSITION(${node.id}, ${node.position.x}, ${node.position.y})`
+        );
+
         updatePeerPosition({
           strategyId: strategy?.id,
           peerId: node.id,
@@ -563,9 +1125,28 @@ const Strategy = (props: StrategyProps) => {
           position_x: node.position.x,
           position_y: node.position.y,
         });
+
+        // Save position change to history
+        saveToHistory(nodes, edges, {
+          type: "NODE_MOVE",
+          nodeId: node.id,
+          nodeData: node,
+          position: { x: node.position.x, y: node.position.y },
+          description: `Moved ${node.type} node: ${node.id}`,
+          timestamp: Date.now(),
+        });
       }
     },
-    [getClosestEdge, setEdges, strategy?.id, updatePeerPosition]
+    [
+      getClosestEdge,
+      setEdges,
+      strategy?.id,
+      updatePeerPosition,
+      nodes,
+      edges,
+      saveToHistory,
+      getPeerTypeFromNodeType,
+    ]
   );
 
   const defaultEdgeOptions = {
@@ -596,6 +1177,7 @@ const Strategy = (props: StrategyProps) => {
           x: event.clientX,
           y: event.clientY,
         });
+
         console.log(
           "Known Dropped Item:",
           finalDroppedItem,
@@ -691,6 +1273,16 @@ const Strategy = (props: StrategyProps) => {
       <div className="flex flex-1 overflow-hidden">
         <StrategySidebar strategyId={strategyId} />
         <main className="relative flex-1 overflow-y-auto p-6">
+          {/* Undo/Redo Controls */}
+          <div className="absolute top-4 left-4 z-10">
+            <UndoRedoControls
+              onUndo={handleUndo}
+              onRedo={handleRedo}
+              canUndo={canUndo}
+              canRedo={canRedo}
+            />
+          </div>
+
           <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -717,7 +1309,6 @@ const Strategy = (props: StrategyProps) => {
             }}
             minZoom={0.1}
             maxZoom={2}
-            // New drag and drop props
             onDragOver={onDragOver}
             onDrop={onDrop}
           >

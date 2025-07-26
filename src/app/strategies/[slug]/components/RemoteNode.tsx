@@ -83,7 +83,7 @@ export default function RemoteNode({
   targetPosition = Position.Right,
   data,
 }: any) {
-  console.log("RemoteNode data:", { data });
+  // console.log("RemoteNode data:", { data });
 
   const strategyId = useParams()?.slug as string;
   const successNote = useSuccessNotifier();
