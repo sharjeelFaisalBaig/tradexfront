@@ -28,14 +28,6 @@ export const useUndoRedo = (
   // Flag to prevent saving history during undo/redo operations
   const isUndoRedoOperation = useRef(false);
 
-  const cloneNodes = (nodes: Node[]) =>
-    nodes.map((n) => ({
-      ...n,
-      data: { ...n.data }, // Clone file state or any other dynamic data
-    }));
-
-  console.log({ cloneNodes });
-
   // Save current state to history
   const saveToHistory = useCallback(
     (nodes: Node[], edges: Edge[]) => {
@@ -43,8 +35,7 @@ export const useUndoRedo = (
 
       setHistory((prev) => {
         const newHistory = prev.slice(0, currentIndex + 1);
-        newHistory.push({ nodes: cloneNodes(nodes), edges: [...edges] });
-        // newHistory.push({ nodes: [...nodes], edges: [...edges] });
+        newHistory.push({ nodes: [...nodes], edges: [...edges] });
 
         // Limit history size
         if (newHistory.length > maxHistorySize) {

@@ -37,8 +37,8 @@ import StrategyHeader from "@/components/StrategyHeader";
 import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 import ChatBoxNode from "./ChatBoxNode";
 import { useNodeOperations } from "../hooks/useNodeOperations";
-import { useUndoRedo } from "@/hooks/useUndoRedo copy";
 import { UndoRedoControls } from "./common/UndoRedoControls";
+import { useUndoRedo } from "@/hooks/useUndoRedo";
 
 const nodeDefaults = {
   sourcePosition: Position.Right,
@@ -127,16 +127,18 @@ const Strategy = (props: StrategyProps) => {
   // Keyboard shortcuts for undo/redo
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (
-        (event.ctrlKey || event.metaKey) &&
-        !event.shiftKey &&
-        event.key === "z"
-      ) {
+      const key = event.key.toLowerCase(); // Normalize case (z or Z → z)
+
+      // Ctrl/Cmd + Z (Undo)
+      if ((event.ctrlKey || event.metaKey) && !event.shiftKey && key === "z") {
         event.preventDefault();
         handleUndo();
-      } else if (
+      }
+
+      // Ctrl/Cmd + Y (Redo) or Ctrl+Shift+Z (Redo)
+      else if (
         (event.ctrlKey || event.metaKey) &&
-        (event.key === "y" || (event.shiftKey && event.key === "Z"))
+        (key === "y" || (event.shiftKey && key === "z"))
       ) {
         event.preventDefault();
         handleRedo();
