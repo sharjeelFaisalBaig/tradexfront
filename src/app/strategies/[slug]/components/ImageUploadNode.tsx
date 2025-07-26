@@ -648,8 +648,10 @@ export default function ImageUploadNode({
                     <AiNoteInput
                       color="blue"
                       note={userNotes}
+                      readOnly={canConnect}
+                      hideButton={canConnect}
+                      isLoading={isAnalyzing || isStatusPollingLoading}
                       setNote={(val) => setUserNotes(val ?? "")}
-                      isLoading={isAnalyzing}
                       isInputDisabled={processingState.isProcessing}
                       isButtonDisabled={
                         processingState.isProcessing || isAnalyzing

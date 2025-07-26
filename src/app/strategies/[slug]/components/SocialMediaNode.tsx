@@ -70,6 +70,7 @@ import type { SocialMediaData, URLValidationResult } from "@/lib/utils";
 import { getEmbedVideoByLink } from "@/hooks/useGetEmbedVideoByLink";
 import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 import NodeHandle from "./common/NodeHandle";
+import AiNoteInput from "./common/AiNoteInput";
 
 export default function SocialMediaNode({
   id,
@@ -684,6 +685,13 @@ export default function SocialMediaNode({
                           )}
                         </Button>
                       </div>
+                      <AiNoteInput
+                        readOnly
+                        hideButton
+                        note={userNotes}
+                        setNote={(val) => setUserNotes(val ?? "")}
+                        isLoading={isAnalyzing || isStatusPollingLoading}
+                      />
                     </div>
                   </div>
                   {/* Error State */}

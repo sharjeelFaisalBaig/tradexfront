@@ -446,7 +446,7 @@ export default function RemoteNode({
         edges.filter((edge) => edge.source !== id && edge.target !== id)
       );
     }
-  }, [canConnect, id, setEdges]);
+  }, [canConnect, id, setEdges, data]);
 
   // Optionally, handle mutation error globally
   useEffect(() => {

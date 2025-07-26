@@ -1221,12 +1221,14 @@ export default function VideoUploadNode({
                     <AiNoteInput
                       color="blue"
                       note={userNotes}
-                      setNote={(val) => setUserNotes(val ?? "")}
-                      isLoading={isAnalyzing}
+                      readOnly={canConnect}
+                      hideButton={canConnect}
+                      isLoading={isAnalyzing || isStatusPollingLoading}
                       isInputDisabled={processingState.isProcessing}
                       isButtonDisabled={
                         processingState.isProcessing || isAnalyzing
                       }
+                      setNote={(val) => setUserNotes(val ?? "")}
                       onButtonClick={() => {
                         analyzeVideoContent({
                           data: { ai_notes: userNotes },
