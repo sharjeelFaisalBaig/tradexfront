@@ -111,7 +111,7 @@ export default function ImageUploadNode({
   });
 
   // Status polling
-  const { data: status, isLoading: isStatusPollingLoading } =
+  const { data: status, isPollingLoading: isStatusPollingLoading } =
     useGetPeerAnalysisStatus({
       peerId: data?.id,
       strategyId,
@@ -128,8 +128,8 @@ export default function ImageUploadNode({
   );
 
   const isProcessingAny = useMemo(
-    () => isUploading || isAnalyzing || processingState.isProcessing,
-    [isUploading, isAnalyzing, processingState.isProcessing]
+    () => isUploading || isAnalyzing || processingState.isProcessing || isStatusPollingLoading,
+    [isUploading, isAnalyzing, processingState.isProcessing,isStatusPollingLoading]
   );
 
   const currentError = useMemo(() => {
