@@ -25,7 +25,7 @@ import { useParams } from "next/navigation";
 import { useUpdateAnnotationContent } from "@/hooks/strategy/useStrategyMutations";
 import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 import { toast } from "@/hooks/use-toast";
-import { useUndoRedo } from "@/hooks/useUndoRedo";
+import { useOutsideClick } from "@/hooks/useOutsideClick";
 
 interface AnnotationNodeData {
   id?: string;
@@ -120,8 +120,8 @@ export default function AnnotationNode({
   );
 
   // Refs
+  const nodeRef = useRef<HTMLDivElement | any>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const nodeRef = useRef<HTMLDivElement>(null);
 
   // Get current theme config
   const theme = themes[currentTheme];
@@ -168,10 +168,10 @@ export default function AnnotationNode({
 
   // Handle saving annotation
   const handleSave = () => {
-    if (!content.trim()) {
-      handleCancel();
-      return;
-    }
+    // if (!content.trim()) {
+    //   handleCancel();
+    //   return;
+    // }
 
     handleUpdateAnnotationNode({});
   };
@@ -446,7 +446,10 @@ export default function AnnotationNode({
             )}
           >
             {content || (
-              <span className="text-gray-400 italic">
+              <span
+                onClick={() => setIsEditing(true)}
+                className="text-gray-400 italic"
+              >
                 Click edit to add a note...
               </span>
             )}
