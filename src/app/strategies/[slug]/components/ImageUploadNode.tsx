@@ -119,6 +119,8 @@ export default function ImageUploadNode({
       enabled: isAnalyzeSuccess,
     });
 
+  console.log({ peerId: data?.id, isAnalyzeSuccess });
+
   // Memoized values
   const canConnect = useMemo(
     () =>
@@ -128,8 +130,17 @@ export default function ImageUploadNode({
   );
 
   const isProcessingAny = useMemo(
-    () => isUploading || isAnalyzing || processingState.isProcessing || isStatusPollingLoading,
-    [isUploading, isAnalyzing, processingState.isProcessing,isStatusPollingLoading]
+    () =>
+      isUploading ||
+      isAnalyzing ||
+      processingState.isProcessing ||
+      isStatusPollingLoading,
+    [
+      isUploading,
+      isAnalyzing,
+      processingState.isProcessing,
+      isStatusPollingLoading,
+    ]
   );
 
   const currentError = useMemo(() => {
@@ -751,13 +762,7 @@ export default function ImageUploadNode({
                     setNote={(val) => setUserNotes(val ?? "")}
                     isInputDisabled={isProcessingAny}
                     isButtonDisabled={isProcessingAny}
-                    onButtonClick={() => {
-                      analyzeImageContent({
-                        data: { ai_notes: userNotes },
-                        strategyId: strategyId,
-                        peerId: data?.id,
-                      });
-                    }}
+                    onButtonClick={() => {}}
                   />
                 </div>
               </div>

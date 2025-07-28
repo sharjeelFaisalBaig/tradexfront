@@ -81,7 +81,10 @@ const AiNoteInput = (props: AiNoteInputProps) => {
           readOnly={readOnly}
           placeholder="Add notes for AI to use..."
           value={note}
-          onChange={(e) => setNote(e?.target?.value)}
+          onChange={(e) => {
+            if (readOnly || isInputDisabled || isLoading) return;
+            setNote(e?.target?.value);
+          }}
           className={`pr-8 border-gray-200 ${selectedColor.input} ${
             readOnly || isLoading ? "cursor-not-allowed" : ""
           }`}
