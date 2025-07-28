@@ -18,6 +18,7 @@ import {
   User,
   Clock,
   Palette,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNodeOperations } from "../hooks/useNodeOperations";
@@ -108,7 +109,8 @@ export default function AnnotationNode({
 
   const { deleteNode } = useNodeOperations();
   const { updateNodeData, deleteElements } = useReactFlow();
-  const { mutate: updateAnnotation } = useUpdateAnnotationContent();
+  const { mutate: updateAnnotation, isPaused: isUpdating } =
+    useUpdateAnnotationContent();
 
   // State management
   const [nodeData, setNodeData] = useState<AnnotationNodeData | any>(data);
@@ -244,7 +246,11 @@ export default function AnnotationNode({
         strategyId,
         data: annotationData,
       },
+
       {
+        onSuccess: (data) => {
+          setNodeData(data?.data);
+        },
         onError: (error: any) => {
           toast({
             title: error?.message || "Failed To Update Node",
@@ -260,7 +266,7 @@ export default function AnnotationNode({
     <div
       ref={nodeRef}
       className={cn(
-        "w-80 min-h-[120px] rounded-lg border-2 shadow-sm transition-all duration-200",
+        "relative w-80 min-h-[120px] rounded-lg border-2 shadow-sm transition-all duration-200",
         theme.bg,
         theme.border,
         selected ? "ring-2 ring-blue-500 ring-opacity-50" : "",
@@ -269,6 +275,18 @@ export default function AnnotationNode({
       onMouseDown={preventDrag}
       onKeyDown={preventDrag}
     >
+      {/* update loader */}
+      {isUpdating && (
+        <div
+          className={cn(
+            theme.bg,
+            "absolute top-0 left-0 w-full h-full flex items-center justify-center bg-opacity-50"
+          )}
+        >
+          <Loader2 className={cn(theme.text, "h-10 w-10 animate-spin")} />
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between p-3 pb-2">
         <div className="flex items-center gap-2">
@@ -344,7 +362,11 @@ export default function AnnotationNode({
                       )}
                       onClick={handleSave}
                     >
-                      <Save className="h-3 w-3" />
+                      {isUpdating ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <Save className="h-3 w-3" />
+                      )}
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent side="top">
@@ -384,7 +406,11 @@ export default function AnnotationNode({
                       className={cn("h-6 w-6 p-0", theme.button)}
                       onClick={() => setIsEditing(true)}
                     >
-                      <Edit3 className="h-3 w-3" />
+                      {isUpdating ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <Edit3 className="h-3 w-3" />
+                      )}
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent side="top">
