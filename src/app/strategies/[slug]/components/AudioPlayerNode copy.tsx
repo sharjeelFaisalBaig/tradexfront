@@ -1304,6 +1304,9 @@ export default function AudioPlayerNode({
                         peerId: data?.id,
                       });
                     }}
+                    strategyId={strategyId}
+                    peerId={data?.id}
+                    peerType="audio"
                   />
 
                   {/* AI Analysis Summary */}

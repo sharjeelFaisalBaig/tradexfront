@@ -712,6 +712,9 @@ export default function SocialMediaNode({
                         note={userNotes}
                         setNote={(val) => setUserNotes(val ?? "")}
                         isLoading={isAnalyzing || isStatusPollingLoading}
+                        strategyId={strategyId}
+                        peerId={data?.id}
+                        peerType="remote"
                       />
                     </div>
                   </div>

@@ -640,6 +640,9 @@ export default function RemoteNode({
                     isButtonDisabled={
                       !urlValidation.isValid || processingState.isProcessing
                     }
+                    strategyId={strategyId}
+                    peerId={data?.id}
+                    peerType="remote"
                   />
                 </div>
               </div>
@@ -869,6 +872,9 @@ export default function RemoteNode({
                     isLoading={
                       processingState.isProcessing || isStatusPollingLoading
                     }
+                    strategyId={strategyId}
+                    peerId={data?.id}
+                    peerType="remote"
                   />
                 </div>
               </div>
