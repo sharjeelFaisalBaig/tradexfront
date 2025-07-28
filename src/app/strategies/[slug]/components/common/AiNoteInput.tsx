@@ -7,8 +7,11 @@ import {
 } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowRight, HelpCircle, Loader2 } from "lucide-react";
+import { ArrowRight, HelpCircle, Loader2, Save } from "lucide-react";
 import { useRef } from "react";
+import { useSendPeerAiNote } from "@/hooks/strategy/useStrategyMutations";
+import useSuccessNotifier from "@/hooks/useSuccessNotifier";
+import { toast } from "@/hooks/use-toast";
 
 // Predefined color classes for Tailwind to generate at build time
 const colorClasses: Record<string, { input: string; button: string }> = {
@@ -44,6 +47,10 @@ interface AiNoteInputProps {
   isButtonDisabled?: boolean;
   hideButton?: boolean;
   readOnly?: boolean;
+  // send peer ai note data
+  strategyId: string;
+  peerType: string;
+  peerId: string;
 }
 
 const AiNoteInput = (props: AiNoteInputProps) => {
@@ -57,18 +64,53 @@ const AiNoteInput = (props: AiNoteInputProps) => {
     isButtonDisabled,
     hideButton,
     readOnly,
+    // send peer ai note
+    strategyId,
+    peerType,
+    peerId,
   } = props;
 
-  const selectedColor = colorClasses[color] || colorClasses.purple;
+  const successNote = useSuccessNotifier();
+  const { mutate: sendPeerAiNote, isPending: isSendingAiNote } =
+    useSendPeerAiNote();
 
   const inputRef = useRef<HTMLInputElement | any>(null);
+  const selectedColor = colorClasses[color] || colorClasses.purple;
+
+  const handleSendPeerAiNote = () => {
+    sendPeerAiNote(
+      {
+        peerId,
+        peerType,
+        strategyId,
+        data: { ai_notes: note },
+      },
+      {
+        onSuccess: () => {
+          successNote({
+            title: "Ai note saved",
+            description: "Ai note saved successfully",
+          });
+        },
+        onError: (error: any) => {
+          toast({
+            title: "Failed to save note",
+            description:
+              error?.response?.data?.message || "Something went wrong...",
+            variant: "destructive",
+          });
+        },
+      }
+    );
+  };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (hideButton || readOnly || isLoading) return;
+    if (hideButton || readOnly || isLoading || isSendingAiNote) return;
 
     if (e.key === "Enter") {
       e.preventDefault();
       onButtonClick?.();
+      handleSendPeerAiNote();
       inputRef.current?.blur();
     }
   };
@@ -82,11 +124,12 @@ const AiNoteInput = (props: AiNoteInputProps) => {
           placeholder="Add notes for AI to use..."
           value={note}
           onChange={(e) => {
-            if (readOnly || isInputDisabled || isLoading) return;
+            if (readOnly || isInputDisabled || isLoading || isSendingAiNote)
+              return;
             setNote(e?.target?.value);
           }}
           className={`pr-8 border-gray-200 ${selectedColor.input} ${
-            readOnly || isLoading ? "cursor-not-allowed" : ""
+            readOnly || isLoading || isSendingAiNote ? "cursor-not-allowed" : ""
           }`}
           disabled={isInputDisabled}
           onKeyDown={handleKeyPress}
@@ -115,14 +158,18 @@ const AiNoteInput = (props: AiNoteInputProps) => {
         <Button
           size="sm"
           type="button"
-          onClick={() => onButtonClick?.()}
+          onClick={() => {
+            onButtonClick?.();
+            handleSendPeerAiNote();
+          }}
           disabled={isButtonDisabled}
           className={`${selectedColor.button} text-white rounded-full w-8 h-8 p-0 disabled:opacity-50`}
         >
-          {isLoading ? (
+          {isLoading || isSendingAiNote ? (
             <Loader2 className="w-4 h-4 animate-spin" />
           ) : (
-            <ArrowRight className="w-4 h-4" />
+            // <ArrowRight className="w-4 h-4" />
+            <Save className="h-4 w-4" />
           )}
         </Button>
       )}

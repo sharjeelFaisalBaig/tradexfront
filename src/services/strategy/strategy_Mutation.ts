@@ -73,6 +73,24 @@ export const updatePeerPosition = async ({
   return res.data;
 };
 
+export const sendPeerAiNote = async ({
+  strategyId,
+  peerId,
+  peerType,
+  data,
+}: {
+  strategyId: string;
+  peerId: string;
+  peerType: string; // "image", "audio", etc.
+  data: { ai_notes?: string };
+}) => {
+  const res = await axiosInstance.patch(
+    endpoints.STRATEGY.SEND_PEER_AI_NOTE({ id: strategyId, peerId, peerType }),
+    data
+  );
+  return res.data;
+};
+
 // Board Peers API calls
 export const createAnnotationPeer = async (strategyId: string, data: any) => {
   const res = await axiosInstance.post(

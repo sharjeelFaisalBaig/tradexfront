@@ -119,8 +119,6 @@ export default function ImageUploadNode({
       enabled: isAnalyzeSuccess,
     });
 
-  console.log({ peerId: data?.id, isAnalyzeSuccess });
-
   // Memoized values
   const canConnect = useMemo(
     () =>
@@ -762,7 +760,9 @@ export default function ImageUploadNode({
                     setNote={(val) => setUserNotes(val ?? "")}
                     isInputDisabled={isProcessingAny}
                     isButtonDisabled={isProcessingAny}
-                    onButtonClick={() => {}}
+                    strategyId={strategyId}
+                    peerId={data?.id}
+                    peerType="image"
                   />
                 </div>
               </div>
