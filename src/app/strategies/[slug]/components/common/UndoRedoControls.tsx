@@ -33,7 +33,11 @@ export const UndoRedoControls = ({
               disabled={!canUndo}
               className="react-flow__controls-button react-flow__controls-interactive"
             >
-              <img src="/undo-2.svg" alt="" className="h-4 w-4" />
+              <img
+                alt="Undo"
+                className="h-4 w-4"
+                src={!canUndo ? "/undo-disabled.svg" : "/undo.svg"}
+              />
             </button>
           </TooltipTrigger>
           <TooltipContent>
@@ -49,7 +53,11 @@ export const UndoRedoControls = ({
               disabled={!canRedo}
               className="react-flow__controls-button react-flow__controls-interactive"
             >
-              <img src="/redo-2.svg" alt="" className="h-4 w-4" />
+              <img
+                alt="Redo"
+                className="h-4 w-4"
+                src={!canRedo ? "/redo-disabled.svg" : "/redo.svg"}
+              />
             </button>
           </TooltipTrigger>
           <TooltipContent>
