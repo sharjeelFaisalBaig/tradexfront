@@ -531,8 +531,6 @@ export default function RemoteNode({
     }
   }, [canConnect, id, setEdges, data]);
 
-  console.log("remote polling status:", { error });
-
   return (
     <NodeWrapper
       id={id}

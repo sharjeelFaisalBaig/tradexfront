@@ -778,8 +778,6 @@ export default function VideoUploadNode({
     }
   }, [canConnect, id, setEdges, data]);
 
-  console.log("VideoUploadNode:", { currentError });
-
   return (
     <>
       <NodeWrapper

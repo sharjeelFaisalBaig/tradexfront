@@ -15,7 +15,7 @@ export default async function RootLayout({
   const session = await auth();
   return (
     <html lang="en" className={inter.className} suppressHydrationWarning>
-      <body>
+      <body suppressHydrationWarning>
         <AuthProvider session={session}>
           <Providers>{children}</Providers>
         </AuthProvider>

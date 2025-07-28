@@ -427,8 +427,6 @@ export default function SocialMediaNode({
     }
   }, [canConnect, id, setEdges, data]);
 
-  console.log("Social_media_peer", { currentError });
-
   return (
     <>
       <NodeWrapper
