@@ -29,7 +29,6 @@ import {
   AlertCircle,
   CheckCircle,
   Shield,
-  ArrowRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import NodeWrapper from "./common/NodeWrapper";
@@ -43,7 +42,6 @@ import { toast } from "@/hooks/use-toast";
 import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 import AiNoteInput from "./common/AiNoteInput";
 import NodeHandle from "./common/NodeHandle";
-import IsReadyToInteract from "./common/IsReadyToInteract";
 
 // Types for AI integration
 interface AIProcessingResponse {
@@ -63,7 +61,6 @@ interface ProcessingState {
   isProcessing: boolean;
   isComplete: boolean;
   error: string | null;
-  lastFailedOperation: "status" | "analyze" | null;
 }
 
 interface WebsiteData {
@@ -102,16 +99,13 @@ export default function RemoteNode({
   } = useAnalyzeRemotePeer();
 
   // Poll for status only if analysis is successful
-  const {
-    data: status,
-    isPollingLoading: isStatusPollingLoading,
-    error,
-  } = useGetPeerAnalysisStatus({
-    peerId: data?.id,
-    strategyId,
-    peerType: "remote",
-    enabled: isAnalyzeSuccess,
-  });
+  const { data: status, isPollingLoading: isStatusPollingLoading } =
+    useGetPeerAnalysisStatus({
+      peerId: data?.id,
+      strategyId,
+      peerType: "remote",
+      enabled: isAnalyzeSuccess,
+    });
 
   // Website states
   const nodeControlRef = useRef(null);
@@ -127,7 +121,6 @@ export default function RemoteNode({
     isProcessing: false,
     isComplete: false,
     error: null,
-    lastFailedOperation: null,
   });
 
   // AI Response states
@@ -275,7 +268,6 @@ export default function RemoteNode({
         isProcessing: false,
         isComplete: false,
         error: validation.error || "Invalid URL",
-        lastFailedOperation: null,
       });
       return;
     }
@@ -284,7 +276,6 @@ export default function RemoteNode({
       isProcessing: true,
       isComplete: false,
       error: null,
-      lastFailedOperation: null,
     });
 
     // Use analyzeRemotePeer mutation
@@ -312,7 +303,6 @@ export default function RemoteNode({
             isProcessing: false,
             isComplete: true,
             error: null,
-            lastFailedOperation: null,
           });
         },
         onError: (error: any) => {
@@ -320,7 +310,6 @@ export default function RemoteNode({
             isProcessing: false,
             isComplete: false,
             error: error?.response?.data?.message || "Processing failed",
-            lastFailedOperation: "analyze",
           });
         },
       }
@@ -340,7 +329,6 @@ export default function RemoteNode({
         isProcessing: false,
         isComplete: false,
         error: validation.error || "Invalid URL",
-        lastFailedOperation: null,
       });
       return;
     }
@@ -365,7 +353,6 @@ export default function RemoteNode({
       isProcessing: false,
       isComplete: false,
       error: null,
-      lastFailedOperation: null,
     });
     setUserNotes("");
     setUrlValidation({ isValid: false });
@@ -481,38 +468,9 @@ export default function RemoteNode({
         isProcessing: false,
         isComplete: true,
         error: null,
-        lastFailedOperation: null,
       });
     }
   }, [status]);
-
-  const isProcessingAny = useMemo(
-    () => isAnalyzing || processingState.isProcessing || isStatusPollingLoading,
-    [isAnalyzing, processingState.isProcessing, isStatusPollingLoading]
-  );
-
-  const currentError = useMemo(() => {
-    if (isAnalyzeError && analyzeError) {
-      return {
-        message:
-          (analyzeError as any)?.response?.data?.message ||
-          "Failed to analyze website",
-        type: "analyze" as const,
-      };
-    }
-    if (processingState.error) {
-      return {
-        message: processingState.error,
-        type: processingState.lastFailedOperation || ("unknown" as const),
-      };
-    }
-    return null;
-  }, [
-    isAnalyzeError,
-    analyzeError,
-    processingState.error,
-    processingState.lastFailedOperation,
-  ]);
 
   // Modified canConnect to immediately reflect isReseting state
   const canConnect = useMemo(
@@ -530,8 +488,6 @@ export default function RemoteNode({
       );
     }
   }, [canConnect, id, setEdges, data]);
-
-  console.log("remote polling status:", { error });
 
   return (
     <NodeWrapper
@@ -572,37 +528,23 @@ export default function RemoteNode({
 
                 {/* URL Input */}
                 <div className="p-6 space-y-4">
-                  <div className="relative">
-                    <Input
-                      placeholder="Enter any website url"
-                      value={websiteUrl}
-                      onChange={handleUrlChange}
-                      onKeyDown={handleKeyPress}
-                      className={cn(
-                        "pr-12 text-base border-gray-200 focus:border-cyan-500 focus:ring-cyan-500",
-                        urlValidation.isValid &&
-                          "border-green-400 focus:border-green-500 focus:ring-green-500",
-                        websiteUrl &&
-                          !urlValidation.isValid &&
-                          "border-red-400 focus:border-red-500 focus:ring-red-500",
-                        urlValidation.warning &&
-                          "border-yellow-400 focus:border-yellow-500 focus:ring-yellow-500"
-                      )}
-                      disabled={isProcessingAny}
-                    />
-                    <Button
-                      onClick={() => handleUrlSubmit()}
-                      size="sm"
-                      disabled={!urlValidation.isValid || isProcessingAny}
-                      className="absolute right-1 top-1/2 -translate-y-1/2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-full w-8 h-8 p-0 disabled:opacity-50"
-                    >
-                      {processingState.isProcessing ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <ArrowRight className="w-4 h-4" />
-                      )}
-                    </Button>
-                  </div>
+                  <Input
+                    placeholder="Enter any website url"
+                    value={websiteUrl}
+                    onChange={handleUrlChange}
+                    onKeyDown={handleKeyPress}
+                    className={cn(
+                      "pr-12 text-base border-gray-200 focus:border-cyan-500 focus:ring-cyan-500",
+                      urlValidation.isValid &&
+                        "border-green-400 focus:border-green-500 focus:ring-green-500",
+                      websiteUrl &&
+                        !urlValidation.isValid &&
+                        "border-red-400 focus:border-red-500 focus:ring-red-500",
+                      urlValidation.warning &&
+                        "border-yellow-400 focus:border-yellow-500 focus:ring-yellow-500"
+                    )}
+                    disabled={processingState.isProcessing}
+                  />
 
                   {/* URL Validation Feedback */}
                   {websiteUrl && (
@@ -636,7 +578,7 @@ export default function RemoteNode({
                   )}
 
                   {/* Processing State */}
-                  {isProcessingAny && (
+                  {processingState.isProcessing && (
                     <div className="bg-cyan-50 p-3 rounded-lg">
                       <div className="flex items-center gap-3">
                         <Loader2 className="w-5 h-5 animate-spin text-cyan-600" />
@@ -687,8 +629,8 @@ export default function RemoteNode({
                   <AiNoteInput
                     color="cyan"
                     note={userNotes}
-                    readOnly={!canConnect}
-                    hideButton={!canConnect}
+                    readOnly={canConnect}
+                    hideButton={canConnect}
                     onButtonClick={handleUrlSubmit}
                     setNote={(val) => setUserNotes(val ?? "")}
                     isLoading={
@@ -698,19 +640,16 @@ export default function RemoteNode({
                     isButtonDisabled={
                       !urlValidation.isValid || processingState.isProcessing
                     }
-                    strategyId={strategyId}
-                    peerId={data?.id}
-                    peerType="remote"
                   />
                 </div>
               </div>
             ) : (
               // Website Analysis Interface
-              <div className="">
+              <div className="space-y-0">
                 {/* Header with Website Title */}
                 <div className="bg-gradient-to-r from-cyan-500 to-cyan-600 px-4 py-3 flex items-center justify-between text-white">
                   <div className="flex items-center gap-2 flex-1 min-w-0">
-                    {isProcessingAny ? (
+                    {processingState.isProcessing ? (
                       <div className="flex items-center gap-2">
                         <Loader2 className="w-4 h-4 animate-spin" />
                         <span className="text-sm font-medium">
@@ -761,10 +700,42 @@ export default function RemoteNode({
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <IsReadyToInteract
-                      canConnect={canConnect}
-                      isLoading={isStatusPollingLoading}
-                    />
+                    {isStatusPollingLoading && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="text-sm">Preparing to connect...</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+
+                    {canConnect && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <CheckCircle className="w-4 h-4 text-green-300" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="text-sm">
+                            Ready to connect to other nodes
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+
+                    {!canConnect && !isStatusPollingLoading && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Shield className="w-4 h-4 text-yellow-500" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="text-sm">
+                            Complete analysis to enable connections
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
 
                     <Button
                       onClick={handleVisitWebsite}
@@ -780,7 +751,7 @@ export default function RemoteNode({
                       size="sm"
                       variant="ghost"
                       className="text-white hover:bg-white/20 h-8 w-8 p-0"
-                      disabled={isProcessingAny || isReseting}
+                      disabled={processingState.isProcessing || isReseting}
                     >
                       {isReseting ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
@@ -788,6 +759,42 @@ export default function RemoteNode({
                         <X className="w-4 h-4" />
                       )}
                     </Button>
+
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-white hover:bg-white/20 h-8 w-8"
+                        >
+                          <svg
+                            className="w-4 h-4"
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                          >
+                            <circle cx="12" cy="5" r="2" />
+                            <circle cx="12" cy="12" r="2" />
+                            <circle cx="12" cy="19" r="2" />
+                          </svg>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-48">
+                        <DropdownMenuItem
+                          onClick={handleDownload}
+                          className="cursor-pointer"
+                        >
+                          <Download className="w-4 h-4 mr-2" />
+                          Download analysis
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={handleCopySummary}
+                          className="cursor-pointer"
+                        >
+                          <Copy className="w-4 h-4 mr-2" />
+                          Copy summary
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
 
@@ -816,7 +823,7 @@ export default function RemoteNode({
                 </div>
 
                 {/* Processing Overlay */}
-                {isProcessingAny && (
+                {processingState.isProcessing && (
                   <div className="px-4 py-2">
                     <div className="bg-cyan-50 p-3 rounded-lg flex items-center gap-3">
                       <Loader2 className="w-5 h-5 animate-spin text-cyan-600" />
@@ -828,37 +835,14 @@ export default function RemoteNode({
                 )}
 
                 {/* Error State */}
-                {!currentError?.message &&
-                  !isStatusPollingLoading &&
-                  !isProcessingAny &&
-                  !canConnect && (
-                    <div className="bg-red-50 p-3 rounded-lg mx-4 mb-4">
-                      <div className="text-xs text-red-600 font-medium mb-1">
-                        Processing Error
-                      </div>
-                      <div className="text-sm text-red-700 mb-2">
-                        Website is not ready to interact
-                      </div>
-                      <Button
-                        onClick={handleReprocess}
-                        size="sm"
-                        variant="outline"
-                        className="text-red-600 border-red-200 hover:bg-red-50 bg-transparent"
-                        disabled={!urlValidation.isValid}
-                      >
-                        Retry
-                      </Button>
-                    </div>
-                  )}
-
-                {currentError && (
+                {processingState.error && (
                   <div className="px-4 py-2">
-                    <div className="bg-red-50 p-3 rounded-lg mb-3">
+                    <div className="bg-red-50 p-3 rounded-lg">
                       <div className="text-xs text-red-600 font-medium mb-1">
                         Analysis Error
                       </div>
                       <div className="text-sm text-red-700 mb-2">
-                        {currentError.message}
+                        {processingState.error}
                       </div>
                       <Button
                         onClick={handleReprocess}
@@ -876,16 +860,15 @@ export default function RemoteNode({
                 {/* Notes Input */}
                 <div className="px-4 pb-4">
                   <AiNoteInput
+                    hideButton
                     color="cyan"
                     note={userNotes}
-                    readOnly={!canConnect}
-                    hideButton={!canConnect}
+                    readOnly={canConnect}
                     setNote={(val) => setUserNotes(val ?? "")}
-                    isInputDisabled={isProcessingAny}
-                    isLoading={isProcessingAny || isStatusPollingLoading}
-                    strategyId={strategyId}
-                    peerType="remote"
-                    peerId={data?.id}
+                    isInputDisabled={processingState.isProcessing}
+                    isLoading={
+                      processingState.isProcessing || isStatusPollingLoading
+                    }
                   />
                 </div>
               </div>

@@ -63,7 +63,6 @@ interface ProcessingState {
   isProcessing: boolean;
   isComplete: boolean;
   error: string | null;
-  lastFailedOperation: "analyze" | "status" | null;
 }
 
 // Re-import SocialMediaData and URLValidationResult types if they are exported from utils.ts
@@ -72,7 +71,6 @@ import { getEmbedVideoByLink } from "@/hooks/useGetEmbedVideoByLink";
 import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 import NodeHandle from "./common/NodeHandle";
 import AiNoteInput from "./common/AiNoteInput";
-import IsReadyToInteract from "./common/IsReadyToInteract";
 
 export default function SocialMediaNode({
   id,
@@ -103,7 +101,6 @@ export default function SocialMediaNode({
     isProcessing: false,
     isComplete: false,
     error: null,
-    lastFailedOperation: null,
   });
 
   // AI Response states
@@ -111,27 +108,6 @@ export default function SocialMediaNode({
     null
   );
   const [userNotes, setUserNotes] = useState<string>("");
-
-  // --- Mutation Integration & Polling ---
-  const { mutate: resetPeer, isPending: isReseting } = useResetPeer();
-  const {
-    mutate: analyzeSocialPeer,
-    error: analyzeError,
-    data: analyzeData,
-    reset: resetAnalyze,
-    isPending: isAnalyzing,
-    isSuccess: isAnalyzeSuccess,
-    isError: isAnalyzeError,
-  } = useAnalyzeSocialPeer();
-
-  // Only poll for status if analysis is successful
-  const { data: status, isPollingLoading: isStatusPollingLoading } =
-    useGetPeerAnalysisStatus({
-      peerId: id,
-      strategyId,
-      peerType: "social_media",
-      enabled: isAnalyzeSuccess,
-    });
 
   // Sync state with incoming data props (like VideoUploadNode)
   useEffect(() => {
@@ -185,7 +161,6 @@ export default function SocialMediaNode({
         const validation = validateSocialMediaUrl(data?.dataToAutoUpload?.data);
         setSocialUrl(data?.dataToAutoUpload?.data);
         setUrlValidation(validation);
-        handleProcessUrl(data?.dataToAutoUpload?.data);
       } else {
         setSocialUrl("");
         setUrlValidation({ isValid: false });
@@ -197,11 +172,30 @@ export default function SocialMediaNode({
         isProcessing: false,
         isComplete: false,
         error: null,
-        lastFailedOperation: null,
       });
       setUserNotes("");
     }
   }, [data]);
+
+  // --- Mutation Integration & Polling ---
+  const { mutate: resetPeer, isPending: isReseting } = useResetPeer();
+  const {
+    mutate: analyzeSocialPeer,
+    error: analyzeError,
+    data: analyzeData,
+    reset: resetAnalyze,
+    isPending: isAnalyzing,
+    isSuccess: isAnalyzeSuccess,
+  } = useAnalyzeSocialPeer();
+
+  // Only poll for status if analysis is successful
+  const { data: status, isPollingLoading: isStatusPollingLoading } =
+    useGetPeerAnalysisStatus({
+      peerId: id,
+      strategyId,
+      peerType: "social_media",
+      enabled: isAnalyzeSuccess,
+    });
 
   // Set processing state and AI response on successful analysis
   useEffect(() => {
@@ -210,7 +204,6 @@ export default function SocialMediaNode({
         isProcessing: false,
         isComplete: true,
         error: null,
-        lastFailedOperation: null,
       });
       setAiResponse(analyzeData);
     }
@@ -222,7 +215,6 @@ export default function SocialMediaNode({
         isProcessing: false,
         isComplete: false,
         error: analyzeError.message || "Processing failed.",
-        lastFailedOperation: "analyze",
       });
     }
   }, [analyzeError]);
@@ -240,22 +232,15 @@ export default function SocialMediaNode({
   };
 
   // Process the provided URL
-  const handleProcessUrl = async (socialUrlParameter?: string) => {
+  const handleProcessUrl = async () => {
     if (!urlValidation.isValid || !urlValidation.platform) return;
     setIsLoading(true);
-    setProcessingState({
-      isProcessing: true,
-      isComplete: false,
-      error: null,
-      lastFailedOperation: null,
-    });
+    setProcessingState({ isProcessing: true, isComplete: false, error: null });
     setAiResponse(null);
     setSocialMediaData(null); // Reset socialMediaData before processing
     resetAnalyze();
     try {
-      const videoData = extractSocialVideoDetails(
-        socialUrlParameter ?? socialUrl
-      ); // Use the new helper
+      const videoData = extractSocialVideoDetails(socialUrl); // Use the new helper
       if (videoData) {
         setSocialMediaData(videoData);
       } else {
@@ -275,7 +260,6 @@ export default function SocialMediaNode({
         isProcessing: false,
         isComplete: false,
         error: error.message || "Failed to process URL. Please try again.",
-        lastFailedOperation: "analyze",
       });
     } finally {
       setIsLoading(false);
@@ -292,7 +276,6 @@ export default function SocialMediaNode({
       isProcessing: false,
       isComplete: false,
       error: null,
-      lastFailedOperation: null,
     });
     setUserNotes("");
     setIsLoading(false);
@@ -338,6 +321,11 @@ export default function SocialMediaNode({
     );
   };
 
+  // Handle notes input change
+  const handleNotesChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setUserNotes(e.target.value);
+  };
+
   // Retry processing
   const handleReprocess = () => {
     if (socialMediaData) handleProcessUrl();
@@ -367,37 +355,9 @@ export default function SocialMediaNode({
         isProcessing: false,
         isComplete: true,
         error: null,
-        lastFailedOperation: null,
       });
     }
   }, [status]);
-
-  const isProcessingAny = useMemo(
-    () => isAnalyzing || processingState.isProcessing || isStatusPollingLoading,
-    [isAnalyzing, processingState.isProcessing, isStatusPollingLoading]
-  );
-
-  const currentError = useMemo(() => {
-    if (isAnalyzeError && analyzeError) {
-      return {
-        message:
-          (analyzeError as any)?.response?.data?.message || "Failed to analyze",
-        type: "analyze" as const,
-      };
-    }
-    if (processingState.error) {
-      return {
-        message: processingState.error,
-        type: processingState.lastFailedOperation || ("unknown" as const),
-      };
-    }
-    return null;
-  }, [
-    isAnalyzeError,
-    analyzeError,
-    processingState.error,
-    processingState.lastFailedOperation,
-  ]);
 
   // Memoize current platform config
   const currentPlatform = useMemo(
@@ -426,8 +386,6 @@ export default function SocialMediaNode({
       );
     }
   }, [canConnect, id, setEdges, data]);
-
-  console.log("Social_media_peer", { currentError });
 
   return (
     <>
@@ -506,6 +464,36 @@ export default function SocialMediaNode({
                         </div>
                       )}
                     </div>
+                    {/* Notes input directly below URL input */}
+                    <div className="relative">
+                      <Input
+                        placeholder="Add notes for AI to use..."
+                        value={userNotes}
+                        onChange={handleNotesChange}
+                        className="pr-8 border-gray-200 focus:border-purple-500 focus:ring-purple-500 mt-2"
+                        disabled={processingState.isProcessing}
+                        onWheel={(e) => e.stopPropagation()}
+                        onMouseDown={(e) => e.stopPropagation()}
+                      />
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 text-gray-400 hover:text-gray-600"
+                          >
+                            <HelpCircle className="w-4 h-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="text-sm">
+                            {
+                              "Add notes that will be used by AI to provide better context and insights"
+                            }
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
                     {urlValidation.error && (
                       <div className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">
                         {urlValidation.error}
@@ -517,11 +505,11 @@ export default function SocialMediaNode({
                       </div>
                     )}
                     <Button
-                      onClick={() => handleProcessUrl()}
+                      onClick={handleProcessUrl}
                       disabled={!urlValidation.isValid || isLoading}
                       className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white"
                     >
-                      {isLoading || isProcessingAny ? (
+                      {isLoading || isAnalyzing ? (
                         <>
                           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                           {"Processing URL..."}
@@ -561,18 +549,18 @@ export default function SocialMediaNode({
                     )}
                   >
                     <div className="flex items-center gap-2">
-                      {isProcessingAny ? (
+                      {processingState.isProcessing ? (
                         <div className="flex items-center gap-2">
                           <Loader2 className="w-4 h-4 animate-spin" />
                           <span className="text-sm font-medium">
-                            AI is analyzing your video...
+                            {"AI is analyzing your video..."}
                           </span>
                         </div>
                       ) : processingState.error ? (
                         <div className="flex items-center gap-2">
                           <X className="w-4 h-4 text-red-500" />
                           <span className="text-sm font-medium text-red-700">
-                            Processing failed
+                            {"Processing failed"}
                           </span>
                         </div>
                       ) : aiResponse ? (
@@ -612,12 +600,44 @@ export default function SocialMediaNode({
                       )}
                     </div>
                     <div className="flex items-center gap-2">
-                      {!isProcessingAny && socialMediaData && (
-                        <IsReadyToInteract
-                          canConnect={canConnect}
-                          isLoading={isStatusPollingLoading}
-                        />
+                      {isStatusPollingLoading && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="text-sm">Preparing to connect...</p>
+                          </TooltipContent>
+                        </Tooltip>
                       )}
+
+                      {canConnect && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <CheckCircle className="w-4 h-4 text-green-300" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="text-sm">
+                              {"Ready to connect to other nodes"}
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+                      {!canConnect &&
+                        !isStatusPollingLoading &&
+                        !processingState.isProcessing &&
+                        socialMediaData && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Shield className="w-4 h-4 text-yellow-300" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="text-sm">
+                                {"Complete analysis to enable connections"}
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
                     </div>
                   </div>
                   {/* Video Preview */}
@@ -638,7 +658,7 @@ export default function SocialMediaNode({
                           )}
                       </div>
 
-                      {isProcessingAny && (
+                      {processingState.isProcessing && (
                         <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
                           <div className="bg-white p-4 rounded-lg shadow-lg flex flex-col items-center">
                             <Loader2 className="w-8 h-8 animate-spin text-purple-600 mb-2" />
@@ -650,7 +670,7 @@ export default function SocialMediaNode({
                       )}
                     </div>
                     {/* Video metadata */}
-                    <div className="my-4 flex flex-col gap-y-3">
+                    <div className="my-4 space-y-3">
                       {/* Action buttons */}
                       <div className="flex items-center gap-2">
                         <Tooltip>
@@ -677,7 +697,7 @@ export default function SocialMediaNode({
                           size="sm"
                           variant="destructive"
                           className="h-8 w-8 p-0"
-                          disabled={isProcessingAny || isReseting}
+                          disabled={processingState.isProcessing || isReseting}
                         >
                           {isReseting ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
@@ -686,52 +706,24 @@ export default function SocialMediaNode({
                           )}
                         </Button>
                       </div>
-
-                      {/* retry status polling */}
-                      {!currentError?.message &&
-                        !isStatusPollingLoading &&
-                        !isProcessingAny &&
-                        !canConnect && (
-                          <div className="bg-red-50 p-3 rounded-lg">
-                            <div className="text-xs text-red-600 font-medium mb-1">
-                              Processing Error
-                            </div>
-                            <div className="text-sm text-red-700 mb-2">
-                              Video is not ready to interact
-                            </div>
-                            <Button
-                              onClick={handleReprocess}
-                              size="sm"
-                              variant="outline"
-                              className="text-red-600 border-red-200 hover:bg-red-50 bg-transparent"
-                            >
-                              {"Retry Processing"}
-                            </Button>
-                          </div>
-                        )}
-
                       <AiNoteInput
-                        color="blue"
-                        readOnly={!canConnect}
-                        hideButton={!canConnect}
+                        readOnly
+                        hideButton
                         note={userNotes}
                         setNote={(val) => setUserNotes(val ?? "")}
-                        isLoading={isProcessingAny || isStatusPollingLoading}
-                        strategyId={strategyId}
-                        peerId={data?.id}
-                        peerType="social_media"
+                        isLoading={isAnalyzing || isStatusPollingLoading}
                       />
                     </div>
                   </div>
                   {/* Error State */}
-                  {currentError && (
-                    <div className="px-4 pb-4">
+                  {processingState.error && (
+                    <div className="px-4">
                       <div className="bg-red-50 p-3 rounded-lg">
                         <div className="text-xs text-red-600 font-medium mb-1">
-                          {currentError?.type} Error
+                          {"Processing Error"}
                         </div>
                         <div className="text-sm text-red-700 mb-2">
-                          {currentError.message}
+                          {processingState.error}
                         </div>
                         <Button
                           onClick={handleReprocess}
