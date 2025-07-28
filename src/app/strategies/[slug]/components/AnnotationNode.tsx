@@ -109,7 +109,7 @@ export default function AnnotationNode({
 
   const { deleteNode } = useNodeOperations();
   const { updateNodeData, deleteElements } = useReactFlow();
-  const { mutate: updateAnnotation, isPaused: isUpdating } =
+  const { mutate: updateAnnotation, isPending: isUpdating } =
     useUpdateAnnotationContent();
 
   // State management
