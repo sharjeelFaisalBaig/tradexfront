@@ -709,6 +709,7 @@ export default function AudioUploadNode({
           language: data.language || "en",
         });
       } catch (e) {
+        console.log({ e });
         console.error("Error parsing AI metadata:", e);
       }
     }
@@ -722,6 +723,7 @@ export default function AudioUploadNode({
     if (data?.audio && data?.is_ready_to_interact) {
       setProcessingState((prev) => ({
         ...prev,
+        lastFailedOperation: null,
         isComplete: true,
         error: null,
       }));

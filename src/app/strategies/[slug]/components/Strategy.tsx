@@ -111,16 +111,13 @@ const Strategy = (props: StrategyProps) => {
         JSON.stringify(nodes) !== JSON.stringify(lastSavedState.nodes);
       const edgesChanged =
         JSON.stringify(edges) !== JSON.stringify(lastSavedState.edges);
-
       if (nodesChanged || edgesChanged) {
         saveToHistory(nodes, edges);
         setLastSavedState({ nodes, edges });
       }
-
       // Reset the undo/redo flag after a delay
       resetUndoRedoFlag();
     }, 500); // 500ms debounce
-
     return () => clearTimeout(timeoutId);
   }, [nodes, edges, saveToHistory, resetUndoRedoFlag, lastSavedState]);
 
@@ -128,13 +125,11 @@ const Strategy = (props: StrategyProps) => {
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       const key = event.key.toLowerCase(); // Normalize case (z or Z → z)
-
       // Ctrl/Cmd + Z (Undo)
       if ((event.ctrlKey || event.metaKey) && !event.shiftKey && key === "z") {
         event.preventDefault();
         handleUndo();
       }
-
       // Ctrl/Cmd + Y (Redo) or Ctrl+Shift+Z (Redo)
       else if (
         (event.ctrlKey || event.metaKey) &&
@@ -144,7 +139,6 @@ const Strategy = (props: StrategyProps) => {
         handleRedo();
       }
     };
-
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, []);
@@ -153,8 +147,9 @@ const Strategy = (props: StrategyProps) => {
   const handleUndo = useCallback(() => {
     const previousState = undo();
     if (previousState) {
-      setNodes(previousState.nodes);
-      setEdges(previousState.edges);
+      setNodes(previousState.nodes || []);
+      setEdges(previousState.edges || []);
+      console.log("Undo Changes:", previousState.changes);
     }
   }, [undo, setNodes, setEdges]);
 
@@ -162,8 +157,9 @@ const Strategy = (props: StrategyProps) => {
   const handleRedo = useCallback(() => {
     const nextState = redo();
     if (nextState) {
-      setNodes(nextState.nodes);
-      setEdges(nextState.edges);
+      setNodes(nextState.nodes || []);
+      setEdges(nextState.edges || []);
+      console.log("Redo Changes:", nextState.changes);
     }
   }, [redo, setNodes, setEdges]);
 
@@ -190,7 +186,6 @@ const Strategy = (props: StrategyProps) => {
       if (!items) {
         return { type: "unknown", data: null };
       }
-
       const urlRegex = /https?:\/\/[^\s]+/i;
       const imageFileExtensionRegex = /\.(jpg|jpeg|png|gif|webp|svg)$/i;
       const socialMediaPlatforms = [
@@ -215,9 +210,7 @@ const Strategy = (props: StrategyProps) => {
             /(?:https?:\/\/)?(?:www\.)?(?:facebook\.com)\/(?:video\.php\?v=|watch\/\?v=|permalink\.php\?story_fbid=|groups\/[\w.-]+\/permalink\/)?([\w.-]+)(?:\S+)?/i,
         },
       ] as const;
-
       const itemPromises: Promise<PastedContentType | null>[] = [];
-
       for (let i = 0; i < items.length; i++) {
         const item = items[i];
         if (item.kind === "file") {
@@ -226,7 +219,6 @@ const Strategy = (props: StrategyProps) => {
             itemPromises.push(Promise.resolve(null));
             continue;
           }
-
           if (file.type.startsWith("image/")) {
             itemPromises.push(
               Promise.resolve({ type: "image-file", data: file })
@@ -285,11 +277,9 @@ const Strategy = (props: StrategyProps) => {
           itemPromises.push(stringPromise);
         }
       }
-
       const potentialResults = (await Promise.all(itemPromises)).filter(
         Boolean
       ) as PastedContentType[];
-
       const prioritizedOrder: PastedContentType["type"][] = [
         "image-file",
         "video-file",
@@ -303,7 +293,6 @@ const Strategy = (props: StrategyProps) => {
         "website url",
         "plain text",
       ];
-
       let finalPastedItem: PastedContentType = { type: "unknown", data: null };
       for (const type of prioritizedOrder) {
         const found = potentialResults.find((result) => result.type === type);
@@ -312,7 +301,6 @@ const Strategy = (props: StrategyProps) => {
           break;
         }
       }
-
       return finalPastedItem;
     },
     []
@@ -321,7 +309,6 @@ const Strategy = (props: StrategyProps) => {
   // Handle initial node creation and loading from flows
   useEffect(() => {
     if (!strategy) return;
-
     const flows = strategy.flows;
     const isEmptyFlows =
       Array.isArray(flows) &&
@@ -340,7 +327,6 @@ const Strategy = (props: StrategyProps) => {
           Array.isArray((flows[0] as any)[key]) &&
           (flows[0] as any)[key].length === 0
       );
-
     if (!flows || flows.length === 0 || isEmptyFlows) {
       console.log("Nodes not exists");
       // Clear history when loading empty strategy
@@ -348,7 +334,6 @@ const Strategy = (props: StrategyProps) => {
     } else {
       const flow = flows[0];
       if (!flow) return;
-
       const nodesFromFlows: any[] = [];
       const pushNodes = (peers: any[], type: string) => {
         if (!Array.isArray(peers)) return;
@@ -362,7 +347,6 @@ const Strategy = (props: StrategyProps) => {
           });
         });
       };
-
       pushNodes(flow.annotationPeers, "annotationNode");
       pushNodes(flow.aiImagePeers, "imageUploadNode");
       pushNodes(flow.aiAudioPeers, "audioPlayerNode");
@@ -371,9 +355,7 @@ const Strategy = (props: StrategyProps) => {
       pushNodes(flow.aiSocialMediaPeers, "socialMediaNode");
       pushNodes(flow.aiRemotePeers, "remoteNode");
       pushNodes(flow.aiThreadPeers, "chatbox");
-
       setNodes(nodesFromFlows);
-
       if (
         Array.isArray(flow.strategyFlowEdges) &&
         flow.strategyFlowEdges.length > 0
@@ -389,7 +371,6 @@ const Strategy = (props: StrategyProps) => {
       } else {
         setEdges([]);
       }
-
       // Initialize history with loaded data
       // @ts-ignore
       clearHistory(nodesFromFlows, flow.strategyFlowEdges || []);
@@ -436,13 +417,11 @@ const Strategy = (props: StrategyProps) => {
       ) {
         return;
       }
-
       const items = e.clipboardData?.items;
       if (!items) {
         console.log("No clipboard items found.");
         return;
       }
-
       // Prevent default paste behavior for all relevant types upfront
       for (let i = 0; i < items.length; i++) {
         const item = items[i];
@@ -456,7 +435,6 @@ const Strategy = (props: StrategyProps) => {
           e.preventDefault();
         }
       }
-
       const finalPastedItem = await processDataTransferItems(items);
       if (finalPastedItem.type !== "unknown") {
         console.log("Known Pasted Item:", finalPastedItem);
@@ -496,10 +474,8 @@ const Strategy = (props: StrategyProps) => {
         console.log("Pasted Item Type: Unknown");
       }
     };
-
     // Add event listener to the document
     document.addEventListener("paste", handlePaste);
-
     // Cleanup function to remove the event listener when the component unmounts
     return () => {
       document.removeEventListener("paste", handlePaste);
@@ -511,9 +487,7 @@ const Strategy = (props: StrategyProps) => {
       const sourceNode = nodes.find((n) => n.id === params.source);
       const targetNode = nodes.find((n) => n.id === params.target);
       const edgeId = `edge-${params.source}-${params.target}-${Date.now()}`;
-
       if (!sourceNode || !targetNode) return;
-
       setEdges((eds) =>
         addEdge(
           {
@@ -525,7 +499,6 @@ const Strategy = (props: StrategyProps) => {
           eds
         )
       );
-
       // Backend request
       connectNodes(
         {
@@ -563,7 +536,6 @@ const Strategy = (props: StrategyProps) => {
     (node: any) => {
       const { nodeLookup } = store.getState();
       const internalNode: any = getInternalNode(node.id);
-
       const closestNode = Array.from(nodeLookup.values()).reduce(
         (res: any, n: any) => {
           if (n.id !== internalNode.id) {
@@ -574,13 +546,11 @@ const Strategy = (props: StrategyProps) => {
               n.internals.positionAbsolute.y -
               internalNode.internals.positionAbsolute.y;
             const d = Math.sqrt(dx * dx + dy * dy);
-
             if (d < res.distance && d < MIN_DISTANCE) {
               res.distance = d;
               res.node = n;
             }
           }
-
           return res;
         },
         {
@@ -588,15 +558,12 @@ const Strategy = (props: StrategyProps) => {
           node: null,
         }
       );
-
       if (!closestNode.node) {
         return null;
       }
-
       const closeNodeIsSource =
         closestNode.node.internals.positionAbsolute.x <
         internalNode.internals.positionAbsolute.x;
-
       return {
         id: closeNodeIsSource
           ? `${closestNode.node.id}-${node.id}`
@@ -613,10 +580,8 @@ const Strategy = (props: StrategyProps) => {
   const onNodeDrag = useCallback(
     (_: any, node: any) => {
       const closeEdge: any = getClosestEdge(node);
-
       setEdges((es) => {
         const nextEdges = es.filter((e: any) => e.className !== "temp");
-
         if (
           closeEdge &&
           !nextEdges.find(
@@ -629,7 +594,6 @@ const Strategy = (props: StrategyProps) => {
           closeEdge.animated = true;
           nextEdges.push(closeEdge);
         }
-
         return nextEdges;
       });
     },
@@ -639,10 +603,8 @@ const Strategy = (props: StrategyProps) => {
   const onNodeDragStop = useCallback(
     (_: any, node: any) => {
       const closeEdge: any = getClosestEdge(node);
-
       setEdges((es) => {
         const nextEdges = es.filter((e: any) => e.className !== "temp");
-
         if (
           closeEdge &&
           !nextEdges.find(
@@ -654,10 +616,8 @@ const Strategy = (props: StrategyProps) => {
           closeEdge.animated = true;
           nextEdges.push(closeEdge);
         }
-
         return nextEdges;
       });
-
       const peerType = getPeerTypeFromNodeType(node.type);
       // Mutation call for updating peer position
       if (node.id && node?.type && strategy?.id) {
@@ -691,24 +651,20 @@ const Strategy = (props: StrategyProps) => {
   const onDrop = useCallback(
     async (event: React.DragEvent) => {
       event.preventDefault();
-
       const finalDroppedItem = await processDataTransferItems(
         event.dataTransfer.items
       );
-
       if (finalDroppedItem.type !== "unknown") {
         const position = screenToFlowPosition({
           x: event.clientX,
           y: event.clientY,
         });
-
         console.log(
           "Known Dropped Item:",
           finalDroppedItem,
           "at position:",
           position
         );
-
         switch (finalDroppedItem.type) {
           case "plain text":
             handleCreateNode(
@@ -828,14 +784,13 @@ const Strategy = (props: StrategyProps) => {
                 onDrop={onDrop}
               >
                 <Background />
-
                 <Controls>
-                  <UndoRedoControls
+                  {/* <UndoRedoControls
                     onUndo={handleUndo}
                     onRedo={handleRedo}
                     canUndo={canUndo}
                     canRedo={canRedo}
-                  />
+                  /> */}
                 </Controls>
               </ReactFlow>
             </>

@@ -41,7 +41,7 @@ const StrategyHeader = ({
       <div className="flex items-center justify-between">
         {/* Left Section */}
         <div className="flex items-center gap-4">
-          <Image src="/logo-icon.svg" alt="Logo" width={32} height={32} />
+          <Image src="/logo-icon.svg" alt="Logo" width={32} height={36} />
           <div className="hidden md:flex items-center gap-4 w-full">
             <Button
               size="sm"

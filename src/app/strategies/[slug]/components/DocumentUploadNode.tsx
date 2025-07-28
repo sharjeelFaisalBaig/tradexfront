@@ -712,8 +712,6 @@ export default function DocumentUploadNode({
     ? getDocumentIcon(documentInfo.type)
     : FileText;
 
-  console.log("documentUploadNode_documentUploadNode");
-
   return (
     <>
       <NodeWrapper
