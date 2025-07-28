@@ -238,11 +238,6 @@ export default function AnnotationNode({
     updateNodeData(id, { ...annotationData });
     setContent(annotationData?.annotation_message ?? "");
     setCurrentTheme(annotationData?.data?.color);
-    successNote({
-      title: "Annotation Node Updated",
-      description: "Annotation node updated successfully",
-    });
-
     updateAnnotation(
       {
         peerId: nodeData?.id ?? "",
