@@ -1,15 +1,19 @@
 "use client";
-
 import {
   useState,
   useRef,
   useEffect,
-  useCallback,
-  useMemo,
   type DragEvent,
   type ChangeEvent,
+  useMemo,
 } from "react";
 import { Position, useReactFlow } from "@xyflow/react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Tooltip,
   TooltipContent,
@@ -22,6 +26,7 @@ import {
   Play,
   Pause,
   Download,
+  Copy,
   Plus,
   Upload,
   X,
@@ -31,7 +36,8 @@ import {
   Mic,
   Square,
   RotateCcw,
-  RefreshCw,
+  Shield,
+  CheckCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import NodeWrapper from "./common/NodeWrapper";
@@ -46,9 +52,8 @@ import { toast } from "@/hooks/use-toast";
 import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 import AiNoteInput from "./common/AiNoteInput";
 import NodeHandle from "./common/NodeHandle";
-import IsReadyToInteract from "./common/IsReadyToInteract";
 
-// Enhanced types
+// Types for AI integration
 interface AIProcessingResponse {
   title: string;
   peerId: string;
@@ -58,16 +63,15 @@ interface AIProcessingResponse {
   tags: string[];
   duration: number;
   language: string;
-  audioUrl?: string;
-  ai_title?: string;
-  ai_summary?: string;
+  audioUrl?: string; // Add audioUrl to AIProcessingResponse if it comes from the backend
+  ai_title?: string; // Add raw ai_title if needed for parsing
+  ai_summary?: string; // Add raw ai_summary if needed for parsing
 }
 
 interface ProcessingState {
   isProcessing: boolean;
   isComplete: boolean;
   error: string | null;
-  lastFailedOperation: "upload" | "analyze" | null;
 }
 
 interface RecordingState {
@@ -77,55 +81,30 @@ interface RecordingState {
   audioLevel: number;
 }
 
-interface AudioUploadNodeProps {
-  id: string;
-  sourcePosition?: Position;
-  targetPosition?: Position;
-  data: any;
-}
-
-// Audio file validation constants
-const ALLOWED_AUDIO_TYPES = [
-  "audio/mpeg",
-  "audio/wav",
-  "audio/mp4",
-  "audio/m4a",
-  "audio/ogg",
-  "audio/webm",
-  "audio/flac",
-];
-
-const MAX_AUDIO_FILE_SIZE = 50 * 1024 * 1024; // 50MB
-const MAX_RECORDING_DURATION = 600; // 10 minutes in seconds
-
-export default function AudioUploadNode({
+export default function AudioPlayerNode({
   id,
   sourcePosition = Position.Left,
   targetPosition = Position.Right,
   data,
-}: AudioUploadNodeProps) {
+}: any) {
+  // console.log("AudioPlayerNode", { data });
   const strategyId = useParams()?.slug as string;
   const successNote = useSuccessNotifier();
-  const { setEdges, updateNodeData } = useReactFlow();
 
-  // Refs
-  const nodeControlRef = useRef<HTMLDivElement>(null);
-  const audioRef = useRef<HTMLAudioElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const analyserRef = useRef<AnalyserNode | null>(null);
-  const animationFrameRef = useRef<number | null>(null);
-  const lastUploadedFileRef = useRef<File | null>(null); // Store original file for retry
+  // Processing states (tied to mutation)
+  const [processingState, setProcessingState] = useState<ProcessingState>({
+    isProcessing: false,
+    isComplete: false,
+    error: null,
+  });
 
-  // Mutations
-  const { mutate: resetPeer, isPending: isResetting } = useResetPeer();
+  // mutations
+  const { mutate: resetPeer, isPending: isReseting } = useResetPeer();
   const {
     mutate: uploadAudio,
     isPending: isUploading,
-    isError: isUploadError,
-    error: uploadError,
+    isError: uploadError,
+    error: uploadErrorMessage,
     data: uploadData,
     isSuccess: uploadSuccess,
   } = useUploadAudioContent();
@@ -133,31 +112,34 @@ export default function AudioUploadNode({
     mutate: analyzeAudioContent,
     isPending: isAnalyzing,
     isSuccess: isAnalyzeSuccess,
-    isError: isAnalyzeError,
-    error: analyzeError,
   } = useAnalyzeAudioPeer();
-
-  // Status polling
   const { data: status, isPollingLoading: isStatusPollingLoading } =
     useGetPeerAnalysisStatus({
       strategyId,
       peerId: data?.id,
       peerType: "audio",
-      enabled: isAnalyzeSuccess && !isResetting,
+      // Enable polling only if audio is uploaded, not resetting, not yet ready, and not actively processing
+      enabled:
+        isAnalyzeSuccess &&
+        !isReseting &&
+        !data?.is_ready_to_interact &&
+        !processingState.isProcessing,
     });
 
-  // State
-  const [processingState, setProcessingState] = useState<ProcessingState>({
-    isProcessing: false,
-    isComplete: false,
-    error: null,
-    lastFailedOperation: null,
-  });
+  const nodeControlRef = useRef(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
+  const { setEdges, updateNodeData } = useReactFlow();
 
   // Audio upload states
   const [uploadedAudio, setUploadedAudio] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string>("");
-  const [currentFile, setCurrentFile] = useState<File | null>(null);
+  const [currentFile, setCurrentFile] = useState<File | null>(null); // Store the actual File object
   const [isDragOver, setIsDragOver] = useState(false);
 
   // Audio player states
@@ -165,7 +147,7 @@ export default function AudioUploadNode({
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false); // For audio player loading
 
   // Recording states
   const [recordingState, setRecordingState] = useState<RecordingState>({
@@ -182,338 +164,245 @@ export default function AudioUploadNode({
     null
   );
   const [userNotes, setUserNotes] = useState<string>(data?.ai_notes ?? "");
+  const [isInitialLoadFromProps, setIsInitialLoadFromProps] = useState(true); // Flag to ensure initial data handling runs only once
 
   const speeds = [1, 1.5, 2];
 
-  // Memoized values
-  const canConnect = useMemo(
-    () =>
-      !isResetting &&
-      (data?.is_ready_to_interact || status?.is_ready_to_interact),
-    [data?.is_ready_to_interact, status?.is_ready_to_interact, isResetting]
-  );
+  // Effect to handle initial loading of pre-existing audio and AI data from props
+  useEffect(() => {
+    if (isInitialLoadFromProps && data?.audio) {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "";
+      const cleanBaseUrl = baseUrl.endsWith("/api")
+        ? baseUrl.replace(/\/api$/, "")
+        : baseUrl;
+      const cleanAudioPath = data.audio.startsWith("/")
+        ? data.audio
+        : `/${data.audio}`;
+      const fullAudioUrl = `${cleanBaseUrl}${cleanAudioPath}`;
 
-  const isProcessingAny = useMemo(
-    () =>
-      isUploading ||
-      isAnalyzing ||
-      processingState.isProcessing ||
-      isStatusPollingLoading,
-    [
-      isUploading,
-      isAnalyzing,
-      processingState.isProcessing,
-      isStatusPollingLoading,
-    ]
-  );
+      setUploadedAudio(fullAudioUrl);
+      setFileName(data.title || data.audio.split("/").pop() || "audio-file");
+      setUserNotes(data.ai_notes || "");
 
-  const currentError = useMemo(() => {
-    if (isUploadError && uploadError) {
-      return {
-        message:
-          (uploadError as any)?.response?.data?.message ||
-          "Failed to upload audio",
-        type: "upload" as const,
-      };
-    }
-    if (isAnalyzeError && analyzeError) {
-      return {
-        message:
-          (analyzeError as any)?.response?.data?.message ||
-          "Failed to analyze audio",
-        type: "analyze" as const,
-      };
-    }
-    if (processingState.error) {
-      return {
-        message: processingState.error,
-        type: processingState.lastFailedOperation || ("unknown" as const),
-      };
-    }
-    return null;
-  }, [
-    isUploadError,
-    uploadError,
-    isAnalyzeError,
-    analyzeError,
-    processingState.error,
-    processingState.lastFailedOperation,
-  ]);
-
-  // File validation
-  const validateFile = useCallback((file: File): string | null => {
-    if (!file) return "No file selected";
-
-    if (!ALLOWED_AUDIO_TYPES.includes(file.type)) {
-      return "Unsupported audio format. Supported formats: MP3, WAV, M4A, OGG, WebM, FLAC.";
-    }
-
-    if (file.size > MAX_AUDIO_FILE_SIZE) {
-      return "File size too large. Maximum size is 50MB.";
-    }
-
-    return null;
-  }, []);
-
-  // Enhanced audio processing
-  const processAudioFile = useCallback(
-    async (file: File) => {
-      const validationError = validateFile(file);
-      if (validationError) {
+      if (data.is_ready_to_interact && data.ai_title && data.ai_summary) {
+        try {
+          const parsedTitleObj = JSON.parse(data.ai_title);
+          const parsedSummaryObj = JSON.parse(data.ai_summary);
+          setAiResponse({
+            title: parsedTitleObj.title || data.title,
+            peerId: data.id,
+            transcription:
+              parsedSummaryObj.important_quotes?.join(" ") ||
+              data.transcription ||
+              "",
+            summary: parsedSummaryObj.summary || "",
+            confidence: data.confidence,
+            tags: parsedSummaryObj.key_topics || [],
+            duration: data.duration,
+            language: data.language,
+          });
+          setProcessingState({
+            isProcessing: false,
+            isComplete: true,
+            error: null,
+          });
+        } catch (e) {
+          console.error("Error parsing AI metadata from data props:", e);
+          // setProcessingState({
+          //   isProcessing: false,
+          //   isComplete: false,
+          //   error: "Failed to parse AI data from props.",
+          // });
+        }
+      } else {
+        // Audio is present but not ready for interaction/analysis complete
         setProcessingState({
           isProcessing: false,
           isComplete: false,
-          error: validationError,
-          lastFailedOperation: null,
+          error: data.error_message || null,
         });
-        return;
+      }
+      setIsLoading(true); // Assume audio needs to load in the player
+      setIsInitialLoadFromProps(false); // Mark as processed
+    } else if (data?.dataToAutoUpload?.data) {
+      // Handle pasted audio data from props (ensure it doesn't conflict with initial data from 'audio' prop)
+      handleFileSelect(data?.dataToAutoUpload?.data);
+    }
+  }, [data, isInitialLoadFromProps]); // Depend on data and the initial load flag
+
+  // Update processing state based on mutation status
+  useEffect(() => {
+    setProcessingState((prev) => ({
+      ...prev,
+      isProcessing: isUploading,
+      error: uploadError
+        ? uploadErrorMessage?.message || "Upload failed"
+        : null,
+      isComplete: uploadSuccess,
+    }));
+
+    if (uploadSuccess && uploadData) {
+      let processedTitle = uploadData.title;
+      let processedSummary = uploadData.summary;
+      let processedTags = uploadData.tags;
+      let processedTranscription = uploadData.transcription;
+
+      try {
+        if (uploadData.ai_title) {
+          processedTitle =
+            JSON.parse(uploadData.ai_title)?.title || uploadData.title;
+        }
+        if (uploadData.ai_summary) {
+          const summaryObj = JSON.parse(uploadData.ai_summary);
+          processedSummary = summaryObj.summary || uploadData.summary;
+          processedTags = summaryObj.key_topics || uploadData.tags;
+          processedTranscription =
+            summaryObj.important_quotes?.join(" ") || uploadData.transcription;
+        }
+      } catch (e) {
+        console.error("Error parsing AI metadata from uploadData:", e);
       }
 
-      // Store file for retry functionality
-      lastUploadedFileRef.current = file;
-      setCurrentFile(file);
-
-      setProcessingState({
-        isProcessing: true,
-        isComplete: false,
-        error: null,
-        lastFailedOperation: null,
+      setAiResponse({
+        ...uploadData, // Spread existing data
+        title: processedTitle,
+        summary: processedSummary,
+        tags: processedTags,
+        transcription: processedTranscription,
       });
 
-      setFileName(file.name);
-      setIsLoading(true);
+      // Set uploadedAudio if the mutation returns a new URL
+      if (uploadData.audioUrl) {
+        setUploadedAudio(uploadData.audioUrl);
+      }
 
-      // Create preview
-      const reader = new FileReader();
-      reader.onload = (e) => setUploadedAudio(e.target?.result as string);
-      reader.onerror = () => {
-        setProcessingState({
-          isProcessing: false,
-          isComplete: false,
-          error: "Failed to read audio file",
-          lastFailedOperation: "upload",
-        });
-      };
-      reader.readAsDataURL(file);
-
-      // Upload file
-      const formData: any = new FormData();
-      formData.append("file", file);
-      formData.append("title", file.name);
-
-      uploadAudio(
-        { strategyId, peerId: data?.id, data: formData },
-        {
-          onSuccess: (response) => {
-            if (response?.audioUrl) {
-              setUploadedAudio(response.audioUrl);
-            }
-
-            // Update node data
-            updateNodeData(data?.id, { ai_notes: userNotes });
-
-            // Proceed to analysis
-            analyzeAudioContent(
-              { strategyId, peerId: data?.id, data: { ai_notes: userNotes } },
-              {
-                onSuccess: () => {
-                  setProcessingState({
-                    isProcessing: false,
-                    isComplete: true,
-                    error: null,
-                    lastFailedOperation: null,
-                  });
-                },
-                onError: () => {
-                  setProcessingState({
-                    isProcessing: false,
-                    isComplete: false,
-                    error: null,
-                    lastFailedOperation: "analyze",
-                  });
-                },
-              }
-            );
-          },
-          onError: () => {
-            setProcessingState({
-              isProcessing: false,
-              isComplete: false,
-              error: null,
-              lastFailedOperation: "upload",
-            });
-          },
-        }
-      );
-    },
-    [
-      validateFile,
-      strategyId,
-      data?.id,
-      userNotes,
-      uploadAudio,
-      analyzeAudioContent,
-      updateNodeData,
-    ]
-  );
-
-  // Retry functionality
-  const handleRetry = useCallback(() => {
-    if (!currentError) return;
-
-    if (currentError.type === "upload" && lastUploadedFileRef.current) {
-      // Retry upload
-      processAudioFile(lastUploadedFileRef.current);
-    } else if (currentError.type === "analyze") {
-      // Retry analysis
-      setProcessingState((prev) => ({
-        ...prev,
-        isProcessing: true,
-        error: null,
-      }));
-
-      analyzeAudioContent(
-        { strategyId, peerId: data?.id, data: { ai_notes: userNotes } },
-        {
-          onSuccess: () => {
-            setProcessingState({
-              isProcessing: false,
-              isComplete: true,
-              error: null,
-              lastFailedOperation: null,
-            });
-          },
-          onError: () => {
-            setProcessingState({
-              isProcessing: false,
-              isComplete: false,
-              error: null,
-              lastFailedOperation: "analyze",
-            });
-          },
-        }
-      );
+      // Set fileName for the UI if it changed or wasn't set.
+      if (!fileName && uploadData.title) {
+        setFileName(uploadData.title);
+      }
+      setIsLoading(true); // Audio player loading for the new file
     }
   }, [
-    currentError,
-    processAudioFile,
-    analyzeAudioContent,
-    strategyId,
-    data?.id,
-    userNotes,
+    isUploading,
+    uploadError,
+    uploadErrorMessage,
+    uploadSuccess,
+    uploadData,
+    fileName,
   ]);
 
-  // Event handlers
-  const handleFileSelect = useCallback(
-    (file: File) => {
-      if (file) {
-        processAudioFile(file);
-      }
-    },
-    [processAudioFile]
-  );
+  // Audio level monitoring for recording
+  useEffect(() => {
+    if (
+      recordingState.isRecording &&
+      !recordingState.isPaused &&
+      analyserRef.current
+    ) {
+      const updateAudioLevel = () => {
+        const analyser = analyserRef.current;
+        if (!analyser) return;
 
-  const handleFileInputChange = useCallback(
-    (e: ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (file) {
-        handleFileSelect(file);
-      }
-    },
-    [handleFileSelect]
-  );
+        const dataArray = new Uint8Array(analyser.frequencyBinCount);
+        analyser.getByteFrequencyData(dataArray);
 
-  const handleSelectFile = useCallback(() => {
-    fileInputRef.current?.click();
-  }, []);
+        // Calculate average audio level
+        const average =
+          dataArray.reduce((sum, value) => sum + value, 0) / dataArray.length;
+        const normalizedLevel = Math.min(average / 128, 1); // Normalize to 0-1
 
-  const handleRemoveAudio = useCallback(() => {
-    setUploadedAudio(null);
-    setFileName("");
-    setCurrentFile(null);
-    setAiResponse(null);
-    lastUploadedFileRef.current = null;
-    setProcessingState({
-      isProcessing: false,
-      isComplete: false,
-      error: null,
-      lastFailedOperation: null,
-    });
-    setUserNotes("");
-    setIsPlaying(false);
-    setCurrentTime(0);
-    setDuration(0);
-    setShowRecordingInterface(false);
-
-    updateNodeData(data?.id, {
-      audio: "",
-      title: "",
-      ai_notes: "",
-      ai_title: "",
-      is_ready_to_interact: false,
-    });
-
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
+        setRecordingState((prev) => ({ ...prev, audioLevel: normalizedLevel }));
+        animationFrameRef.current = requestAnimationFrame(updateAudioLevel);
+      };
+      updateAudioLevel();
     }
 
-    successNote({
-      title: "Audio removed",
-      description: "Audio removed successfully",
-    });
-
-    resetPeer(
-      { peerId: data?.id, strategyId, peerType: "audio" },
-      {
-        onError: (error: any) => {
-          toast({
-            title: "Failed to remove audio",
-            description:
-              error?.response?.data?.message ?? "Something went wrong...",
-            variant: "destructive",
-          });
-        },
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
       }
-    );
-  }, [data?.id, updateNodeData, successNote, resetPeer, strategyId]);
+    };
+  }, [recordingState.isRecording, recordingState.isPaused]);
 
-  // Drag and drop handlers
-  const handleDragEnter = useCallback((e: DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragOver(true);
-  }, []);
-
-  const handleDragOver = useCallback(
-    (e: DragEvent<HTMLDivElement>) => {
-      e.preventDefault();
-      e.stopPropagation();
-      if (!isDragOver) setIsDragOver(true);
-    },
-    [isDragOver]
-  );
-
-  const handleDragLeave = useCallback((e: DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.currentTarget.contains(e.relatedTarget as Node)) {
-      return;
+  // Recording duration timer
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    if (recordingState.isRecording && !recordingState.isPaused) {
+      interval = setInterval(() => {
+        setRecordingState((prev) => ({
+          ...prev,
+          duration: prev.duration + 0.1,
+        }));
+      }, 100);
     }
-    setIsDragOver(false);
-  }, []);
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [recordingState.isRecording, recordingState.isPaused]);
 
-  const handleDrop = useCallback(
-    (e: DragEvent<HTMLDivElement>) => {
-      e.preventDefault();
-      e.stopPropagation();
-      setIsDragOver(false);
-      const files = e.dataTransfer.files;
-      if (files.length > 0) {
-        handleFileSelect(files[0]);
+  // Audio player event handlers
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio || !uploadedAudio) return;
+
+    const handleLoadedMetadata = () => {
+      setDuration(audio.duration);
+      setIsLoading(false);
+    };
+    const handleTimeUpdate = () => {
+      const newCurrentTime = audio.currentTime;
+      setCurrentTime(newCurrentTime);
+      if (audio.duration && !isNaN(audio.duration) && duration === 0) {
+        setDuration(audio.duration);
       }
-    },
-    [handleFileSelect]
-  );
+    };
+    const handleEnded = () => {
+      setIsPlaying(false);
+      setCurrentTime(0);
+    };
+    const handleLoadStart = () => {
+      setIsLoading(true);
+    };
+    const handleCanPlay = () => {
+      setIsLoading(false);
+    };
+    const handleError = (e: Event) => {
+      console.error("Audio error:", e);
+      setIsLoading(false);
+      setProcessingState((prev) => ({
+        ...prev,
+        error: "Failed to load audio file.",
+      }));
+    };
+    const handleLoadedData = () => {
+      if (audio.duration && !isNaN(audio.duration)) {
+        setDuration(audio.duration);
+        setIsLoading(false);
+      }
+    };
+
+    audio.addEventListener("loadedmetadata", handleLoadedMetadata);
+    audio.addEventListener("loadeddata", handleLoadedData);
+    audio.addEventListener("timeupdate", handleTimeUpdate);
+    audio.addEventListener("ended", handleEnded);
+    audio.addEventListener("loadstart", handleLoadStart);
+    audio.addEventListener("canplay", handleCanPlay);
+    audio.addEventListener("error", handleError);
+
+    if (uploadedAudio && audio.src !== uploadedAudio) {
+      // Only load if src changed
+      audio.load();
+    }
+
+    return () => {
+      audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
+      audio.removeEventListener("loadeddata", handleLoadedData);
+      audio.removeEventListener("timeupdate", handleTimeUpdate);
+      audio.removeEventListener("ended", handleEnded);
+      audio.removeEventListener("loadstart", handleLoadStart);
+      audio.removeEventListener("canplay", handleCanPlay);
+      audio.removeEventListener("error", handleError);
+    };
+  }, [uploadedAudio, duration]);
 
   // Recording functions
   const startRecording = async () => {
@@ -525,7 +414,6 @@ export default function AudioUploadNode({
           sampleRate: 44100,
         },
       });
-
       streamRef.current = stream;
       audioContextRef.current = new AudioContext();
       const source = audioContextRef.current.createMediaStreamSource(stream);
@@ -539,18 +427,16 @@ export default function AudioUploadNode({
       mediaRecorderRef.current = mediaRecorder;
 
       setRecordedChunks([]);
-
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
           setRecordedChunks((prev) => [...prev, event.data]);
         }
       };
-
       mediaRecorder.onstop = () => {
         stream.getTracks().forEach((track) => track.stop());
       };
 
-      mediaRecorder.start(100);
+      mediaRecorder.start(100); // Collect data every 100ms
       setRecordingState({
         isRecording: true,
         isPaused: false,
@@ -559,12 +445,7 @@ export default function AudioUploadNode({
       });
     } catch (error) {
       console.error("Error starting recording:", error);
-      setProcessingState({
-        isProcessing: false,
-        isComplete: false,
-        error: "Could not access microphone. Please check permissions.",
-        lastFailedOperation: null,
-      });
+      alert("Could not access microphone. Please check permissions.");
     }
   };
 
@@ -599,10 +480,26 @@ export default function AudioUploadNode({
       const blob = new Blob(recordedChunks, { type: "audio/webm" });
       const filename = `recording-${Date.now()}.webm`;
       const recordedFile = new File([blob], filename, { type: "audio/webm" });
+      setCurrentFile(recordedFile); // Store the actual file
 
-      // Process the recorded file
-      handleFileSelect(recordedFile);
+      // Reset all audio states first
+      setIsPlaying(false);
+      setCurrentTime(0);
+      setDuration(0);
+      setIsLoading(true); // For audio player loading
+      setUploadedAudio(URL.createObjectURL(blob)); // Use object URL for playback
+      setFileName(filename);
       setShowRecordingInterface(false);
+
+      // Trigger the actual upload mutation
+      const formData: any = new FormData();
+      formData.append("file", recordedFile);
+      formData.append("title", filename);
+      uploadAudio({
+        strategyId,
+        peerId: data?.id,
+        data: formData,
+      });
     }
   };
 
@@ -615,6 +512,160 @@ export default function AudioUploadNode({
       audioLevel: 0,
     });
     setShowRecordingInterface(false);
+  };
+
+  const handleFileSelect = (file: File) => {
+    if (file && file.type.startsWith("audio/")) {
+      setCurrentFile(file); // Store the actual file
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const audioData = e.target?.result as string;
+        setUploadedAudio(audioData); // For playback (e.g., base64 data URL)
+        setFileName(file.name);
+        setIsLoading(true); // For audio player loading
+
+        // Trigger the actual upload mutation
+        const formData: any = new FormData();
+        formData.append("file", file);
+        formData.append("title", file.name);
+        uploadAudio({
+          strategyId,
+          peerId: data?.id,
+          data: formData,
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleFileInputChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleFileSelect(file);
+    }
+  };
+
+  const handleDragEnter = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(true);
+  };
+
+  const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isDragOver) setIsDragOver(true);
+  };
+
+  const handleDragLeave = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.currentTarget.contains(e.relatedTarget as Node)) {
+      return;
+    }
+    setIsDragOver(false);
+  };
+
+  const handleDrop = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      handleFileSelect(files[0]);
+    }
+  };
+
+  const handleSelectFile = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleRemoveAudio = () => {
+    // Optimistically reset all local states immediately for instant UI update
+    setUploadedAudio(null);
+    setFileName("");
+    setCurrentFile(null); // Clear the stored file
+    setAiResponse(null);
+    setProcessingState({
+      isProcessing: false,
+      isComplete: false,
+      error: null,
+    });
+    setUserNotes("");
+    setIsPlaying(false);
+    setCurrentTime(0);
+    setDuration(0);
+    setShowRecordingInterface(false);
+    setIsInitialLoadFromProps(true); // Reset flag so initial data can be re-evaluated if props change
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+
+    // Optimistically update the node data in React Flow to immediately affect `canConnect`
+    updateNodeData(id, {
+      audio: "",
+      title: "",
+      ai_notes: "",
+      ai_title: "",
+      is_ready_to_interact: false, // Set to false immediately
+    });
+
+    if (data?.is_ready_to_interact) {
+      data.is_ready_to_interact = false;
+      data.ai_title = "";
+      data.ai_notes = "";
+      data.title = "";
+      data.audio = "";
+    }
+
+    if (status?.is_ready_to_interact) {
+      status.is_ready_to_interact = false;
+      status.ai_title = "";
+    }
+
+    // Only show success notification, as states are already reset optimistically
+    successNote({
+      title: "Audio removed",
+      description: "Audio removed successfully",
+    });
+
+    resetPeer(
+      { peerId: data?.id, strategyId, peerType: "audio" },
+      {
+        onError: (error: any) => {
+          // If reset fails, show error. Consider reverting states if necessary for robust error handling.
+          toast({
+            title: "Failed to remove audio",
+            description:
+              error?.response?.data?.message ?? "Something went wrong...",
+            variant: "destructive",
+          });
+          // For a more robust solution, you might want to revert the optimistic updates here
+          // if the backend operation truly failed and the previous state should be restored.
+        },
+      }
+    );
+  };
+
+  const handleReprocess = () => {
+    if (currentFile) {
+      const formData: any = new FormData();
+      formData.append("file", currentFile);
+      formData.append("title", currentFile.name);
+      uploadAudio({
+        strategyId,
+        peerId: data?.id,
+        data: formData,
+      });
+    } else if (uploadedAudio && fileName) {
+      // If currentFile is null but uploadedAudio exists (e.g., loaded from props without saving original file object)
+      // You might need a way to re-fetch/re-process the existing uploaded audio from its URL
+      // For simplicity, we'll assume currentFile is available for reprocess if it was a local upload/recording.
+      // If it came from props, re-running initial useEffect would be needed (handled by resetting isInitialLoadFromProps).
+      console.warn(
+        "Cannot reprocess audio without original File object or explicit backend reprocess API."
+      );
+    }
   };
 
   // Audio player controls
@@ -671,180 +722,33 @@ export default function AudioUploadNode({
       .padStart(2, "0")}`;
   };
 
-  // Effects
-  useEffect(() => {
-    // Handle auto-upload from data
-    if (data?.dataToAutoUpload?.data) {
-      handleFileSelect(data.dataToAutoUpload.data);
+  const handleDownload = () => {
+    if (uploadedAudio) {
+      const link = document.createElement("a");
+      link.href = uploadedAudio;
+      link.download = fileName || "audio-file.mp3";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     }
+  };
 
-    // Handle existing audio data
-    if (data?.audio) {
-      let apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
-      if (apiUrl.endsWith("/api")) apiUrl = apiUrl.replace(/\/api$/, "");
-      const audioUrl = data.audio.startsWith("http")
-        ? data.audio
-        : apiUrl + data.audio;
-      setUploadedAudio(audioUrl);
-      const parts = data.audio.split("/");
-      setFileName(parts[parts.length - 1] || data.title || "audio");
-    }
+  const handleCopyTranscription = () => {
+    const transcription =
+      aiResponse?.transcription || "No transcription available";
+    navigator.clipboard.writeText(transcription);
+    // console.log("Copied transcription to clipboard");
+  };
 
-    // Handle AI response data
-    if (data?.ai_title || data?.ai_summary) {
-      try {
-        const parsedTitle = data.ai_title ? JSON.parse(data.ai_title) : {};
-        const parsedSummary = data.ai_summary
-          ? JSON.parse(data.ai_summary)
-          : {};
+  const progressValue = duration > 0 ? (currentTime / duration) * 100 : 0;
 
-        setAiResponse({
-          title: parsedTitle.title || data.title || "",
-          peerId: data.id || "",
-          transcription: parsedSummary.important_quotes?.join(" ") || "",
-          summary: parsedSummary.summary || "",
-          confidence: data.confidence || 0.95,
-          tags: parsedSummary.key_topics || [],
-          duration: data.duration || 0,
-          language: data.language || "en",
-        });
-      } catch (e) {
-        console.error("Error parsing AI metadata:", e);
-      }
-    }
-
-    // Handle user notes
-    if (data?.ai_notes) {
-      setUserNotes(data.ai_notes);
-    }
-
-    // Handle completion state
-    if (data?.audio && data?.is_ready_to_interact) {
-      setProcessingState((prev) => ({
-        ...prev,
-        isComplete: true,
-        error: null,
-      }));
-    }
-  }, [data, handleFileSelect]);
-
-  // Audio level monitoring for recording
-  useEffect(() => {
-    if (
-      recordingState.isRecording &&
-      !recordingState.isPaused &&
-      analyserRef.current
-    ) {
-      const updateAudioLevel = () => {
-        const analyser = analyserRef.current;
-        if (!analyser) return;
-        const dataArray = new Uint8Array(analyser.frequencyBinCount);
-        analyser.getByteFrequencyData(dataArray);
-        const average =
-          dataArray.reduce((sum, value) => sum + value, 0) / dataArray.length;
-        const normalizedLevel = Math.min(average / 128, 1);
-        setRecordingState((prev) => ({ ...prev, audioLevel: normalizedLevel }));
-        animationFrameRef.current = requestAnimationFrame(updateAudioLevel);
-      };
-      updateAudioLevel();
-    }
-    return () => {
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
-    };
-  }, [recordingState.isRecording, recordingState.isPaused]);
-
-  // Recording duration timer
-  useEffect(() => {
-    let interval: NodeJS.Timeout | null = null;
-    if (recordingState.isRecording && !recordingState.isPaused) {
-      interval = setInterval(() => {
-        setRecordingState((prev) => {
-          const newDuration = prev.duration + 0.1;
-          // Auto-stop recording if max duration reached
-          if (newDuration >= MAX_RECORDING_DURATION) {
-            stopRecording();
-            return prev;
-          }
-          return { ...prev, duration: newDuration };
-        });
-      }, 100);
-    }
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [recordingState.isRecording, recordingState.isPaused]);
-
-  // Audio player event handlers
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio || !uploadedAudio) return;
-
-    const handleLoadedMetadata = () => {
-      setDuration(audio.duration);
-      setIsLoading(false);
-    };
-
-    const handleTimeUpdate = () => {
-      const newCurrentTime = audio.currentTime;
-      setCurrentTime(newCurrentTime);
-      if (audio.duration && !isNaN(audio.duration) && duration === 0) {
-        setDuration(audio.duration);
-      }
-    };
-
-    const handleEnded = () => {
-      setIsPlaying(false);
-      setCurrentTime(0);
-    };
-
-    const handleLoadStart = () => {
-      setIsLoading(true);
-    };
-
-    const handleCanPlay = () => {
-      setIsLoading(false);
-    };
-
-    const handleError = (e: Event) => {
-      console.error("Audio error:", e);
-      setIsLoading(false);
-      setProcessingState((prev) => ({
-        ...prev,
-        error: "Failed to load audio file.",
-      }));
-    };
-
-    const handleLoadedData = () => {
-      if (audio.duration && !isNaN(audio.duration)) {
-        setDuration(audio.duration);
-        setIsLoading(false);
-      }
-    };
-
-    audio.addEventListener("loadedmetadata", handleLoadedMetadata);
-    audio.addEventListener("loadeddata", handleLoadedData);
-    audio.addEventListener("timeupdate", handleTimeUpdate);
-    audio.addEventListener("ended", handleEnded);
-    audio.addEventListener("loadstart", handleLoadStart);
-    audio.addEventListener("canplay", handleCanPlay);
-    audio.addEventListener("error", handleError);
-
-    if (uploadedAudio && audio.src !== uploadedAudio) {
-      audio.load();
-    }
-
-    return () => {
-      audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
-      audio.removeEventListener("loadeddata", handleLoadedData);
-      audio.removeEventListener("timeupdate", handleTimeUpdate);
-      audio.removeEventListener("ended", handleEnded);
-      audio.removeEventListener("loadstart", handleLoadStart);
-      audio.removeEventListener("canplay", handleCanPlay);
-      audio.removeEventListener("error", handleError);
-    };
-  }, [uploadedAudio, duration]);
+  // Modified canConnect to immediately reflect isReseting state
+  const canConnect = useMemo(
+    () =>
+      !isReseting &&
+      (data?.is_ready_to_interact || status?.is_ready_to_interact),
+    [data?.is_ready_to_interact, status?.is_ready_to_interact, isReseting]
+  );
 
   // Remove connections when node becomes not connectable
   useEffect(() => {
@@ -853,9 +757,9 @@ export default function AudioUploadNode({
         edges.filter((edge) => edge.source !== id && edge.target !== id)
       );
     }
-  }, [canConnect, id, setEdges]);
+  }, [canConnect, id, setEdges, data]);
 
-  const progressValue = duration > 0 ? (currentTime / duration) * 100 : 0;
+  // Determine which interface to show
   const shouldShowUploadInterface = useMemo(
     () => !uploadedAudio && !showRecordingInterface,
     [uploadedAudio, showRecordingInterface]
@@ -872,17 +776,18 @@ export default function AudioUploadNode({
       )}
     >
       <div className="react-flow__node">
-        <div ref={nodeControlRef} className="nodrag" />
+        <div ref={nodeControlRef} className={`nodrag`} />
         <TooltipProvider>
           <div className="w-[1000px] max-w-md mx-auto bg-white rounded-lg shadow-sm border overflow-hidden relative">
             {shouldShowUploadInterface ? (
               // Upload/Record Interface
               <div
                 className={cn(
-                  "relative bg-white rounded-2xl p-12 transition-all duration-200 border-2 border-dashed cursor-pointer",
+                  "relative bg-white rounded-2xl p-12 transition-all duration-200 border-2 border-dashed",
                   isDragOver
                     ? "border-purple-400 bg-purple-50"
-                    : "border-gray-300"
+                    : "border-gray-300",
+                  "cursor-pointer"
                 )}
                 onDragEnter={handleDragEnter}
                 onDragOver={handleDragOver}
@@ -898,12 +803,6 @@ export default function AudioUploadNode({
                   className="hidden"
                 />
                 <div className="text-center">
-                  {currentError && (
-                    <div className="mb-4 px-4 py-2 bg-red-50 border border-red-200 rounded text-red-700 text-sm font-medium flex items-center gap-2">
-                      <X className="w-4 h-4 text-red-500" />
-                      {currentError.message}
-                    </div>
-                  )}
                   <div className="mb-6 space-y-3">
                     <Button
                       onClick={(e) => {
@@ -934,7 +833,7 @@ export default function AudioUploadNode({
                     Drag and drop an audio file here
                   </div>
                   <div className="text-sm text-gray-500 mt-4">
-                    Supports: MP3, WAV, M4A, OGG, WebM, FLAC (Max 50MB)
+                    Supports: MP3, WAV, M4A, OGG
                   </div>
                 </div>
                 {isDragOver && (
@@ -979,13 +878,10 @@ export default function AudioUploadNode({
                   </Button>
                 </div>
                 <div className="p-6 text-center space-y-6">
-                  {/* Duration and Level Display */}
+                  {/* Audio Level Visualization */}
                   <div className="space-y-4">
                     <div className="text-2xl font-bold text-gray-800 tabular-nums">
                       {formatTime(recordingState.duration)}
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      Max duration: {formatTime(MAX_RECORDING_DURATION)}
                     </div>
                     {/* Audio Level Bars */}
                     <div className="flex items-center justify-center gap-1 h-16">
@@ -1066,7 +962,7 @@ export default function AudioUploadNode({
                 </div>
               </div>
             ) : (
-              // Audio Player Interface
+              // Audio Player Interface (always shown if uploadedAudio is present)
               <div className="space-y-0">
                 {/* Hidden Audio Element */}
                 <audio
@@ -1076,36 +972,35 @@ export default function AudioUploadNode({
                   crossOrigin="anonymous"
                   controls={false}
                 />
-                {/* Header */}
+
+                {/* Header with AI Title or Processing State */}
                 <div className="bg-gradient-to-r from-purple-500 to-purple-600 px-4 py-3 flex items-center justify-between text-white">
                   <div className="flex items-center gap-2 flex-1 min-w-0">
-                    {isProcessingAny ? (
+                    {processingState.isProcessing ? (
                       <div className="flex items-center gap-2">
                         <Loader2 className="w-4 h-4 animate-spin" />
                         <span className="text-sm font-medium">
                           AI is processing your audio...
                         </span>
                       </div>
-                    ) : currentError ? (
+                    ) : processingState.error ? (
                       <div className="flex items-center gap-2">
-                        <X className="w-4 h-4 text-red-300" />
+                        <X className="w-4 h-4" />
                         <span className="text-sm font-medium">
                           Processing failed
                         </span>
                       </div>
-                    ) : aiResponse?.title || status?.ai_title ? (
+                    ) : aiResponse?.title ? ( // Use aiResponse.title
                       <div className="flex items-center gap-2">
                         <Lightbulb className="w-4 h-4 text-yellow-300" />
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <span className="text-sm font-medium truncate w-72 text-left">
-                              {status?.ai_title || aiResponse?.title}
+                              {aiResponse.title}
                             </span>
                           </TooltipTrigger>
                           <TooltipContent>
-                            <p className="text-sm">
-                              {status?.ai_title || aiResponse?.title}
-                            </p>
+                            <p className="text-sm">{aiResponse.title}</p>
                           </TooltipContent>
                         </Tooltip>
                       </div>
@@ -1115,23 +1010,57 @@ export default function AudioUploadNode({
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <span className="text-sm font-medium truncate w-72 text-left">
-                              {fileName}
+                              {status?.ai_title || data?.ai_title || fileName}
                             </span>
                           </TooltipTrigger>
                           <TooltipContent>
-                            <p className="text-sm">{fileName}</p>
+                            <p className="text-sm">
+                              {status?.ai_title || data?.ai_title || fileName}
+                            </p>
                           </TooltipContent>
                         </Tooltip>
                       </div>
                     )}
                   </div>
+                  {/* ... rest of header buttons (connect, remove, dropdown) ... */}
                   <div className="flex items-center gap-2">
-                    {!isProcessingAny && uploadedAudio && (
-                      <IsReadyToInteract
-                        canConnect={canConnect}
-                        isLoading={isStatusPollingLoading}
-                      />
+                    {isStatusPollingLoading && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="text-sm">Preparing to connect...</p>
+                        </TooltipContent>
+                      </Tooltip>
                     )}
+                    {canConnect && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <CheckCircle className="w-4 h-4 text-green-300" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="text-sm">
+                            Ready to connect to other nodes
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+                    {!canConnect &&
+                      !isStatusPollingLoading &&
+                      !processingState.isProcessing &&
+                      uploadedAudio && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Shield className="w-4 h-4 text-yellow-300" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="text-sm">
+                              Complete analysis to enable connections
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
                     <Button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -1140,18 +1069,54 @@ export default function AudioUploadNode({
                       size="sm"
                       variant="ghost"
                       className="text-white hover:bg-white/20 h-8 w-8 p-0"
-                      disabled={isProcessingAny || isResetting}
+                      disabled={processingState.isProcessing || isReseting}
                     >
-                      {isResetting ? (
+                      {isReseting ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
                       ) : (
                         <X className="w-4 h-4" />
                       )}
                     </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-white hover:bg-white/20 h-8 w-8"
+                        >
+                          <svg
+                            className="w-4 h-4"
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                          >
+                            <circle cx="12" cy="5" r="2" />
+                            <circle cx="12" cy="12" r="2" />
+                            <circle cx="12" cy="19" r="2" />
+                          </svg>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-48">
+                        <DropdownMenuItem
+                          onClick={handleDownload}
+                          className="cursor-pointer"
+                        >
+                          <Download className="w-4 h-4 mr-2" />
+                          Download
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={handleCopyTranscription}
+                          className="cursor-pointer"
+                        >
+                          <Copy className="w-4 h-4 mr-2" />
+                          Copy transcription
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
+
                 {/* Processing Overlay */}
-                {isProcessingAny && (
+                {processingState.isProcessing && (
                   <div className="bg-purple-50 p-4 flex items-center justify-center">
                     <div className="flex items-center gap-3">
                       <Loader2 className="w-6 h-6 animate-spin text-purple-600" />
@@ -1161,11 +1126,13 @@ export default function AudioUploadNode({
                     </div>
                   </div>
                 )}
-                {/* Player Controls */}
+
+                {/* Player Controls - Different UI for Recorded vs Uploaded */}
                 <div className="p-4">
                   {fileName.includes("recording") ? (
-                    // Recorded Audio UI
+                    // Recorded Audio - Cool Alternative UI without progress bar
                     <div className="space-y-4">
+                      {/* Waveform-style Visualization */}
                       <div className="bg-gradient-to-r from-purple-100 to-purple-200 p-4 rounded-lg mb-4">
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center gap-3">
@@ -1173,9 +1140,11 @@ export default function AudioUploadNode({
                               size="icon"
                               className="rounded-full bg-purple-500 hover:bg-purple-600 text-white h-12 w-12 disabled:opacity-50"
                               onClick={togglePlayPause}
-                              disabled={isProcessingAny}
+                              disabled={
+                                isUploading || processingState.isProcessing
+                              }
                             >
-                              {isProcessingAny ? (
+                              {isUploading ? (
                                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                               ) : isPlaying ? (
                                 <Pause className="w-6 h-6 fill-white" />
@@ -1201,7 +1170,7 @@ export default function AudioUploadNode({
                             </div>
                           </div>
                         </div>
-                        {/* Waveform Animation */}
+                        {/* Cool Waveform-style Animation */}
                         <div className="flex items-center justify-center gap-1 h-12 bg-white/50 rounded-lg p-2">
                           {Array.from({ length: 40 }, (_, i) => (
                             <div
@@ -1225,6 +1194,7 @@ export default function AudioUploadNode({
                             />
                           ))}
                         </div>
+                        {/* Recording Info */}
                         <div className="flex items-center justify-between mt-3 text-xs text-purple-600">
                           <span>🎙️ Recorded Audio</span>
                           <div className="flex items-center gap-4">
@@ -1233,25 +1203,28 @@ export default function AudioUploadNode({
                               size="sm"
                               className="text-xs px-2 py-1 h-6 min-w-[30px] border-purple-300 bg-transparent hover:bg-purple-50 text-purple-600"
                               onClick={cycleSpeed}
-                              disabled={isProcessingAny}
+                              disabled={processingState.isProcessing}
                             >
                               {playbackSpeed}x
                             </Button>
-                            <span>Duration: {formatTime(duration)}</span>
+                            <span>
+                              Duration: {formatTime(recordingState.duration)}
+                            </span>
                           </div>
                         </div>
                       </div>
                     </div>
                   ) : (
-                    // Uploaded Audio UI
+                    // Uploaded Audio - Normal Progress Bar UI
                     <div className="flex items-center gap-3 mb-4">
                       <Button
                         size="icon"
                         className="rounded-full bg-purple-500 hover:bg-purple-600 text-white h-10 w-10 disabled:opacity-50"
                         onClick={togglePlayPause}
-                        disabled={isProcessingAny}
+                        disabled={isUploading || processingState.isProcessing}
+                        // disabled={isLoading || processingState.isProcessing}
                       >
-                        {isProcessingAny ? (
+                        {isUploading ? (
                           <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                         ) : isPlaying ? (
                           <Pause className="w-5 h-5 fill-white" />
@@ -1266,7 +1239,7 @@ export default function AudioUploadNode({
                           step={0.1}
                           onValueChange={handleSeek}
                           className="w-full [&>span:first-child]:h-2 [&>span:first-child]:bg-purple-200 [&_[role=slider]]:bg-purple-500 [&_[role=slider]]:w-4 [&_[role=slider]]:h-4 [&_[role=slider]]:border-0 [&>span:first-child_span]:bg-purple-500"
-                          disabled={isProcessingAny}
+                          disabled={processingState.isProcessing}
                         />
                         <div className="flex justify-between text-xs text-gray-500 mt-1">
                           <span className="tabular-nums">
@@ -1282,53 +1255,60 @@ export default function AudioUploadNode({
                         size="sm"
                         className="text-xs px-2 py-1 h-6 min-w-[30px] border-gray-300 bg-transparent hover:bg-gray-50"
                         onClick={cycleSpeed}
-                        disabled={isProcessingAny}
+                        disabled={processingState.isProcessing}
                       >
                         {playbackSpeed}x
                       </Button>
                     </div>
                   )}
-                  {/* Error State with Retry */}
-                  {currentError && (
+
+                  {/* Error State */}
+                  {processingState.error && (
                     <div className="mb-4">
                       <div className="bg-red-50 p-3 rounded-lg">
                         <div className="text-xs text-red-600 font-medium mb-1">
                           Processing Error
                         </div>
                         <div className="text-sm text-red-700 mb-2">
-                          {currentError.message}
+                          {processingState.error}
                         </div>
                         <Button
-                          onClick={handleRetry}
+                          onClick={handleReprocess}
                           size="sm"
                           variant="outline"
                           className="text-red-600 border-red-200 hover:bg-red-50 bg-transparent"
-                          disabled={isProcessingAny}
                         >
-                          {isProcessingAny ? (
-                            <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                          ) : (
-                            <RefreshCw className="w-4 h-4 mr-2" />
-                          )}
                           Retry Processing
                         </Button>
                       </div>
                     </div>
                   )}
+
                   {/* Notes Input */}
                   <AiNoteInput
                     color="purple"
                     note={userNotes}
-                    readOnly={!canConnect}
-                    hideButton={!canConnect}
+                    readOnly={canConnect}
+                    hideButton={canConnect}
                     setNote={(val) => setUserNotes(val ?? "")}
                     isLoading={isAnalyzing || isStatusPollingLoading}
-                    isInputDisabled={isProcessingAny}
-                    isButtonDisabled={isProcessingAny}
+                    isInputDisabled={processingState.isProcessing}
+                    isButtonDisabled={
+                      processingState.isProcessing || isAnalyzing
+                    }
+                    onButtonClick={() => {
+                      updateNodeData(data?.id, { ai_notes: userNotes });
+                      analyzeAudioContent({
+                        data: { ai_notes: userNotes },
+                        strategyId: strategyId,
+                        peerId: data?.id,
+                      });
+                    }}
                     strategyId={strategyId}
                     peerId={data?.id}
                     peerType="audio"
                   />
+
                   {/* AI Analysis Summary */}
                   {aiResponse && aiResponse.summary && (
                     <div className="mt-4 p-4 bg-purple-50 rounded-lg border border-purple-200">

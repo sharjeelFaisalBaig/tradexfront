@@ -37,7 +37,7 @@ const IsReadyToInteract = (props: Props) => {
       ) : (
         <Tooltip>
           <TooltipTrigger asChild>
-            <Shield className="w-4 h-4 text-yellow-500" />
+            <Shield className="w-4 h-4 text-yellow-300" />
           </TooltipTrigger>
           <TooltipContent>
             <p className="text-sm">Complete analysis to enable connections</p>

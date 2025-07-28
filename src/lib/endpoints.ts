@@ -102,6 +102,16 @@ export const endpoints = {
       peerType: string;
     }) => `/strategies/${id}/peers/${peerType}/${peerId}/reset`,
 
+    SEND_PEER_AI_NOTE: ({
+      id,
+      peerId,
+      peerType,
+    }: {
+      id: string;
+      peerId: string;
+      peerType: string;
+    }) => `/strategies/${id}/peers/${peerType}/${peerId}/ai-note`,
+
     // board create peer endpoints
     CREATE_ANNOTATION_PEER: (id: string) =>
       `/strategies/${id}/peers/annotation`,

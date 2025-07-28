@@ -128,8 +128,17 @@ export default function ImageUploadNode({
   );
 
   const isProcessingAny = useMemo(
-    () => isUploading || isAnalyzing || processingState.isProcessing || isStatusPollingLoading,
-    [isUploading, isAnalyzing, processingState.isProcessing,isStatusPollingLoading]
+    () =>
+      isUploading ||
+      isAnalyzing ||
+      processingState.isProcessing ||
+      isStatusPollingLoading,
+    [
+      isUploading,
+      isAnalyzing,
+      processingState.isProcessing,
+      isStatusPollingLoading,
+    ]
   );
 
   const currentError = useMemo(() => {
@@ -751,13 +760,9 @@ export default function ImageUploadNode({
                     setNote={(val) => setUserNotes(val ?? "")}
                     isInputDisabled={isProcessingAny}
                     isButtonDisabled={isProcessingAny}
-                    onButtonClick={() => {
-                      analyzeImageContent({
-                        data: { ai_notes: userNotes },
-                        strategyId: strategyId,
-                        peerId: data?.id,
-                      });
-                    }}
+                    strategyId={strategyId}
+                    peerId={data?.id}
+                    peerType="image"
                   />
                 </div>
               </div>

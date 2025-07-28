@@ -28,7 +28,6 @@ import {
   FileImage,
   Download,
   Eye,
-  RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import NodeWrapper from "./common/NodeWrapper";
@@ -43,7 +42,6 @@ import { toast } from "@/hooks/use-toast";
 import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 import AiNoteInput from "./common/AiNoteInput";
 import NodeHandle from "./common/NodeHandle";
-import IsReadyToInteract from "./common/IsReadyToInteract";
 
 // Types for AI integration
 interface AIProcessingResponse {
@@ -66,7 +64,6 @@ interface ProcessingState {
   isProcessing: boolean;
   isComplete: boolean;
   error: string | null;
-  lastFailedOperation: "upload" | "analyze" | null;
 }
 
 interface DocumentInfo {
@@ -143,18 +140,11 @@ export default function DocumentUploadNode({
 
   // mutations
   const { mutate: resetPeer, isPending: isReseting } = useResetPeer();
+  const { mutate: uploadDocContent } = useUploadDocumentContent();
   const {
-    mutate: uploadDocContent,
-    isPending: isUploading,
-    isError: isUploadError,
-    error: uploadError,
-  } = useUploadDocumentContent();
-  const {
-    mutate: analyzeDocumentContent,
+    mutate: analyzeVideoContent,
     isPending: isAnalyzing,
     isSuccess: isAnalyzeSuccess,
-    isError: isAnalyzeError,
-    error: analyzeError,
   } = useAnalyzeDocumentPeer();
 
   // Upload state
@@ -182,7 +172,6 @@ export default function DocumentUploadNode({
     isProcessing: false,
     isComplete: false,
     error: null,
-    lastFailedOperation: null,
   });
 
   // AI Response states
@@ -250,7 +239,6 @@ export default function DocumentUploadNode({
           isProcessing: false,
           isComplete: true,
           error: null,
-          lastFailedOperation: null,
         });
       }
     } else if (data?.dataToAutoUpload?.data) {
@@ -292,13 +280,11 @@ export default function DocumentUploadNode({
           },
           {
             onSuccess: () => {
-              handleAnalyzeImage();
               setUploadState({
                 isUploading: false,
                 isSuccess: true,
                 error: null,
               });
-
               // If the backend returns the URL, update uploadedDocument here.
               // For now, we assume data.document_peer_media will be updated
               // by the parent component or a global state after successful upload.
@@ -392,7 +378,6 @@ export default function DocumentUploadNode({
         error:
           "Unsupported file type. Please upload a PDF, Word or Excel document.",
         // error:"Unsupported file type. Please upload a PDF, Word, Excel, PowerPoint, or text document.",
-        lastFailedOperation: null,
       });
     }
   };
@@ -440,7 +425,7 @@ export default function DocumentUploadNode({
   };
 
   const handleAnalyzeImage = () => {
-    analyzeDocumentContent(
+    analyzeVideoContent(
       {
         data: { ai_notes: userNotes },
         strategyId: strategyId,
@@ -468,7 +453,6 @@ export default function DocumentUploadNode({
       isProcessing: false,
       isComplete: false,
       error: null,
-      lastFailedOperation: null,
     });
     setUploadState({ isUploading: false, isSuccess: false, error: null });
     setUserNotes("");
@@ -505,6 +489,9 @@ export default function DocumentUploadNode({
     resetPeer(
       { peerId: data?.id, strategyId, peerType: "docs" },
       {
+        onSuccess: () => {
+          handleAnalyzeImage();
+        },
         onError: (error: any) => {
           toast({
             title: "Failed to remove Document",
@@ -529,9 +516,8 @@ export default function DocumentUploadNode({
           isProcessing: true,
           isComplete: false,
           error: null,
-          lastFailedOperation: null,
         });
-        analyzeDocumentContent(
+        analyzeVideoContent(
           {
             data: { ai_notes: userNotes }, // Use existing notes or empty
             strategyId: strategyId,
@@ -543,7 +529,6 @@ export default function DocumentUploadNode({
                 isProcessing: false,
                 isComplete: true,
                 error: null,
-                lastFailedOperation: null,
               });
               successNote({
                 title: "Analysis Retried",
@@ -557,7 +542,6 @@ export default function DocumentUploadNode({
                 error:
                   error?.response?.data?.message ||
                   "Failed to re-analyze document.",
-                lastFailedOperation: "analyze",
               });
               toast({
                 title: error?.message || "Error",
@@ -644,53 +628,6 @@ export default function DocumentUploadNode({
     }
   };
 
-  const isProcessingAny = useMemo(
-    () =>
-      isUploading ||
-      isAnalyzing ||
-      processingState.isProcessing ||
-      isStatusPollingLoading,
-    [
-      isUploading,
-      isAnalyzing,
-      processingState.isProcessing,
-      isStatusPollingLoading,
-    ]
-  );
-
-  const currentError = useMemo(() => {
-    if (isUploadError && uploadError) {
-      return {
-        message:
-          (uploadError as any)?.response?.data?.message ||
-          "Failed to upload image",
-        type: "upload" as const,
-      };
-    }
-    if (isAnalyzeError && analyzeError) {
-      return {
-        message:
-          (analyzeError as any)?.response?.data?.message ||
-          "Failed to analyze image",
-        type: "analyze" as const,
-      };
-    }
-    if (processingState.error) {
-      return {
-        message: processingState.error,
-        type: processingState.lastFailedOperation || ("unknown" as const),
-      };
-    }
-    return null;
-  }, [
-    isUploadError,
-    uploadError,
-    isAnalyzeError,
-    analyzeError,
-    processingState.error,
-    processingState.lastFailedOperation,
-  ]);
-
   // Modified canConnect to immediately reflect isReseting state
   const canConnect = useMemo(
     () =>
@@ -711,8 +648,6 @@ export default function DocumentUploadNode({
   const DocumentIcon = documentInfo
     ? getDocumentIcon(documentInfo.type)
     : FileText;
-
-  console.log("documentUploadNode_documentUploadNode");
 
   return (
     <>
@@ -755,12 +690,6 @@ export default function DocumentUploadNode({
                     className="hidden"
                   />
                   <div className="text-center">
-                    {currentError && (
-                      <div className="mb-4 px-4 py-2 bg-red-50 border border-red-200 rounded text-red-700 text-sm font-medium flex items-center gap-2">
-                        <X className="w-4 h-4 text-red-500" />
-                        {currentError.message}
-                      </div>
-                    )}
                     <div className="mb-6">
                       <Button
                         onClick={(e) => {
@@ -801,14 +730,14 @@ export default function DocumentUploadNode({
                   {/* Header with AI Title or Processing State */}
                   <div className="bg-indigo-100 px-4 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      {isProcessingAny ? (
+                      {processingState.isProcessing ? (
                         <div className="flex items-center gap-2">
                           <Loader2 className="w-4 h-4 animate-spin text-indigo-600" />
                           <span className="text-sm font-medium text-gray-700">
                             AI is analyzing your document...
                           </span>
                         </div>
-                      ) : currentError ? (
+                      ) : processingState.error ? (
                         <div className="flex items-center gap-2">
                           <X className="w-4 h-4 text-red-500" />
                           <span className="text-sm font-medium text-red-700">
@@ -847,12 +776,43 @@ export default function DocumentUploadNode({
                       )}
                     </div>
                     <div className="flex items-center gap-2">
-                      {uploadedDocument && !isProcessingAny && (
-                        <IsReadyToInteract
-                          canConnect={canConnect}
-                          isLoading={isStatusPollingLoading}
-                        />
+                      {isStatusPollingLoading && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="text-sm">Preparing to connect...</p>
+                          </TooltipContent>
+                        </Tooltip>
                       )}
+                      {canConnect && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <CheckCircle className="w-4 h-4 text-green-500" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="text-sm">
+                              Ready to connect to other nodes
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+                      {!canConnect &&
+                        !isStatusPollingLoading &&
+                        !processingState.isProcessing &&
+                        uploadedDocument && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Shield className="w-4 h-4 text-yellow-500" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="text-sm">
+                                Complete analysis to enable connections
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
                     </div>
                   </div>
                   {/* Document Preview */}
@@ -894,7 +854,7 @@ export default function DocumentUploadNode({
                                 size="sm"
                                 variant="outline"
                                 className="h-8 w-8 p-0"
-                                disabled={isProcessingAny}
+                                disabled={processingState.isProcessing}
                               >
                                 <Eye className="w-4 h-4" />
                               </Button>
@@ -913,7 +873,7 @@ export default function DocumentUploadNode({
                                 size="sm"
                                 variant="outline"
                                 className="h-8 w-8 p-0"
-                                disabled={isProcessingAny}
+                                disabled={processingState.isProcessing}
                               >
                                 <Download className="w-4 h-4" />
                               </Button>
@@ -930,7 +890,9 @@ export default function DocumentUploadNode({
                             size="sm"
                             variant="destructive"
                             className="h-8 w-8 p-0"
-                            disabled={isProcessingAny || isReseting}
+                            disabled={
+                              processingState.isProcessing || isReseting
+                            }
                           >
                             {isReseting ? (
                               <Loader2 className="w-4 h-4 animate-spin" />
@@ -941,7 +903,7 @@ export default function DocumentUploadNode({
                         </div>
                       </div>
                       {/* Processing Overlay */}
-                      {isProcessingAny && (
+                      {processingState.isProcessing && (
                         <div className="absolute inset-0 bg-black bg-opacity-50 rounded-lg flex items-center justify-center">
                           <div className="bg-white p-4 rounded-lg shadow-lg flex flex-col items-center">
                             <Loader2 className="w-8 h-8 animate-spin text-indigo-600 mb-2" />
@@ -953,34 +915,27 @@ export default function DocumentUploadNode({
                       )}
                     </div>
                   </div>
-                  {/* Error State with Retry */}
-                  {currentError && (
+                  {/* Error State */}
+                  {processingState.error && (
                     <div className="px-4">
                       <div className="bg-red-50 p-3 rounded-lg">
                         <div className="text-xs text-red-600 font-medium mb-1">
                           Processing Error
                         </div>
                         <div className="text-sm text-red-700 mb-2">
-                          {currentError.message}
+                          {processingState.error}
                         </div>
-                        {/* <Button
-                          onClick={handleRetry}
+                        <Button
+                          onClick={handleReprocess}
                           size="sm"
                           variant="outline"
                           className="text-red-600 border-red-200 hover:bg-red-50 bg-transparent"
-                          disabled={isProcessingAny}
                         >
-                          {isProcessingAny ? (
-                            <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                          ) : (
-                            <RefreshCw className="w-4 h-4 mr-2" />
-                          )}
                           Retry Processing
-                        </Button> */}
+                        </Button>
                       </div>
                     </div>
                   )}
-
                   {/* Upload State */}
                   {uploadState.isUploading && (
                     <div className="px-4">
@@ -1029,13 +984,15 @@ export default function DocumentUploadNode({
                       note={userNotes}
                       readOnly={!canConnect}
                       hideButton={!canConnect}
-                      isLoading={isProcessingAny}
-                      isInputDisabled={isProcessingAny}
-                      isButtonDisabled={isProcessingAny}
+                      isLoading={isAnalyzing || isStatusPollingLoading}
+                      isInputDisabled={processingState.isProcessing}
+                      isButtonDisabled={
+                        processingState.isProcessing || isAnalyzing
+                      }
                       setNote={(val) => setUserNotes(val ?? "")}
                       // send peer ai note
                       strategyId={strategyId}
-                      peerType="docs"
+                      peerType="document"
                       peerId={data?.id}
                     />
                   </div>

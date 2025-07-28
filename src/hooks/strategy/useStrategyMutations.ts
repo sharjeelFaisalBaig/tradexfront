@@ -42,6 +42,7 @@ import {
   createAnnotationPeer,
   updateAnnotationContent,
   deleteAnnotationPeer,
+  sendPeerAiNote,
 } from "@/services/strategy/strategy_Mutation";
 import { IStrategy } from "@/lib/types";
 import { QUERY_KEYS } from "@/lib/queryKeys";
@@ -116,11 +117,27 @@ export const useSavePeerPositions = () => {
         position_y: number;
       }>;
     }) => savePeerPositions({ strategyId, positions }),
-    onSuccess: (_data, { strategyId }) => {
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.STRATEGY, strategyId],
-      });
-    },
+    // onSuccess: (_data, { strategyId }) => {
+    //   queryClient.invalidateQueries({
+    //     queryKey: [QUERY_KEYS.STRATEGY, strategyId],
+    //   });
+    // },
+  });
+};
+
+export const useSendPeerAiNote = () => {
+  return useMutation({
+    mutationFn: ({
+      strategyId,
+      peerType,
+      peerId,
+      data,
+    }: {
+      strategyId: string;
+      peerType: string;
+      peerId: string;
+      data: { ai_notes?: string };
+    }) => sendPeerAiNote({ strategyId, peerId, peerType, data }),
   });
 };
 

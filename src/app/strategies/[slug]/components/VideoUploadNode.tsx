@@ -44,6 +44,7 @@ import { toast } from "@/hooks/use-toast";
 import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 import AiNoteInput from "./common/AiNoteInput";
 import NodeHandle from "./common/NodeHandle";
+import IsReadyToInteract from "./common/IsReadyToInteract";
 
 // Types for AI integration
 interface AIProcessingResponse {
@@ -70,6 +71,7 @@ interface ProcessingState {
   isProcessing: boolean;
   isComplete: boolean;
   error: string | null;
+  lastFailedOperation: "upload" | "analyze" | null;
 }
 
 interface VideoMetadata {
@@ -118,11 +120,18 @@ export default function VideoUploadNode({
 
   // mutations
   const { mutate: resetPeer, isPending: isReseting } = useResetPeer();
-  const { mutate: uploadVideoMutation } = useUploadVideoContent();
+  const {
+    mutate: uploadVideoMutation,
+    isPending: isUploading,
+    isError: isUploadError,
+    error: uploadError,
+  } = useUploadVideoContent();
   const {
     mutate: analyzeVideoContent,
     isPending: isAnalyzing,
     isSuccess: isAnalyzeSuccess,
+    isError: isAnalyzeError,
+    error: analyzeError,
   } = useAnalyzeVideoPeer();
 
   const nodeControlRef = useRef(null);
@@ -151,6 +160,7 @@ export default function VideoUploadNode({
     isProcessing: false,
     isComplete: false,
     error: null,
+    lastFailedOperation: null,
   });
 
   // AI Response states
@@ -352,6 +362,7 @@ export default function VideoUploadNode({
       isProcessing: true,
       isComplete: false,
       error: null,
+      lastFailedOperation: null,
     });
     setUploadState({ isUploading: false, isSuccess: false, error: null });
 
@@ -363,6 +374,7 @@ export default function VideoUploadNode({
         isProcessing: false,
         isComplete: true,
         error: null,
+        lastFailedOperation: null,
       });
 
       // Prepare upload
@@ -381,6 +393,7 @@ export default function VideoUploadNode({
           },
           {
             onSuccess: () => {
+              handleAnalyzeImage();
               setUploadState({
                 isUploading: false,
                 isSuccess: true,
@@ -405,6 +418,7 @@ export default function VideoUploadNode({
         isComplete: false,
         error:
           error instanceof Error ? error.message : "Video processing failed",
+        lastFailedOperation: "upload",
       });
     }
   };
@@ -438,6 +452,7 @@ export default function VideoUploadNode({
         isProcessing: false,
         isComplete: false,
         error: validation.error || "Invalid video file",
+        lastFailedOperation: "upload",
       });
       return;
     }
@@ -583,6 +598,26 @@ export default function VideoUploadNode({
     fileInputRef.current?.click();
   };
 
+  const handleAnalyzeImage = () => {
+    analyzeVideoContent(
+      {
+        data: { ai_notes: userNotes },
+        strategyId: strategyId,
+        peerId: data?.id,
+      },
+      {
+        onError: (error: any) => {
+          toast({
+            title: error?.message || "Error",
+            description:
+              error?.response?.data?.message || "Failed to analyze Document.",
+            variant: "destructive",
+          });
+        },
+      }
+    );
+  };
+
   const handleRemoveVideo = () => {
     setUploadedVideo(null);
     setFileName("");
@@ -592,6 +627,7 @@ export default function VideoUploadNode({
       isProcessing: false,
       isComplete: false,
       error: null,
+      lastFailedOperation: null,
     });
     setUploadState({ isUploading: false, isSuccess: false, error: null });
     setUserNotes("");
@@ -627,6 +663,7 @@ export default function VideoUploadNode({
             isProcessing: false,
             isComplete: false,
             error: error?.response?.data?.message ?? "Something went wrong...",
+            lastFailedOperation: null,
           });
           toast({
             title: "Failed to remove Video",
@@ -670,6 +707,53 @@ export default function VideoUploadNode({
     }
   };
 
+  const isProcessingAny = useMemo(
+    () =>
+      isUploading ||
+      isAnalyzing ||
+      processingState.isProcessing ||
+      isStatusPollingLoading,
+    [
+      isUploading,
+      isAnalyzing,
+      processingState.isProcessing,
+      isStatusPollingLoading,
+    ]
+  );
+
+  const currentError = useMemo(() => {
+    if (isUploadError && uploadError) {
+      return {
+        message:
+          (uploadError as any)?.response?.data?.message ||
+          "Failed to upload image",
+        type: "upload" as const,
+      };
+    }
+    if (isAnalyzeError && analyzeError) {
+      return {
+        message:
+          (analyzeError as any)?.response?.data?.message ||
+          "Failed to analyze image",
+        type: "analyze" as const,
+      };
+    }
+    if (processingState.error) {
+      return {
+        message: processingState.error,
+        type: processingState.lastFailedOperation || ("unknown" as const),
+      };
+    }
+    return null;
+  }, [
+    isUploadError,
+    uploadError,
+    isAnalyzeError,
+    analyzeError,
+    processingState.error,
+    processingState.lastFailedOperation,
+  ]);
+
   const progressValue = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   // Check if video is WebM format
@@ -693,6 +777,8 @@ export default function VideoUploadNode({
       );
     }
   }, [canConnect, id, setEdges, data]);
+
+  console.log("VideoUploadNode:", { currentError });
 
   return (
     <>
@@ -767,14 +853,14 @@ export default function VideoUploadNode({
                   {/* Header with AI Title or Processing State */}
                   <div className="px-4 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      {processingState.isProcessing ? (
+                      {isProcessingAny ? (
                         <div className="flex items-center gap-2">
                           <Loader2 className="w-4 h-4 animate-spin" />
                           <span className="text-sm font-medium">
                             AI is analyzing your video...
                           </span>
                         </div>
-                      ) : processingState.error ? (
+                      ) : currentError ? (
                         <div className="flex items-center gap-2">
                           <X className="w-4 h-4 text-red-300" />
                           <span className="text-sm font-medium">
@@ -813,45 +899,12 @@ export default function VideoUploadNode({
                     </div>
 
                     <div className="flex items-center gap-2">
-                      {isStatusPollingLoading && (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p className="text-sm">Preparing to connect...</p>
-                          </TooltipContent>
-                        </Tooltip>
+                      {!isProcessingAny && uploadedVideo && (
+                        <IsReadyToInteract
+                          canConnect={canConnect}
+                          isLoading={isStatusPollingLoading}
+                        />
                       )}
-
-                      {canConnect && (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <CheckCircle className="w-4 h-4 text-green-300" />
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p className="text-sm">
-                              Ready to connect to other nodes
-                            </p>
-                          </TooltipContent>
-                        </Tooltip>
-                      )}
-
-                      {!canConnect &&
-                        !isStatusPollingLoading &&
-                        !processingState.isProcessing &&
-                        uploadedVideo && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Shield className="w-4 h-4 text-yellow-300" />
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p className="text-sm">
-                                Complete processing to enable connections
-                              </p>
-                            </TooltipContent>
-                          </Tooltip>
-                        )}
                     </div>
                   </div>
 
@@ -869,7 +922,7 @@ export default function VideoUploadNode({
                       />
 
                       {/* Processing Overlay */}
-                      {processingState.isProcessing && (
+                      {isProcessingAny && (
                         <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
                           <div className="bg-white p-4 rounded-lg shadow-lg flex flex-col items-center">
                             <Loader2 className="w-8 h-8 animate-spin text-blue-600 mb-2" />
@@ -894,7 +947,7 @@ export default function VideoUploadNode({
                                   onClick={handlePlayPause}
                                   size="icon"
                                   className="rounded-full bg-blue-500 hover:bg-blue-600 text-white h-12 w-12 disabled:opacity-50"
-                                  disabled={processingState.isProcessing}
+                                  disabled={isProcessingAny}
                                 >
                                   {isPlaying ? (
                                     <Pause className="w-6 h-6 fill-white" />
@@ -955,7 +1008,7 @@ export default function VideoUploadNode({
                                   size="sm"
                                   variant="outline"
                                   className="border-blue-300 bg-transparent hover:bg-blue-50 text-blue-600"
-                                  disabled={processingState.isProcessing}
+                                  disabled={isProcessingAny}
                                 >
                                   {isMuted ? (
                                     <VolumeX className="w-4 h-4" />
@@ -975,7 +1028,7 @@ export default function VideoUploadNode({
                                   onClick={handleDownload}
                                   size="sm"
                                   variant="outline"
-                                  disabled={processingState.isProcessing}
+                                  disabled={isProcessingAny}
                                 >
                                   <Download className="w-4 h-4 mr-2" />
                                   Download
@@ -992,7 +1045,7 @@ export default function VideoUploadNode({
                                   onClick={handleFullscreen}
                                   size="sm"
                                   variant="outline"
-                                  disabled={processingState.isProcessing}
+                                  disabled={isProcessingAny}
                                 >
                                   <Maximize className="w-4 h-4 mr-2" />
                                   Fullscreen
@@ -1007,7 +1060,7 @@ export default function VideoUploadNode({
                               onClick={handleRemoveVideo}
                               size="sm"
                               variant="destructive"
-                              disabled={processingState.isProcessing}
+                              disabled={isProcessingAny}
                             >
                               {isReseting ? (
                                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -1038,7 +1091,7 @@ export default function VideoUploadNode({
                                   }
                                 }}
                                 className="w-full [&>span:first-child]:h-2 [&>span:first-child]:bg-blue-200 [&_[role=slider]]:bg-blue-500 [&_[role=slider]]:w-4 [&_[role=slider]]:h-4 [&_[role=slider]]:border-0 [&>span:first-child_span]:bg-blue-500"
-                                disabled={processingState.isProcessing}
+                                disabled={isProcessingAny}
                               />
                             </div>
                             <span className="text-xs text-gray-500 w-12">
@@ -1052,7 +1105,7 @@ export default function VideoUploadNode({
                               onClick={handlePlayPause}
                               size="sm"
                               variant="outline"
-                              disabled={processingState.isProcessing}
+                              disabled={isProcessingAny}
                             >
                               {isPlaying ? (
                                 <Pause className="w-4 h-4" />
@@ -1065,7 +1118,7 @@ export default function VideoUploadNode({
                               onClick={handleMuteToggle}
                               size="sm"
                               variant="outline"
-                              disabled={processingState.isProcessing}
+                              disabled={isProcessingAny}
                             >
                               {isMuted ? (
                                 <VolumeX className="w-4 h-4" />
@@ -1087,7 +1140,7 @@ export default function VideoUploadNode({
                                   }
                                 }}
                                 className="w-20 [&>span:first-child]:h-2 [&>span:first-child]:bg-gray-200 [&_[role=slider]]:bg-gray-500 [&_[role=slider]]:w-3 [&_[role=slider]]:h-3 [&_[role=slider]]:border-0 [&>span:first-child_span]:bg-gray-500"
-                                disabled={processingState.isProcessing}
+                                disabled={isProcessingAny}
                               />
                             </div>
 
@@ -1097,7 +1150,7 @@ export default function VideoUploadNode({
                                   onClick={handleDownload}
                                   size="sm"
                                   variant="outline"
-                                  disabled={processingState.isProcessing}
+                                  disabled={isProcessingAny}
                                 >
                                   <Download className="w-4 h-4" />
                                 </Button>
@@ -1113,7 +1166,7 @@ export default function VideoUploadNode({
                                   onClick={handleFullscreen}
                                   size="sm"
                                   variant="outline"
-                                  disabled={processingState.isProcessing}
+                                  disabled={isProcessingAny}
                                 >
                                   <Maximize className="w-4 h-4" />
                                 </Button>
@@ -1127,9 +1180,7 @@ export default function VideoUploadNode({
                               onClick={handleRemoveVideo}
                               size="sm"
                               variant="destructive"
-                              disabled={
-                                processingState.isProcessing || isReseting
-                              }
+                              disabled={isProcessingAny || isReseting}
                             >
                               {isReseting ? (
                                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -1232,21 +1283,15 @@ export default function VideoUploadNode({
                     <AiNoteInput
                       color="blue"
                       note={userNotes}
-                      readOnly={canConnect}
-                      hideButton={canConnect}
-                      isLoading={isAnalyzing || isStatusPollingLoading}
-                      isInputDisabled={processingState.isProcessing}
-                      isButtonDisabled={
-                        processingState.isProcessing || isAnalyzing
-                      }
+                      readOnly={!canConnect}
+                      hideButton={!canConnect}
+                      isLoading={isProcessingAny}
+                      isInputDisabled={isProcessingAny}
+                      isButtonDisabled={isProcessingAny}
                       setNote={(val) => setUserNotes(val ?? "")}
-                      onButtonClick={() => {
-                        analyzeVideoContent({
-                          data: { ai_notes: userNotes },
-                          strategyId: strategyId,
-                          peerId: data?.id,
-                        });
-                      }}
+                      strategyId={strategyId}
+                      peerId={data?.id}
+                      peerType="video"
                     />
                   </div>
                 </div>
