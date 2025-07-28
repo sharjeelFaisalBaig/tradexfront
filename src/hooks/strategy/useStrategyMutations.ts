@@ -689,11 +689,11 @@ export const useConnectNodes = () => {
         thread_peer_id: string;
       };
     }) => connectNodes({ strategyId, data }),
-    onSuccess: (_data, { strategyId }) => {
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.STRATEGY, strategyId],
-      });
-    },
+    // onSuccess: (_data, { strategyId }) => {
+    //   queryClient.invalidateQueries({
+    //     queryKey: [QUERY_KEYS.STRATEGY, strategyId],
+    //   });
+    // },
   });
 };
 
@@ -712,11 +712,11 @@ export const useDisconnectNodes = () => {
         thread_peer_id: string;
       };
     }) => disconnectNodes({ strategyId, data }),
-    onSuccess: (_data, { strategyId }) => {
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.STRATEGY, strategyId],
-      });
-    },
+    // onSuccess: (_data, { strategyId }) => {
+    //   queryClient.invalidateQueries({
+    //     queryKey: [QUERY_KEYS.STRATEGY, strategyId],
+    //   });
+    // },
   });
 };
 
