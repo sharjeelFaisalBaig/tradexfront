@@ -107,7 +107,7 @@ export default function AudioUploadNode({
   const strategyId = useParams()?.slug as string;
   const successNote = useSuccessNotifier();
   const { setEdges, updateNodeData } = useReactFlow();
-  const [isRetryPolling, setIsRetryPolling] = useState(false);
+  const [isPollingRestarting, setIsPollingRestarting] = useState(false);
 
   // Refs
   const nodeControlRef = useRef<HTMLDivElement>(null);
@@ -149,7 +149,7 @@ export default function AudioUploadNode({
     strategyId,
     peerId: data?.id,
     peerType: "audio",
-    enabled: (isRetryPolling || isAnalyzeSuccess) && !isResetting,
+    enabled: (isPollingRestarting || isAnalyzeSuccess) && !isResetting,
   });
 
   // State
@@ -387,7 +387,7 @@ export default function AudioUploadNode({
       processAudioFile(lastUploadedFileRef.current);
     } else if (currentError.type === "status") {
       // Retry upload
-      setIsRetryPolling(true);
+      setIsPollingRestarting(true);
       restartPolling();
     } else if (currentError.type === "analyze") {
       // Retry analysis
@@ -900,8 +900,6 @@ export default function AudioUploadNode({
     () => !uploadedAudio && !showRecordingInterface,
     [uploadedAudio, showRecordingInterface]
   );
-
-  console.log({ data, aiResponse, uploadedAudio });
 
   return (
     <NodeWrapper

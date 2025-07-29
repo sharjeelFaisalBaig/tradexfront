@@ -2,14 +2,15 @@
 
 import type React from "react";
 
-import { useState, useRef, useEffect, type ChangeEvent, useMemo } from "react";
-import { Position, useReactFlow } from "@xyflow/react";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  useState,
+  useRef,
+  useEffect,
+  type ChangeEvent,
+  useMemo,
+  useCallback,
+} from "react";
+import { Position, useReactFlow } from "@xyflow/react";
 import {
   Tooltip,
   TooltipContent,
@@ -21,8 +22,6 @@ import { Input } from "@/components/ui/input";
 import {
   Globe,
   ExternalLink,
-  Download,
-  Copy,
   X,
   Lightbulb,
   Loader2,
@@ -90,6 +89,7 @@ export default function RemoteNode({
 
   const strategyId = useParams()?.slug as string;
   const successNote = useSuccessNotifier();
+  const [isPollingRestarting, setIsPollingRestarting] = useState(false);
 
   // mutations
   const { mutate: resetPeer, isPending: isReseting } = useResetPeer();
@@ -104,13 +104,15 @@ export default function RemoteNode({
   // Poll for status only if analysis is successful
   const {
     data: status,
+    restartPolling,
+    error: statusError,
+    isError: isStatusError,
     isPollingLoading: isStatusPollingLoading,
-    error,
   } = useGetPeerAnalysisStatus({
     peerId: data?.id,
     strategyId,
     peerType: "remote",
-    enabled: isAnalyzeSuccess,
+    enabled: isPollingRestarting || isAnalyzeSuccess,
   });
 
   // Website states
@@ -299,6 +301,9 @@ export default function RemoteNode({
       },
       {
         onSuccess: (result: any) => {
+          // start polling
+          setIsPollingRestarting(true);
+          restartPolling();
           // You may need to adjust result structure based on API
           setAiResponse(result?.aiResponse || result);
           setWebsiteData({
@@ -412,44 +417,6 @@ export default function RemoteNode({
     }
   };
 
-  const handleDownload = () => {
-    if (websiteData && aiResponse) {
-      const content = `Website Analysis Report
-      
-            URL: ${websiteData.url}
-            Title: ${websiteData.title}
-
-            AI Analysis:
-            ${aiResponse.summary}
-
-            Key Points:
-            ${aiResponse.keyPoints.map((point) => `• ${point}`).join("\n")}
-
-            Tags: ${aiResponse.tags.join(", ")}
-            Sentiment: ${aiResponse.sentiment}
-            Confidence: ${Math.round(aiResponse.confidence * 100)}%
-            Word Count: ${aiResponse.wordCount}
-            Language: ${aiResponse.language}
-            Content Type: ${aiResponse.contentType}
-`;
-
-      const blob = new Blob([content], { type: "text/plain" });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `website-analysis-${Date.now()}.txt`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-    }
-  };
-
-  const handleCopySummary = () => {
-    const summary = aiResponse?.summary || "No analysis available";
-    navigator.clipboard.writeText(summary);
-  };
-
   const handleVisitWebsite = () => {
     if (websiteData?.url) {
       window.open(websiteData.url, "_blank", "noopener,noreferrer");
@@ -492,6 +459,18 @@ export default function RemoteNode({
   );
 
   const currentError = useMemo(() => {
+    if (
+      ((isStatusError && statusError) ||
+        (data?.url && !data?.is_ready_to_interact)) &&
+      websiteData
+    ) {
+      return {
+        message:
+          (statusError as any)?.response?.data?.message ||
+          "Website is not ready to interact",
+        type: "status" as const,
+      };
+    }
     if (isAnalyzeError && analyzeError) {
       return {
         message:
@@ -508,10 +487,38 @@ export default function RemoteNode({
     }
     return null;
   }, [
+    data,
+    isStatusError,
+    statusError,
     isAnalyzeError,
     analyzeError,
     processingState.error,
     processingState.lastFailedOperation,
+  ]);
+
+  // Retry functionality
+  const handleRetry = useCallback(() => {
+    if (!currentError) return;
+
+    if (currentError.type === "analyze" && websiteUrl) {
+      setProcessingState((prev) => ({
+        ...prev,
+        isProcessing: true,
+        error: null,
+      }));
+      // Retry analyze
+      handleReprocess();
+    } else if (currentError.type === "status" && websiteUrl) {
+      // Retry status
+      setIsPollingRestarting(true);
+      restartPolling();
+    }
+  }, [
+    currentError,
+    setProcessingState,
+    analyzeRemotePeer,
+    strategyId,
+    data?.id,
   ]);
 
   // Modified canConnect to immediately reflect isReseting state
@@ -825,41 +832,17 @@ export default function RemoteNode({
                   </div>
                 )}
 
-                {/* Error State */}
-                {!currentError?.message &&
-                  !isStatusPollingLoading &&
-                  !isProcessingAny &&
-                  !canConnect && (
-                    <div className="bg-red-50 p-3 rounded-lg mx-4 mb-4">
-                      <div className="text-xs text-red-600 font-medium mb-1">
-                        Processing Error
-                      </div>
-                      <div className="text-sm text-red-700 mb-2">
-                        Website is not ready to interact
-                      </div>
-                      <Button
-                        onClick={handleReprocess}
-                        size="sm"
-                        variant="outline"
-                        className="text-red-600 border-red-200 hover:bg-red-50 bg-transparent"
-                        disabled={!urlValidation.isValid}
-                      >
-                        Retry
-                      </Button>
-                    </div>
-                  )}
-
-                {currentError && (
+                {!isProcessingAny && currentError && (
                   <div className="px-4 py-2">
                     <div className="bg-red-50 p-3 rounded-lg mb-3">
-                      <div className="text-xs text-red-600 font-medium mb-1">
-                        Analysis Error
+                      <div className="text-xs text-red-600 font-medium mb-1 capitalize">
+                        {currentError?.type} Error
                       </div>
                       <div className="text-sm text-red-700 mb-2">
                         {currentError.message}
                       </div>
                       <Button
-                        onClick={handleReprocess}
+                        onClick={handleRetry}
                         size="sm"
                         variant="outline"
                         className="text-red-600 border-red-200 hover:bg-red-50 bg-transparent"

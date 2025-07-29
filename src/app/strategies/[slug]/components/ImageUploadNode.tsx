@@ -98,6 +98,7 @@ export default function ImageUploadNode({
   // State
   const [isDragOver, setIsDragOver] = useState(false);
   const [fileName, setFileName] = useState<string>("");
+  const [isPollingRestarting, setIsPollingRestarting] = useState(false);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [userNotes, setUserNotes] = useState<string>("");
   const [aiResponse, setAiResponse] = useState<AIProcessingResponse | null>(
@@ -116,13 +117,12 @@ export default function ImageUploadNode({
     restartPolling,
     error: statusError,
     isError: isStatusError,
-    // refetch: refetchStatusPolling,
     isPollingLoading: isStatusPollingLoading,
   } = useGetPeerAnalysisStatus({
     peerId: data?.id,
     strategyId,
     peerType: "image",
-    enabled: isAnalyzeSuccess,
+    enabled: isPollingRestarting || isAnalyzeSuccess,
   });
 
   // Memoized values
@@ -150,7 +150,7 @@ export default function ImageUploadNode({
   const currentError = useMemo(() => {
     if (
       (isStatusError && statusError) ||
-      (aiResponse && !data?.is_ready_to_interact)
+      (aiResponse && !data?.is_ready_to_interact && uploadedImage)
     ) {
       return {
         message:
@@ -159,7 +159,7 @@ export default function ImageUploadNode({
         type: "Status" as const,
       };
     }
-    if (isUploadError && uploadError) {
+    if (isUploadError && uploadError && uploadedImage) {
       return {
         message:
           (uploadError as any)?.response?.data?.message ||
@@ -167,7 +167,10 @@ export default function ImageUploadNode({
         type: "upload" as const,
       };
     }
-    if ((isAnalyzeError && analyzeError) || (!aiResponse && data?.image)) {
+    if (
+      ((isAnalyzeError && analyzeError) || (!aiResponse && data?.image)) &&
+      uploadedImage
+    ) {
       return {
         message:
           (analyzeError as any)?.response?.data?.message ||
@@ -306,6 +309,7 @@ export default function ImageUploadNode({
               { strategyId, peerId: data?.id },
               {
                 onSuccess: () => {
+                  setIsPollingRestarting(true);
                   restartPolling(); // Restart polling after successful analysis
                   setProcessingState({
                     isProcessing: false,
@@ -355,7 +359,7 @@ export default function ImageUploadNode({
       processImageFile(lastUploadedFileRef.current);
     } else if (currentError.type === "status" && lastUploadedFileRef.current) {
       // Retry status
-      // refetchStatusPolling();
+      setIsPollingRestarting(true);
       restartPolling();
     } else if (currentError.type === "analyze") {
       // Retry analysis
@@ -369,6 +373,7 @@ export default function ImageUploadNode({
         { strategyId, peerId: data?.id },
         {
           onSuccess: () => {
+            setIsPollingRestarting(true);
             restartPolling();
             setProcessingState({
               isProcessing: false,

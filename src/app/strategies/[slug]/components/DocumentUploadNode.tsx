@@ -6,6 +6,7 @@ import {
   type DragEvent,
   type ChangeEvent,
   useMemo,
+  useCallback,
 } from "react";
 import { Position, useReactFlow } from "@xyflow/react";
 import {
@@ -190,15 +191,21 @@ export default function DocumentUploadNode({
     null
   );
   const [userNotes, setUserNotes] = useState<string>("");
+  const [isPollingRestarting, setIsPollingRestarting] = useState(false);
 
   // Only poll for status if analysis is successful
-  const { data: status, isPollingLoading: isStatusPollingLoading } =
-    useGetPeerAnalysisStatus({
-      peerId: data?.id,
-      strategyId,
-      peerType: "docs",
-      enabled: isAnalyzeSuccess,
-    });
+  const {
+    data: status,
+    restartPolling,
+    error: statusError,
+    isError: isStatusError,
+    isPollingLoading: isStatusPollingLoading,
+  } = useGetPeerAnalysisStatus({
+    peerId: data?.id,
+    strategyId,
+    peerType: "docs",
+    enabled: isPollingRestarting || isAnalyzeSuccess,
+  });
 
   // Handle initial document data from props (like VideoUploadNode)
   useEffect(() => {
@@ -298,7 +305,7 @@ export default function DocumentUploadNode({
           },
           {
             onSuccess: () => {
-              handleAnalyzeImage();
+              handleAnalyzeDocument();
               setUploadState({
                 isUploading: false,
                 isSuccess: true,
@@ -445,16 +452,21 @@ export default function DocumentUploadNode({
     fileInputRef.current?.click();
   };
 
-  const handleAnalyzeImage = () => {
+  const handleAnalyzeDocument = () => {
     analyzeDocumentContent(
       {
         strategyId: strategyId,
         peerId: data?.id,
       },
       {
+        onSuccess: () => {
+          // Retry status
+          setIsPollingRestarting(true);
+          restartPolling();
+        },
         onError: (error: any) => {
           toast({
-            title: error?.message || "Error",
+            title: "Failed to analyze Document",
             description:
               error?.response?.data?.message || "Failed to analyze Document.",
             variant: "destructive",
@@ -540,6 +552,9 @@ export default function DocumentUploadNode({
           { strategyId: strategyId, peerId: data?.id },
           {
             onSuccess: () => {
+              // Retry status
+              setIsPollingRestarting(true);
+              restartPolling();
               setProcessingState({
                 isProcessing: false,
                 isComplete: true,
@@ -660,6 +675,17 @@ export default function DocumentUploadNode({
   );
 
   const currentError = useMemo(() => {
+    if (
+      (isStatusError && statusError) ||
+      (data?.document_peer_media && !data?.is_ready_to_interact)
+    ) {
+      return {
+        message:
+          (statusError as any)?.response?.data?.message ||
+          "Image is not ready to interact",
+        type: "status" as const,
+      };
+    }
     if (isUploadError && uploadError) {
       return {
         message:
@@ -684,12 +710,67 @@ export default function DocumentUploadNode({
     }
     return null;
   }, [
+    data,
+    isStatusError,
+    statusError,
     isUploadError,
     uploadError,
     isAnalyzeError,
     analyzeError,
     processingState.error,
     processingState.lastFailedOperation,
+  ]);
+
+  // Retry functionality
+  const handleRetry = useCallback(() => {
+    if (!currentError) return;
+
+    if (currentError.type === "upload" && uploadedDocument) {
+      // Retry upload
+      handleReprocess();
+    } else if (currentError.type === "status" && uploadedDocument) {
+      // Retry status
+      setIsPollingRestarting(true);
+      restartPolling();
+    } else if (currentError.type === "analyze") {
+      // Retry analysis
+      setProcessingState((prev) => ({
+        ...prev,
+        isProcessing: true,
+        error: null,
+      }));
+
+      analyzeDocumentContent(
+        { strategyId, peerId: data?.id },
+        {
+          onSuccess: () => {
+            // Retry status
+            setIsPollingRestarting(true);
+            restartPolling();
+            setProcessingState({
+              isProcessing: false,
+              isComplete: true,
+              error: null,
+              lastFailedOperation: null,
+            });
+          },
+          onError: () => {
+            setProcessingState({
+              isProcessing: false,
+              isComplete: false,
+              error: null,
+              lastFailedOperation: "analyze",
+            });
+          },
+        }
+      );
+    }
+  }, [
+    currentError,
+    processDocumentWithAI,
+    analyzeDocumentContent,
+    strategyId,
+    data?.id,
   ]);
 
   // Modified canConnect to immediately reflect isReseting state
@@ -962,7 +1043,7 @@ export default function DocumentUploadNode({
                         <div className="text-sm text-red-700 mb-2">
                           {currentError.message}
                         </div>
-                        {/* <Button
+                        <Button
                           onClick={handleRetry}
                           size="sm"
                           variant="outline"
@@ -975,7 +1056,7 @@ export default function DocumentUploadNode({
                             <RefreshCw className="w-4 h-4 mr-2" />
                           )}
                           Retry Processing
-                        </Button> */}
+                        </Button>
                       </div>
                     </div>
                   )}
