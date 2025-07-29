@@ -1,5 +1,12 @@
 "use client";
-import { useState, useRef, useEffect, type ChangeEvent, useMemo } from "react";
+import {
+  useState,
+  useRef,
+  useEffect,
+  type ChangeEvent,
+  useMemo,
+  useCallback,
+} from "react";
 import {
   useAnalyzeSocialPeer,
   useResetPeer,
@@ -13,15 +20,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  X,
-  ArrowRight,
-  HelpCircle,
-  Loader2,
-  Shield,
-  CheckCircle,
-  ExternalLink,
-} from "lucide-react";
+import { X, ArrowRight, Loader2, ExternalLink } from "lucide-react";
 import {
   cn,
   extractSocialVideoDetails,
@@ -93,6 +92,7 @@ export default function SocialMediaNode({
     isValid: false,
   });
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isPollingRestarting, setIsPollingRestarting] = useState(false);
 
   // Video data states
   const [socialMediaData, setSocialMediaData] =
@@ -125,13 +125,18 @@ export default function SocialMediaNode({
   } = useAnalyzeSocialPeer();
 
   // Only poll for status if analysis is successful
-  const { data: status, isPollingLoading: isStatusPollingLoading } =
-    useGetPeerAnalysisStatus({
-      peerId: id,
-      strategyId,
-      peerType: "social_media",
-      enabled: isAnalyzeSuccess,
-    });
+  const {
+    data: status,
+    restartPolling,
+    error: statusError,
+    isError: isStatusError,
+    isPollingLoading: isStatusPollingLoading,
+  } = useGetPeerAnalysisStatus({
+    peerId: id,
+    strategyId,
+    peerType: "social_media",
+    enabled: isPollingRestarting || isAnalyzeSuccess,
+  });
 
   // Sync state with incoming data props (like VideoUploadNode)
   useEffect(() => {
@@ -302,6 +307,7 @@ export default function SocialMediaNode({
       title: "",
       ai_notes: "",
       ai_title: "",
+      ai_summar: "",
       is_ready_to_interact: false, // Set to false immediately
     });
 
@@ -311,6 +317,7 @@ export default function SocialMediaNode({
       data.ai_notes = "";
       data.title = "";
       data.video = "";
+      data.ai_summar = "";
     }
 
     if (status?.is_ready_to_interact) {
@@ -363,6 +370,10 @@ export default function SocialMediaNode({
   // Update processing state if backend status is ready
   useEffect(() => {
     if (status?.is_ready_to_interact) {
+      updateNodeData(data?.id, {
+        is_ready_to_interact: true,
+        ai_title: status?.ai_title ?? "",
+      });
       setProcessingState({
         isProcessing: false,
         isComplete: true,
@@ -378,6 +389,17 @@ export default function SocialMediaNode({
   );
 
   const currentError = useMemo(() => {
+    if (
+      (isStatusError && statusError) ||
+      (data?.video && !data?.is_ready_to_interact)
+    ) {
+      return {
+        message:
+          (statusError as any)?.response?.data?.message ||
+          "Image is not ready to interact",
+        type: "status" as const,
+      };
+    }
     if (isAnalyzeError && analyzeError) {
       return {
         message:
@@ -393,11 +415,28 @@ export default function SocialMediaNode({
     }
     return null;
   }, [
+    data,
+    statusError,
+    isStatusError,
     isAnalyzeError,
     analyzeError,
     processingState.error,
     processingState.lastFailedOperation,
   ]);
+
+  // Retry functionality
+  const handleRetry = useCallback(() => {
+    if (!currentError) return;
+
+    if (currentError.type === "analyze") {
+      // Retry upload
+      handleReprocess();
+    } else if (currentError.type === "status") {
+      // Retry status
+      setIsPollingRestarting(true);
+      restartPolling();
+    }
+  }, [currentError, handleReprocess, analyzeSocialPeer, strategyId, data?.id]);
 
   // Memoize current platform config
   const currentPlatform = useMemo(
@@ -722,17 +761,17 @@ export default function SocialMediaNode({
                     </div>
                   </div>
                   {/* Error State */}
-                  {currentError && (
+                  {!isProcessingAny && currentError && (
                     <div className="px-4 pb-4">
                       <div className="bg-red-50 p-3 rounded-lg">
-                        <div className="text-xs text-red-600 font-medium mb-1">
+                        <div className="text-xs text-red-600 font-medium mb-1 capitalize">
                           {currentError?.type} Error
                         </div>
                         <div className="text-sm text-red-700 mb-2">
                           {currentError.message}
                         </div>
                         <Button
-                          onClick={handleReprocess}
+                          onClick={handleRetry}
                           size="sm"
                           variant="outline"
                           className="text-red-600 border-red-200 hover:bg-red-50 bg-transparent"

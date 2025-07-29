@@ -790,6 +790,15 @@ export default function DocumentUploadNode({
     }
   }, [canConnect, id, setEdges, data]);
 
+  useEffect(() => {
+    if (status?.is_ready_to_interact) {
+      updateNodeData(data?.id, {
+        is_ready_to_interact: true,
+        ai_title: status?.ai_title ?? "",
+      });
+    }
+  }, [status]);
+
   const DocumentIcon = documentInfo
     ? getDocumentIcon(documentInfo.type)
     : FileText;
@@ -1034,11 +1043,11 @@ export default function DocumentUploadNode({
                     </div>
                   </div>
                   {/* Error State with Retry */}
-                  {currentError && (
+                  {!isProcessingAny && currentError && (
                     <div className="px-4">
                       <div className="bg-red-50 p-3 rounded-lg">
-                        <div className="text-xs text-red-600 font-medium mb-1">
-                          Processing Error
+                        <div className="text-xs text-red-600 font-medium mb-1 capitalize">
+                          {currentError?.type} Error
                         </div>
                         <div className="text-sm text-red-700 mb-2">
                           {currentError.message}

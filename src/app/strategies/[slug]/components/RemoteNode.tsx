@@ -460,9 +460,8 @@ export default function RemoteNode({
 
   const currentError = useMemo(() => {
     if (
-      ((isStatusError && statusError) ||
-        (data?.url && !data?.is_ready_to_interact)) &&
-      websiteData
+      (isStatusError && statusError) ||
+      (data?.url && !data?.is_ready_to_interact)
     ) {
       return {
         message:
@@ -500,7 +499,7 @@ export default function RemoteNode({
   const handleRetry = useCallback(() => {
     if (!currentError) return;
 
-    if (currentError.type === "analyze" && websiteUrl) {
+    if (currentError.type === "analyze") {
       setProcessingState((prev) => ({
         ...prev,
         isProcessing: true,
@@ -508,7 +507,7 @@ export default function RemoteNode({
       }));
       // Retry analyze
       handleReprocess();
-    } else if (currentError.type === "status" && websiteUrl) {
+    } else if (currentError.type === "status") {
       // Retry status
       setIsPollingRestarting(true);
       restartPolling();
