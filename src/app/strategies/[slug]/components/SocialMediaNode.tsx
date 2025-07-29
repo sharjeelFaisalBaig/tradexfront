@@ -370,10 +370,10 @@ export default function SocialMediaNode({
   // Update processing state if backend status is ready
   useEffect(() => {
     if (status?.is_ready_to_interact) {
-      updateNodeData(data?.id, {
-        is_ready_to_interact: true,
-        ai_title: status?.ai_title ?? "",
-      });
+      // updateNodeData(data?.id, {
+      //   is_ready_to_interact: true,
+      //   ai_title: status?.ai_title ?? "",
+      // });
       setProcessingState({
         isProcessing: false,
         isComplete: true,
@@ -620,12 +620,16 @@ export default function SocialMediaNode({
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <span className="text-sm font-medium truncate w-80 text-left">
-                                {data?.ai_title || aiResponse.title}
+                                {status?.ai_title ||
+                                  data?.ai_title ||
+                                  aiResponse.title}
                               </span>
                             </TooltipTrigger>
                             <TooltipContent>
                               <p className="text-sm">
-                                {data?.ai_title || aiResponse.title}
+                                {status?.ai_title ||
+                                  data?.ai_title ||
+                                  aiResponse.title}
                               </p>
                             </TooltipContent>
                           </Tooltip>

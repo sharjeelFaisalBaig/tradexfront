@@ -82,23 +82,23 @@ const Strategies = () => {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#f6f8fb] dark:bg-gray-900">
-        <Loader text="Loading strategies..." />
-      </div>
-    );
-  }
+  // if (isLoading) {
+  //   return (
+  //     <div className="flex min-h-screen items-center justify-center bg-[#f6f8fb] dark:bg-gray-900">
+  //       <Loader text="Loading strategies..." />
+  //     </div>
+  //   );
+  // }
 
-  if (isError) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <span className="text-red-600 text-lg font-semibold">
-          Failed to load strategies.
-        </span>
-      </div>
-    );
-  }
+  // if (isError) {
+  //   return (
+  //     <div className="flex min-h-screen items-center justify-center">
+  //       <span className="text-red-600 text-lg font-semibold">
+  //         Failed to load strategies.
+  //       </span>
+  //     </div>
+  //   );
+  // }
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -157,37 +157,58 @@ const Strategies = () => {
             </div>
           </div>
 
-          {/* Strategy Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-            {filteredStrategies.map((strategy, index) => (
-              <StrategyCard
-                key={strategy.id}
-                strategy={strategy}
-                isFavorite={
-                  starredItems[
-                    strategies.findIndex((s) => s.id === strategy.id)
-                  ]
+          {isLoading ? (
+            <div className="h-4/5 flex items-center justify-center bg-[#f6f8fb] dark:bg-gray-900">
+              <Loader text="Loading strategies..." />
+            </div>
+          ) : isError ? (
+            <div className="flex flex-col items-center justify-center p-6">
+              <span className="text-red-600 text-lg font-semibold">
+                Failed to load strategies.
+              </span>
+              <br />
+              <span className="text-red-600 text-lg font-semibold">
+                {
+                  // @ts-ignore
+                  error?.response?.data?.message
                 }
-                onClick={() => router.push(`/strategies/${strategy.id}`)}
-                toggleStar={() => toggleStar(index)}
-                onEdit={() => {
-                  setIsForEdit(true);
-                  setSelectedStrategy(strategy);
-                }}
-                onDelete={() => {
-                  setIsForDelete(true);
-                  setSelectedStrategy(strategy);
-                }}
-              />
-            ))}
-          </div>
+              </span>
+            </div>
+          ) : (
+            <>
+              {/* Strategy Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                {filteredStrategies.map((strategy, index) => (
+                  <StrategyCard
+                    key={strategy.id}
+                    strategy={strategy}
+                    isFavorite={
+                      starredItems[
+                        strategies.findIndex((s) => s.id === strategy.id)
+                      ]
+                    }
+                    onClick={() => router.push(`/strategies/${strategy.id}`)}
+                    toggleStar={() => toggleStar(index)}
+                    onEdit={() => {
+                      setIsForEdit(true);
+                      setSelectedStrategy(strategy);
+                    }}
+                    onDelete={() => {
+                      setIsForDelete(true);
+                      setSelectedStrategy(strategy);
+                    }}
+                  />
+                ))}
+              </div>
 
-          {/* Pagination */}
-          {/* <Pagination
+              {/* Pagination */}
+              {/* <Pagination
             totalPages={10}
             currentPage={currentPage}
             onPageChange={(page) => setCurrentPage(page)}
           /> */}
+            </>
+          )}
         </main>
       </div>
     </div>
