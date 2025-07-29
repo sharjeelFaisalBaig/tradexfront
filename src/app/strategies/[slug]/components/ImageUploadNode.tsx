@@ -46,7 +46,7 @@ interface ProcessingState {
   isProcessing: boolean;
   isComplete: boolean;
   error: string | null;
-  lastFailedOperation: "upload" | "analyze" | null;
+  lastFailedOperation: "upload" | "analyze" | "status" | null;
 }
 
 interface ImageUploadNodeProps {
@@ -111,13 +111,19 @@ export default function ImageUploadNode({
   });
 
   // Status polling
-  const { data: status, isPollingLoading: isStatusPollingLoading } =
-    useGetPeerAnalysisStatus({
-      peerId: data?.id,
-      strategyId,
-      peerType: "image",
-      enabled: isAnalyzeSuccess,
-    });
+  const {
+    data: status,
+    restartPolling,
+    error: statusError,
+    isError: isStatusError,
+    // refetch: refetchStatusPolling,
+    isPollingLoading: isStatusPollingLoading,
+  } = useGetPeerAnalysisStatus({
+    peerId: data?.id,
+    strategyId,
+    peerType: "image",
+    enabled: isAnalyzeSuccess,
+  });
 
   // Memoized values
   const canConnect = useMemo(
@@ -142,6 +148,17 @@ export default function ImageUploadNode({
   );
 
   const currentError = useMemo(() => {
+    if (
+      (isStatusError && statusError) ||
+      (aiResponse && !data?.is_ready_to_interact)
+    ) {
+      return {
+        message:
+          (statusError as any)?.response?.data?.message ||
+          "Image is not ready to interact",
+        type: "Status" as const,
+      };
+    }
     if (isUploadError && uploadError) {
       return {
         message:
@@ -150,7 +167,7 @@ export default function ImageUploadNode({
         type: "upload" as const,
       };
     }
-    if (isAnalyzeError && analyzeError) {
+    if ((isAnalyzeError && analyzeError) || (!aiResponse && data?.image)) {
       return {
         message:
           (analyzeError as any)?.response?.data?.message ||
@@ -166,6 +183,10 @@ export default function ImageUploadNode({
     }
     return null;
   }, [
+    data,
+    aiResponse,
+    isStatusError,
+    statusError,
     isUploadError,
     uploadError,
     isAnalyzeError,
@@ -280,12 +301,12 @@ export default function ImageUploadNode({
             if (response?.imageUrl) {
               setUploadedImage(response.imageUrl);
             }
-
             // Proceed to analysis
             analyzeImageContent(
-              { strategyId, peerId: data?.id, data: { ai_notes: userNotes } },
+              { strategyId, peerId: data?.id, data: { ai_notes: "" } },
               {
                 onSuccess: () => {
+                  restartPolling(); // Restart polling after successful analysis
                   setProcessingState({
                     isProcessing: false,
                     isComplete: true,
@@ -297,7 +318,7 @@ export default function ImageUploadNode({
                   setProcessingState({
                     isProcessing: false,
                     isComplete: false,
-                    error: null, // Error will be handled by mutation state
+                    error: null,
                     lastFailedOperation: "analyze",
                   });
                 },
@@ -308,7 +329,7 @@ export default function ImageUploadNode({
             setProcessingState({
               isProcessing: false,
               isComplete: false,
-              error: null, // Error will be handled by mutation state
+              error: null,
               lastFailedOperation: "upload",
             });
           },
@@ -320,7 +341,6 @@ export default function ImageUploadNode({
       checkIfAnimatedGif,
       strategyId,
       data?.id,
-      userNotes,
       uploadImageContent,
       analyzeImageContent,
     ]
@@ -333,6 +353,10 @@ export default function ImageUploadNode({
     if (currentError.type === "upload" && lastUploadedFileRef.current) {
       // Retry upload
       processImageFile(lastUploadedFileRef.current);
+    } else if (currentError.type === "status" && lastUploadedFileRef.current) {
+      // Retry status
+      // refetchStatusPolling();
+      restartPolling();
     } else if (currentError.type === "analyze") {
       // Retry analysis
       setProcessingState((prev) => ({
@@ -342,9 +366,10 @@ export default function ImageUploadNode({
       }));
 
       analyzeImageContent(
-        { strategyId, peerId: data?.id, data: { ai_notes: userNotes } },
+        { strategyId, peerId: data?.id, data: { ai_notes: "" } },
         {
           onSuccess: () => {
+            restartPolling();
             setProcessingState({
               isProcessing: false,
               isComplete: true,
@@ -369,7 +394,6 @@ export default function ImageUploadNode({
     analyzeImageContent,
     strategyId,
     data?.id,
-    userNotes,
   ]);
 
   // Event handlers
@@ -396,37 +420,35 @@ export default function ImageUploadNode({
     fileInputRef.current?.click();
   }, []);
 
+  // Inside the handleRemoveImage function
   const handleRemoveImage = useCallback(() => {
     setUploadedImage(null);
     setFileName("");
     setUserNotes("");
     setAiResponse(null);
-    lastUploadedFileRef.current = null;
-
     setProcessingState({
       isProcessing: false,
       isComplete: false,
       error: null,
       lastFailedOperation: null,
     });
-
     updateNodeData(data?.id, {
       image: "",
       title: "",
       ai_notes: "",
       ai_title: "",
+      ai_summary: "",
       is_ready_to_interact: false,
     });
 
+    lastUploadedFileRef.current = null;
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
-
     successNote({
       title: "Image removed",
       description: "Image removed successfully",
     });
-
     resetPeer(
       { peerId: data?.id, strategyId, peerType: "image" },
       {
@@ -440,7 +462,14 @@ export default function ImageUploadNode({
         },
       }
     );
-  }, [data?.id, updateNodeData, successNote, resetPeer, strategyId]);
+  }, [
+    data?.id,
+    updateNodeData,
+    successNote,
+    resetPeer,
+    strategyId,
+    restartPolling,
+  ]);
 
   // Drag and drop handlers
   const handleDragEnter = useCallback((e: DragEvent<HTMLDivElement>) => {
@@ -536,6 +565,18 @@ export default function ImageUploadNode({
       );
     }
   }, [canConnect, id, setEdges]);
+
+  useEffect(() => {
+    if (isStatusError) {
+      setProcessingState((prev) => ({
+        ...prev,
+        error: "Status request was rejected, Image is not ready to interact",
+        lastFailedOperation: "status",
+      }));
+    }
+  }, [isStatusError]);
+
+  console.log({ data, uploadedImage, aiResponse });
 
   return (
     <NodeWrapper

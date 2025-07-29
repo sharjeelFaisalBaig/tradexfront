@@ -18,7 +18,7 @@ export const useGetPeerAnalysisStatus = ({
   const [isPollingLoading, setIsPollingLoading] = useState(false);
 
   const query = useQuery({
-    retry: false, // ❌ disables auto retry
+    retry: false,
     queryKey: [QUERY_KEYS.STRATEGY, strategyId, peerId, peerType],
     queryFn: () =>
       getPeerAnalysisStatus({
@@ -29,31 +29,27 @@ export const useGetPeerAnalysisStatus = ({
     enabled: !!strategyId && !!peerId && !!peerType && enabled && shouldPoll,
     refetchInterval: (data) => {
       const isReady = data?.state?.data?.is_ready_to_interact === true;
-
       if (isReady) {
         setShouldPoll(false);
         setIsPollingLoading(false);
+        return false;
       }
-
-      return isReady ? false : 5000;
+      return 5000;
     },
   });
 
-  // Set isPollingLoading true when request is triggered
   useEffect(() => {
     if (!!strategyId && !!peerId && !!peerType && enabled && shouldPoll) {
       setIsPollingLoading(true);
     }
   }, [strategyId, peerId, peerType, enabled, shouldPoll]);
 
-  // Stop polling on error
   useEffect(() => {
     if (query.isError) {
       setShouldPoll(false);
     }
   }, [query.isError]);
 
-  // Set isPollingLoading = false only after polling stops
   useEffect(() => {
     if (!shouldPoll) {
       setIsPollingLoading(false);
@@ -62,6 +58,10 @@ export const useGetPeerAnalysisStatus = ({
 
   return {
     ...query,
-    isPollingLoading, // 👈 custom loading flag during polling
+    restartPolling: () => {
+      setShouldPoll(true);
+      setIsPollingLoading(true);
+    },
+    isPollingLoading,
   };
 };
