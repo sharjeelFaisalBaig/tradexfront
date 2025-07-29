@@ -107,7 +107,6 @@ export default function ChatBoxNode({
   >(null);
   const [editingTitle, setEditingTitle] = useState("");
   const [isInitialized, setIsInitialized] = useState(false);
-  const [isHydrated, setIsHydrated] = useState(false);
 
   // Refs
   const nodeControlRef = useRef<HTMLDivElement>(null);
@@ -206,30 +205,26 @@ export default function ChatBoxNode({
     return `temp_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
   }, []);
 
-  // Add hydration effect
-  useEffect(() => {
-    setIsHydrated(true);
-  }, []);
-
   // Initialization useEffect: Populates conversations from props or starts empty
   useEffect(() => {
     // Only run if hydrated, models are loaded, and not yet initialized
-    if (!isHydrated || isLoadingModels || isInitialized) {
+    if (isLoadingModels || isInitialized) {
       return;
     }
 
     const rawConversations = data?.conversations;
     const initialConversationsFromProps = Array.isArray(rawConversations)
       ? rawConversations.filter(
-          (conv) => conv && typeof conv === "object" && conv.id
+          (conv) => conv && typeof conv === "object" && conv?.id
         )
-      : [];
+      : [rawConversations];
 
     if (initialConversationsFromProps.length > 0) {
       // If conversations are provided via props, use them
       const mappedConversations = initialConversationsFromProps.map((conv) => ({
         ...conv,
         selectedModel:
+          // @ts-ignore
           availableModels.find((m) => m.id === conv.ai_model_id) ||
           availableModels[0],
         isLoading: false,
@@ -237,6 +232,7 @@ export default function ChatBoxNode({
         isDeleting: false, // Initialize new state
         isUpdatingTitle: false, // Initialize new state
       }));
+      // @ts-ignore
       setConversations(mappedConversations);
       setActiveConversationId(mappedConversations[0]?.id || null);
     } else {
@@ -246,13 +242,7 @@ export default function ChatBoxNode({
       setActiveConversationId(null);
     }
     setIsInitialized(true); // Mark as initialized
-  }, [
-    isHydrated,
-    isLoadingModels,
-    availableModels,
-    data?.conversations,
-    isInitialized,
-  ]);
+  }, [isLoadingModels, availableModels, data, isInitialized]);
 
   // When active conversation changes, reset messages to trigger a fresh load from useConversationMessages
   useEffect(() => {
@@ -804,15 +794,15 @@ export default function ChatBoxNode({
     [hasNextPage, isLoadingMoreMessages, activeConversationId, fetchNextPage]
   );
 
-  // Show loading spinner for initial load of the entire chat interface
-  //  !isHydrated ||
-  //   isLoadingModels ||
-  //   !isInitialized ||
-  //   (activeConversationId &&
-  //     isLoadingConversationMessages &&
-  //     messages.length === 0)
+  const handleCopyResponse = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({
+      description: "Copied to clipboard",
+      className: "h-10",
+    });
+  };
+
   if (
-    !isHydrated ||
     isLoadingModels ||
     !isInitialized ||
     (activeConversationId && isLoadingConversationMessages)
@@ -1128,9 +1118,7 @@ export default function ChatBoxNode({
                             <div className="flex items-center gap-4 mt-3">
                               <button
                                 className="flex items-center gap-1 text-xs text-blue-500 hover:text-blue-600 transition-colors"
-                                onClick={() =>
-                                  navigator.clipboard.writeText(msg.content)
-                                }
+                                onClick={() => handleCopyResponse(msg.content)}
                               >
                                 <Copy className="w-3 h-3" />
                                 Copy
@@ -1193,6 +1181,7 @@ export default function ChatBoxNode({
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
+                            disabled={isLoading}
                             variant="ghost"
                             size="sm"
                             className="flex items-center gap-1 text-xs h-7"

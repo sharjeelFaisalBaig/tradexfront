@@ -60,13 +60,13 @@ const Dashboard = () => {
     strategy.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#f6f8fb] dark:bg-gray-900">
-        <Loader text="Loading strategies..." />
-      </div>
-    );
-  }
+  // if (isLoading) {
+  //   return (
+  //     <div className="flex min-h-screen items-center justify-center bg-[#f6f8fb] dark:bg-gray-900">
+  //       <Loader text="Loading strategies..." />
+  //     </div>
+  //   );
+  // }
 
   // if (isError) {
   //   return (
@@ -134,7 +134,11 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {isError ? (
+          {isLoading ? (
+            <div className="h-4/5 flex items-center justify-center bg-[#f6f8fb] dark:bg-gray-900">
+              <Loader text="Loading strategies..." />
+            </div>
+          ) : isError ? (
             <div className="flex items-center justify-center p-6">
               <span className="text-red-600 text-lg font-semibold">
                 Failed to load strategies.

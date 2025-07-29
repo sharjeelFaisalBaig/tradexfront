@@ -28,7 +28,7 @@ const IsReadyToInteract = (props: Props) => {
       ) : canConnect ? (
         <Tooltip>
           <TooltipTrigger asChild>
-            <CheckCircle className="w-4 h-4 text-green-500" />
+            <CheckCircle className="w-4 h-4 text-green-400" />
           </TooltipTrigger>
           <TooltipContent>
             <p className="text-sm">Ready to connect to other nodes</p>

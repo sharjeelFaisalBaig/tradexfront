@@ -7,6 +7,7 @@ import {
   type DragEvent,
   type ChangeEvent,
   useMemo,
+  useCallback,
 } from "react";
 import { Position, useReactFlow } from "@xyflow/react";
 import {
@@ -30,6 +31,7 @@ import {
   Download,
   FileVideo,
   Maximize,
+  RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import NodeWrapper from "./common/NodeWrapper";
@@ -147,6 +149,7 @@ export default function VideoUploadNode({
     null
   );
   const [isDragOver, setIsDragOver] = useState(false);
+  const [isPollingRestarting, setIsPollingRestarting] = useState(false);
 
   // Video player states
   const [isPlaying, setIsPlaying] = useState(false);
@@ -170,13 +173,18 @@ export default function VideoUploadNode({
   const [userNotes, setUserNotes] = useState<string>("");
 
   // Only poll for status if analysis is successful
-  const { data: status, isPollingLoading: isStatusPollingLoading } =
-    useGetPeerAnalysisStatus({
-      peerId: data?.id,
-      strategyId,
-      peerType: "video",
-      enabled: isAnalyzeSuccess,
-    });
+  const {
+    restartPolling,
+    data: status,
+    error: statusError,
+    isError: isStatusError,
+    isPollingLoading: isStatusPollingLoading,
+  } = useGetPeerAnalysisStatus({
+    peerId: data?.id,
+    strategyId,
+    peerType: "video",
+    enabled: isPollingRestarting || isAnalyzeSuccess,
+  });
 
   // Sync state with incoming data props (like ImageUploadNode)
   useEffect(() => {
@@ -675,12 +683,6 @@ export default function VideoUploadNode({
     );
   };
 
-  const handleReprocess = () => {
-    if (uploadedVideo && fileName && uploadedFile) {
-      processVideoWithAI(uploadedVideo, fileName, uploadedFile);
-    }
-  };
-
   const handleDownload = () => {
     if (uploadedVideo && fileName) {
       const link = document.createElement("a");
@@ -721,11 +723,22 @@ export default function VideoUploadNode({
   );
 
   const currentError = useMemo(() => {
+    if (
+      (isStatusError && statusError) ||
+      (data?.video && !data?.is_ready_to_interact)
+    ) {
+      return {
+        message:
+          (statusError as any)?.response?.data?.message ||
+          "Video is not ready to interact",
+        type: "status" as const,
+      };
+    }
     if (isUploadError && uploadError) {
       return {
         message:
           (uploadError as any)?.response?.data?.message ||
-          "Failed to upload image",
+          "Failed to upload video",
         type: "upload" as const,
       };
     }
@@ -733,7 +746,7 @@ export default function VideoUploadNode({
       return {
         message:
           (analyzeError as any)?.response?.data?.message ||
-          "Failed to analyze image",
+          "Failed to analyze video",
         type: "analyze" as const,
       };
     }
@@ -745,6 +758,10 @@ export default function VideoUploadNode({
     }
     return null;
   }, [
+    data,
+    status,
+    isStatusError,
+    statusError,
     isUploadError,
     uploadError,
     isAnalyzeError,
@@ -776,6 +793,69 @@ export default function VideoUploadNode({
       );
     }
   }, [canConnect, id, setEdges, data]);
+
+  useEffect(() => {
+    if (status?.ai_title) {
+      setFileName(status?.ai_title);
+    }
+  }, [status]);
+
+  const handleReprocess = () => {
+    if (uploadedVideo && fileName && uploadedFile) {
+      processVideoWithAI(uploadedVideo, fileName, uploadedFile);
+    }
+  };
+
+  // Retry functionality
+  const handleRetry = useCallback(() => {
+    if (!currentError) return;
+
+    if (currentError.type === "upload" && uploadedVideo && uploadedFile) {
+      // Retry upload
+      processVideoWithAI(uploadedVideo, fileName, uploadedFile);
+    } else if (currentError.type === "status") {
+      // Retry upload
+      setIsPollingRestarting(true);
+      restartPolling();
+    } else if (currentError.type === "analyze") {
+      // Retry analysis
+      setProcessingState((prev) => ({
+        ...prev,
+        isProcessing: true,
+        error: null,
+      }));
+
+      analyzeVideoContent(
+        { strategyId, peerId: data?.id },
+        {
+          onSuccess: () => {
+            setIsPollingRestarting(true);
+            restartPolling();
+            setProcessingState({
+              isProcessing: false,
+              isComplete: true,
+              error: null,
+              lastFailedOperation: null,
+            });
+          },
+          onError: () => {
+            setProcessingState({
+              isProcessing: false,
+              isComplete: false,
+              error: null,
+              lastFailedOperation: "analyze",
+            });
+          },
+        }
+      );
+    }
+  }, [
+    currentError,
+    processVideoWithAI,
+    analyzeVideoContent,
+    strategyId,
+    data?.id,
+  ]);
 
   return (
     <>
@@ -1210,6 +1290,34 @@ export default function VideoUploadNode({
                       )}
                     </div>
                   </div>
+
+                  {/* Error State with Retry */}
+                  {!isProcessingAny && currentError && (
+                    <div className="px-4">
+                      <div className="bg-red-50 p-3 rounded-lg">
+                        <div className="text-xs text-red-600 font-medium mb-1 capitalize">
+                          {currentError?.type} Error
+                        </div>
+                        <div className="text-sm text-red-700 mb-2">
+                          {currentError.message}
+                        </div>
+                        <Button
+                          onClick={handleRetry}
+                          size="sm"
+                          variant="outline"
+                          className="text-red-600 border-red-200 hover:bg-red-50 bg-transparent"
+                          disabled={isProcessingAny}
+                        >
+                          {isProcessingAny ? (
+                            <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                          ) : (
+                            <RefreshCw className="w-4 h-4 mr-2" />
+                          )}
+                          Retry Processing
+                        </Button>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Error State */}
                   {processingState.error && (
