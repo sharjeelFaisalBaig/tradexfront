@@ -618,6 +618,7 @@ export default function AudioUploadNode({
   // Audio player controls
   const togglePlayPause = () => {
     const audio = audioRef.current;
+
     if (!audio) return;
 
     if (isPlaying) {
@@ -661,7 +662,7 @@ export default function AudioUploadNode({
   };
 
   const formatTime = (time: number) => {
-    if (isNaN(time)) return "00:00";
+    if (isNaN(time) || !isFinite(time)) return "00:00";
     const minutes = Math.floor(time / 60);
     const seconds = Math.floor(time % 60);
     return `${minutes.toString().padStart(2, "0")}:${seconds
@@ -762,6 +763,7 @@ export default function AudioUploadNode({
       interval = setInterval(() => {
         setRecordingState((prev) => {
           const newDuration = prev.duration + 0.1;
+
           // Auto-stop recording if max duration reached
           if (newDuration >= MAX_RECORDING_DURATION) {
             stopRecording();
@@ -854,6 +856,60 @@ export default function AudioUploadNode({
       );
     }
   }, [canConnect, id, setEdges]);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio || !uploadedAudio) return;
+
+    const handleLoadedMetadata = () => {
+      if (!audio) return;
+
+      if (audio.duration === Infinity) {
+        // Force duration calculation for blob/recorded audio
+        audio.currentTime = 1e101;
+        audio.ontimeupdate = () => {
+          audio.ontimeupdate = null;
+          audio.currentTime = 0;
+          setDuration(audio.duration);
+        };
+      } else if (!isNaN(audio.duration)) {
+        setDuration(audio.duration);
+      }
+    };
+
+    const handleTimeUpdate = () => {
+      setCurrentTime(audio.currentTime);
+    };
+
+    const handleEnded = () => {
+      setIsPlaying(false);
+      setCurrentTime(0);
+    };
+
+    const handleError = (e: Event) => {
+      console.error("Audio error:", e);
+      setProcessingState((prev) => ({
+        ...prev,
+        error: "Failed to load audio file.",
+      }));
+    };
+
+    audio.addEventListener("loadedmetadata", handleLoadedMetadata);
+    audio.addEventListener("timeupdate", handleTimeUpdate);
+    audio.addEventListener("ended", handleEnded);
+    audio.addEventListener("error", handleError);
+
+    if (uploadedAudio && audio.src !== uploadedAudio) {
+      audio.load();
+    }
+
+    return () => {
+      audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
+      audio.removeEventListener("timeupdate", handleTimeUpdate);
+      audio.removeEventListener("ended", handleEnded);
+      audio.removeEventListener("error", handleError);
+    };
+  }, [uploadedAudio]);
 
   const progressValue = duration > 0 ? (currentTime / duration) * 100 : 0;
   const shouldShowUploadInterface = useMemo(
