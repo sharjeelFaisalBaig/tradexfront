@@ -107,6 +107,7 @@ export default function AudioUploadNode({
   const strategyId = useParams()?.slug as string;
   const successNote = useSuccessNotifier();
   const { setEdges, updateNodeData } = useReactFlow();
+  const [isRetryPolling, setIsRetryPolling] = useState(false);
 
   // Refs
   const nodeControlRef = useRef<HTMLDivElement>(null);
@@ -138,13 +139,18 @@ export default function AudioUploadNode({
   } = useAnalyzeAudioPeer();
 
   // Status polling
-  const { data: status, isPollingLoading: isStatusPollingLoading } =
-    useGetPeerAnalysisStatus({
-      strategyId,
-      peerId: data?.id,
-      peerType: "audio",
-      enabled: isAnalyzeSuccess && !isResetting,
-    });
+  const {
+    data: status,
+    restartPolling,
+    error: statusError,
+    isError: isStatusError,
+    isPollingLoading: isStatusPollingLoading,
+  } = useGetPeerAnalysisStatus({
+    strategyId,
+    peerId: data?.id,
+    peerType: "audio",
+    enabled: (isRetryPolling || isAnalyzeSuccess) && !isResetting,
+  });
 
   // State
   const [processingState, setProcessingState] = useState<ProcessingState>({
@@ -208,6 +214,18 @@ export default function AudioUploadNode({
   );
 
   const currentError = useMemo(() => {
+    if (
+      (data?.audio && !data?.is_ready_to_interact && !isProcessingAny) ||
+      isStatusError ||
+      statusError
+    ) {
+      return {
+        message:
+          (statusError as any)?.response?.data?.message ||
+          "Audio is not ready to interact",
+        type: "status" as const,
+      };
+    }
     if (isUploadError && uploadError) {
       return {
         message:
@@ -232,6 +250,9 @@ export default function AudioUploadNode({
     }
     return null;
   }, [
+    data,
+    statusError,
+    isStatusError,
     isUploadError,
     uploadError,
     isAnalyzeError,
@@ -317,6 +338,7 @@ export default function AudioUploadNode({
               { strategyId, peerId: data?.id },
               {
                 onSuccess: () => {
+                  restartPolling();
                   setProcessingState({
                     isProcessing: false,
                     isComplete: true,
@@ -363,6 +385,10 @@ export default function AudioUploadNode({
     if (currentError.type === "upload" && lastUploadedFileRef.current) {
       // Retry upload
       processAudioFile(lastUploadedFileRef.current);
+    } else if (currentError.type === "status") {
+      // Retry upload
+      setIsRetryPolling(true);
+      restartPolling();
     } else if (currentError.type === "analyze") {
       // Retry analysis
       setProcessingState((prev) => ({
@@ -375,6 +401,7 @@ export default function AudioUploadNode({
         { strategyId, peerId: data?.id },
         {
           onSuccess: () => {
+            restartPolling();
             setProcessingState({
               isProcessing: false,
               isComplete: true,
@@ -692,7 +719,7 @@ export default function AudioUploadNode({
     // Handle AI response data
     if (data?.ai_title || data?.ai_summary) {
       try {
-        const parsedTitle = data.ai_title ? JSON.parse(data.ai_title) : {};
+        const parsedTitle = data?.ai_title ? JSON.parse(data.ai_title) : {};
         const parsedSummary = data.ai_summary
           ? JSON.parse(data.ai_summary)
           : {};
@@ -784,8 +811,19 @@ export default function AudioUploadNode({
     if (!audio || !uploadedAudio) return;
 
     const handleLoadedMetadata = () => {
-      setDuration(audio.duration);
-      setIsLoading(false);
+      if (!audio) return;
+
+      if (audio.duration === Infinity) {
+        // Force duration calculation for blob/recorded audio
+        audio.currentTime = 1e101;
+        audio.ontimeupdate = () => {
+          audio.ontimeupdate = null;
+          audio.currentTime = 0;
+          setDuration(audio.duration);
+        };
+      } else if (!isNaN(audio.duration)) {
+        setDuration(audio.duration);
+      }
     };
 
     const handleTimeUpdate = () => {
@@ -857,65 +895,13 @@ export default function AudioUploadNode({
     }
   }, [canConnect, id, setEdges]);
 
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio || !uploadedAudio) return;
-
-    const handleLoadedMetadata = () => {
-      if (!audio) return;
-
-      if (audio.duration === Infinity) {
-        // Force duration calculation for blob/recorded audio
-        audio.currentTime = 1e101;
-        audio.ontimeupdate = () => {
-          audio.ontimeupdate = null;
-          audio.currentTime = 0;
-          setDuration(audio.duration);
-        };
-      } else if (!isNaN(audio.duration)) {
-        setDuration(audio.duration);
-      }
-    };
-
-    const handleTimeUpdate = () => {
-      setCurrentTime(audio.currentTime);
-    };
-
-    const handleEnded = () => {
-      setIsPlaying(false);
-      setCurrentTime(0);
-    };
-
-    const handleError = (e: Event) => {
-      console.error("Audio error:", e);
-      setProcessingState((prev) => ({
-        ...prev,
-        error: "Failed to load audio file.",
-      }));
-    };
-
-    audio.addEventListener("loadedmetadata", handleLoadedMetadata);
-    audio.addEventListener("timeupdate", handleTimeUpdate);
-    audio.addEventListener("ended", handleEnded);
-    audio.addEventListener("error", handleError);
-
-    if (uploadedAudio && audio.src !== uploadedAudio) {
-      audio.load();
-    }
-
-    return () => {
-      audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
-      audio.removeEventListener("timeupdate", handleTimeUpdate);
-      audio.removeEventListener("ended", handleEnded);
-      audio.removeEventListener("error", handleError);
-    };
-  }, [uploadedAudio]);
-
   const progressValue = duration > 0 ? (currentTime / duration) * 100 : 0;
   const shouldShowUploadInterface = useMemo(
     () => !uploadedAudio && !showRecordingInterface,
     [uploadedAudio, showRecordingInterface]
   );
+
+  console.log({ data, aiResponse, uploadedAudio });
 
   return (
     <NodeWrapper

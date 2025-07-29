@@ -576,8 +576,6 @@ export default function ImageUploadNode({
     }
   }, [isStatusError]);
 
-  console.log({ data, uploadedImage, aiResponse });
-
   return (
     <NodeWrapper
       id={id}
