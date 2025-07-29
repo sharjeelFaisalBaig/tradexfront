@@ -107,6 +107,7 @@ export default function AudioUploadNode({
   const strategyId = useParams()?.slug as string;
   const successNote = useSuccessNotifier();
   const { setEdges, updateNodeData } = useReactFlow();
+  const [isRetryPolling, setIsRetryPolling] = useState(false);
 
   // Refs
   const nodeControlRef = useRef<HTMLDivElement>(null);
@@ -138,13 +139,18 @@ export default function AudioUploadNode({
   } = useAnalyzeAudioPeer();
 
   // Status polling
-  const { data: status, isPollingLoading: isStatusPollingLoading } =
-    useGetPeerAnalysisStatus({
-      strategyId,
-      peerId: data?.id,
-      peerType: "audio",
-      enabled: isAnalyzeSuccess && !isResetting,
-    });
+  const {
+    data: status,
+    restartPolling,
+    error: statusError,
+    isError: isStatusError,
+    isPollingLoading: isStatusPollingLoading,
+  } = useGetPeerAnalysisStatus({
+    strategyId,
+    peerId: data?.id,
+    peerType: "audio",
+    enabled: (isRetryPolling || isAnalyzeSuccess) && !isResetting,
+  });
 
   // State
   const [processingState, setProcessingState] = useState<ProcessingState>({
@@ -208,6 +214,18 @@ export default function AudioUploadNode({
   );
 
   const currentError = useMemo(() => {
+    if (
+      (data?.audio && !data?.is_ready_to_interact && !isProcessingAny) ||
+      isStatusError ||
+      statusError
+    ) {
+      return {
+        message:
+          (statusError as any)?.response?.data?.message ||
+          "Audio is not ready to interact",
+        type: "status" as const,
+      };
+    }
     if (isUploadError && uploadError) {
       return {
         message:
@@ -232,6 +250,9 @@ export default function AudioUploadNode({
     }
     return null;
   }, [
+    data,
+    statusError,
+    isStatusError,
     isUploadError,
     uploadError,
     isAnalyzeError,
@@ -310,13 +331,14 @@ export default function AudioUploadNode({
             }
 
             // Update node data
-            updateNodeData(data?.id, { ai_notes: userNotes });
+            updateNodeData(data?.id, { ai_notes: "" });
 
             // Proceed to analysis
             analyzeAudioContent(
-              { strategyId, peerId: data?.id, data: { ai_notes: userNotes } },
+              { strategyId, peerId: data?.id },
               {
                 onSuccess: () => {
+                  restartPolling();
                   setProcessingState({
                     isProcessing: false,
                     isComplete: true,
@@ -350,7 +372,6 @@ export default function AudioUploadNode({
       validateFile,
       strategyId,
       data?.id,
-      userNotes,
       uploadAudio,
       analyzeAudioContent,
       updateNodeData,
@@ -364,6 +385,10 @@ export default function AudioUploadNode({
     if (currentError.type === "upload" && lastUploadedFileRef.current) {
       // Retry upload
       processAudioFile(lastUploadedFileRef.current);
+    } else if (currentError.type === "status") {
+      // Retry upload
+      setIsRetryPolling(true);
+      restartPolling();
     } else if (currentError.type === "analyze") {
       // Retry analysis
       setProcessingState((prev) => ({
@@ -373,9 +398,10 @@ export default function AudioUploadNode({
       }));
 
       analyzeAudioContent(
-        { strategyId, peerId: data?.id, data: { ai_notes: userNotes } },
+        { strategyId, peerId: data?.id },
         {
           onSuccess: () => {
+            restartPolling();
             setProcessingState({
               isProcessing: false,
               isComplete: true,
@@ -400,7 +426,6 @@ export default function AudioUploadNode({
     analyzeAudioContent,
     strategyId,
     data?.id,
-    userNotes,
   ]);
 
   // Event handlers
@@ -620,6 +645,7 @@ export default function AudioUploadNode({
   // Audio player controls
   const togglePlayPause = () => {
     const audio = audioRef.current;
+
     if (!audio) return;
 
     if (isPlaying) {
@@ -663,7 +689,7 @@ export default function AudioUploadNode({
   };
 
   const formatTime = (time: number) => {
-    if (isNaN(time)) return "00:00";
+    if (isNaN(time) || !isFinite(time)) return "00:00";
     const minutes = Math.floor(time / 60);
     const seconds = Math.floor(time % 60);
     return `${minutes.toString().padStart(2, "0")}:${seconds
@@ -693,7 +719,7 @@ export default function AudioUploadNode({
     // Handle AI response data
     if (data?.ai_title || data?.ai_summary) {
       try {
-        const parsedTitle = data.ai_title ? JSON.parse(data.ai_title) : {};
+        const parsedTitle = data?.ai_title ? JSON.parse(data.ai_title) : {};
         const parsedSummary = data.ai_summary
           ? JSON.parse(data.ai_summary)
           : {};
@@ -764,6 +790,7 @@ export default function AudioUploadNode({
       interval = setInterval(() => {
         setRecordingState((prev) => {
           const newDuration = prev.duration + 0.1;
+
           // Auto-stop recording if max duration reached
           if (newDuration >= MAX_RECORDING_DURATION) {
             stopRecording();
@@ -784,8 +811,19 @@ export default function AudioUploadNode({
     if (!audio || !uploadedAudio) return;
 
     const handleLoadedMetadata = () => {
-      setDuration(audio.duration);
-      setIsLoading(false);
+      if (!audio) return;
+
+      if (audio.duration === Infinity) {
+        // Force duration calculation for blob/recorded audio
+        audio.currentTime = 1e101;
+        audio.ontimeupdate = () => {
+          audio.ontimeupdate = null;
+          audio.currentTime = 0;
+          setDuration(audio.duration);
+        };
+      } else if (!isNaN(audio.duration)) {
+        setDuration(audio.duration);
+      }
     };
 
     const handleTimeUpdate = () => {
@@ -862,6 +900,8 @@ export default function AudioUploadNode({
     () => !uploadedAudio && !showRecordingInterface,
     [uploadedAudio, showRecordingInterface]
   );
+
+  console.log({ data, aiResponse, uploadedAudio });
 
   return (
     <NodeWrapper
@@ -1158,7 +1198,7 @@ export default function AudioUploadNode({
                     <div className="flex items-center gap-3">
                       <Loader2 className="w-6 h-6 animate-spin text-purple-600" />
                       <span className="text-sm font-medium text-purple-700">
-                        Transcribing and analyzing audio...
+                        Ai is analyzing audio...
                       </span>
                     </div>
                   </div>

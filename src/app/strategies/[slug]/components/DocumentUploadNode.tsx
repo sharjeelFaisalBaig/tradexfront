@@ -229,6 +229,7 @@ export default function DocumentUploadNode({
         type,
         lastModified: Date.now(),
       });
+
       // Optionally set AI response if available
       if (data.ai_title || data.ai_summary) {
         setAiResponse({
@@ -252,6 +253,11 @@ export default function DocumentUploadNode({
           error: null,
           lastFailedOperation: null,
         });
+      }
+
+      // Handle user notes
+      if (data?.ai_notes) {
+        setUserNotes(data.ai_notes);
       }
     } else if (data?.dataToAutoUpload?.data) {
       handleFileSelect(data?.dataToAutoUpload?.data);
@@ -442,7 +448,6 @@ export default function DocumentUploadNode({
   const handleAnalyzeImage = () => {
     analyzeDocumentContent(
       {
-        data: { ai_notes: userNotes },
         strategyId: strategyId,
         peerId: data?.id,
       },
@@ -532,11 +537,7 @@ export default function DocumentUploadNode({
           lastFailedOperation: null,
         });
         analyzeDocumentContent(
-          {
-            data: { ai_notes: userNotes }, // Use existing notes or empty
-            strategyId: strategyId,
-            peerId: data?.id,
-          },
+          { strategyId: strategyId, peerId: data?.id },
           {
             onSuccess: () => {
               setProcessingState({

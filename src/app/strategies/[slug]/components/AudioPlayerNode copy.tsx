@@ -1121,7 +1121,7 @@ export default function AudioPlayerNode({
                     <div className="flex items-center gap-3">
                       <Loader2 className="w-6 h-6 animate-spin text-purple-600" />
                       <span className="text-sm font-medium text-purple-700">
-                        Transcribing and analyzing audio...
+                        Ai is analyzing audio...
                       </span>
                     </div>
                   </div>
@@ -1299,7 +1299,6 @@ export default function AudioPlayerNode({
                     onButtonClick={() => {
                       updateNodeData(data?.id, { ai_notes: userNotes });
                       analyzeAudioContent({
-                        data: { ai_notes: userNotes },
                         strategyId: strategyId,
                         peerId: data?.id,
                       });

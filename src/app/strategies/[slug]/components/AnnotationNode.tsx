@@ -109,7 +109,7 @@ export default function AnnotationNode({
 
   const { deleteNode } = useNodeOperations();
   const { updateNodeData, deleteElements } = useReactFlow();
-  const { mutate: updateAnnotation, isPaused: isUpdating } =
+  const { mutate: updateAnnotation, isPending: isUpdating } =
     useUpdateAnnotationContent();
 
   // State management
@@ -170,18 +170,12 @@ export default function AnnotationNode({
 
   // Handle saving annotation
   const handleSave = () => {
-    // if (!content.trim()) {
-    //   handleCancel();
-    //   return;
-    // }
-
     handleUpdateAnnotationNode({});
   };
 
   // Handle canceling edit
   const handleCancel = () => {
     if (!nodeData?.annotation_message) {
-      // if (!data?.annotation_message) {
       // If this is a new annotation with no content, delete the node
       deleteElements({ nodes: [{ id }] });
       handleDelete();
@@ -246,7 +240,6 @@ export default function AnnotationNode({
         strategyId,
         data: annotationData,
       },
-
       {
         onSuccess: (data) => {
           setNodeData(data?.data);
@@ -479,7 +472,7 @@ export default function AnnotationNode({
       </div>
 
       {/* Footer - Author and timestamp */}
-      {nodeData?.annotation_message && (
+      {!isUpdating && nodeData?.annotation_message && (
         <div
           className={cn(
             "px-3 py-2 border-t flex items-center justify-between text-xs",

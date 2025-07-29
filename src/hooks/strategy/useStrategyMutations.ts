@@ -597,12 +597,12 @@ export const useAnalyzeImagePeer = () => {
     mutationFn: ({
       strategyId,
       peerId,
-      data,
-    }: {
+    }: // data,
+    {
       strategyId: string;
       peerId: string;
-      data: { ai_notes?: string };
-    }) => analyzeImagePeer({ strategyId, peerId, data }),
+      // data: { ai_notes?: string };
+    }) => analyzeImagePeer({ strategyId, peerId }),
     // onSuccess: (_data, { strategyId }) => {
     //   queryClient.invalidateQueries({
     //     queryKey: [QUERY_KEYS.STRATEGY, strategyId],
@@ -618,12 +618,12 @@ export const useAnalyzeVideoPeer = () => {
     mutationFn: ({
       strategyId,
       peerId,
-      data,
-    }: {
+    }: // data,
+    {
       strategyId: string;
       peerId: string;
-      data: { ai_notes?: string };
-    }) => analyzeVideoPeer({ strategyId, peerId, data }),
+      // data: { ai_notes?: string };
+    }) => analyzeVideoPeer({ strategyId, peerId }),
     // onSuccess: (_data, { strategyId }) => {
     //   queryClient.invalidateQueries({
     //     queryKey: [QUERY_KEYS.STRATEGY, strategyId],
@@ -639,12 +639,12 @@ export const useAnalyzeDocumentPeer = () => {
     mutationFn: ({
       strategyId,
       peerId,
-      data,
-    }: {
+    }: // data,
+    {
       strategyId: string;
       peerId: string;
-      data: { ai_notes?: string };
-    }) => analyzeDocumentPeer({ strategyId, peerId, data }),
+      // data: { ai_notes?: string };
+    }) => analyzeDocumentPeer({ strategyId, peerId }),
     // onSuccess: (_data, { strategyId }) => {
     //   queryClient.invalidateQueries({
     //     queryKey: [QUERY_KEYS.STRATEGY, strategyId],
@@ -660,12 +660,12 @@ export const useAnalyzeAudioPeer = () => {
     mutationFn: ({
       strategyId,
       peerId,
-      data,
-    }: {
+    }: // data,
+    {
       strategyId: string;
       peerId: string;
-      data: { ai_notes?: string };
-    }) => analyzeAudioPeer({ strategyId, peerId, data }),
+      // data: { ai_notes?: string };
+    }) => analyzeAudioPeer({ strategyId, peerId }),
     // onSuccess: (_data, { strategyId }) => {
     //   queryClient.invalidateQueries({
     //     queryKey: [QUERY_KEYS.STRATEGY, strategyId],
