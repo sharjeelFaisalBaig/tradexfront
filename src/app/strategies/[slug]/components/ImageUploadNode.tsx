@@ -303,7 +303,7 @@ export default function ImageUploadNode({
             }
             // Proceed to analysis
             analyzeImageContent(
-              { strategyId, peerId: data?.id, data: { ai_notes: "" } },
+              { strategyId, peerId: data?.id },
               {
                 onSuccess: () => {
                   restartPolling(); // Restart polling after successful analysis
@@ -366,7 +366,7 @@ export default function ImageUploadNode({
       }));
 
       analyzeImageContent(
-        { strategyId, peerId: data?.id, data: { ai_notes: "" } },
+        { strategyId, peerId: data?.id },
         {
           onSuccess: () => {
             restartPolling();

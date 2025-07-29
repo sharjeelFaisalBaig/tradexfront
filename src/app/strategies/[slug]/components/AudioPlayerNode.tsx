@@ -310,11 +310,11 @@ export default function AudioUploadNode({
             }
 
             // Update node data
-            updateNodeData(data?.id, { ai_notes: userNotes });
+            updateNodeData(data?.id, { ai_notes: "" });
 
             // Proceed to analysis
             analyzeAudioContent(
-              { strategyId, peerId: data?.id, data: { ai_notes: userNotes } },
+              { strategyId, peerId: data?.id },
               {
                 onSuccess: () => {
                   setProcessingState({
@@ -350,7 +350,6 @@ export default function AudioUploadNode({
       validateFile,
       strategyId,
       data?.id,
-      userNotes,
       uploadAudio,
       analyzeAudioContent,
       updateNodeData,
@@ -373,7 +372,7 @@ export default function AudioUploadNode({
       }));
 
       analyzeAudioContent(
-        { strategyId, peerId: data?.id, data: { ai_notes: userNotes } },
+        { strategyId, peerId: data?.id },
         {
           onSuccess: () => {
             setProcessingState({
@@ -400,7 +399,6 @@ export default function AudioUploadNode({
     analyzeAudioContent,
     strategyId,
     data?.id,
-    userNotes,
   ]);
 
   // Event handlers

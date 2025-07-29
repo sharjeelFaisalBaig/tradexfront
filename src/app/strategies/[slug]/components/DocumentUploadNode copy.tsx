@@ -427,7 +427,6 @@ export default function DocumentUploadNode({
   const handleAnalyzeImage = () => {
     analyzeVideoContent(
       {
-        data: { ai_notes: userNotes },
         strategyId: strategyId,
         peerId: data?.id,
       },
@@ -519,7 +518,6 @@ export default function DocumentUploadNode({
         });
         analyzeVideoContent(
           {
-            data: { ai_notes: userNotes }, // Use existing notes or empty
             strategyId: strategyId,
             peerId: data?.id,
           },

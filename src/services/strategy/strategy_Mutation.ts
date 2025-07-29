@@ -406,19 +406,19 @@ export const analyzeRemotePeer = async ({
 export const analyzeImagePeer = async ({
   strategyId,
   peerId,
-  data,
-}: {
+}: // data,
+{
   strategyId: string;
   peerId: string;
-  data: { ai_notes?: string };
+  // data: { ai_notes?: string };
 }) => {
   const res = await axiosInstance.post(
     endpoints.STRATEGY.ANALYZE_PEER({
       peerId,
       id: strategyId,
       peerType: "image",
-    }),
-    data
+    })
+    // data
   );
 
   if (res.status !== 200 || res.data?.success === false) {
@@ -431,21 +431,19 @@ export const analyzeImagePeer = async ({
 export const analyzeVideoPeer = async ({
   strategyId,
   peerId,
-  data,
-}: {
+}: // data,
+{
   strategyId: string;
   peerId: string;
-  data: {
-    ai_notes?: string;
-  };
+  // data: {ai_notes?: string;};
 }) => {
   const res = await axiosInstance.post(
     endpoints.STRATEGY.ANALYZE_PEER({
       peerId,
       id: strategyId,
       peerType: "video",
-    }),
-    data
+    })
+    // data
   );
   return res.data;
 };
@@ -453,21 +451,19 @@ export const analyzeVideoPeer = async ({
 export const analyzeDocumentPeer = async ({
   strategyId,
   peerId,
-  data,
-}: {
+}: // data,
+{
   strategyId: string;
   peerId: string;
-  data: {
-    ai_notes?: string;
-  };
+  // data: {ai_notes?: string;};
 }) => {
   const res = await axiosInstance.post(
     endpoints.STRATEGY.ANALYZE_PEER({
       peerId,
       id: strategyId,
       peerType: "document",
-    }),
-    data
+    })
+    // data
   );
   return res.data;
 };
@@ -475,21 +471,19 @@ export const analyzeDocumentPeer = async ({
 export const analyzeAudioPeer = async ({
   strategyId,
   peerId,
-  data,
-}: {
+}: // data,
+{
   strategyId: string;
   peerId: string;
-  data: {
-    ai_notes?: string;
-  };
+  // data: {ai_notes?: string;};
 }) => {
   const res = await axiosInstance.post(
     endpoints.STRATEGY.ANALYZE_PEER({
       peerId,
       id: strategyId,
       peerType: "audio",
-    }),
-    data
+    })
+    // data
   );
   return res.data;
 };

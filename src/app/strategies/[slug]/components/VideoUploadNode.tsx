@@ -601,7 +601,6 @@ export default function VideoUploadNode({
   const handleAnalyzeImage = () => {
     analyzeVideoContent(
       {
-        data: { ai_notes: userNotes },
         strategyId: strategyId,
         peerId: data?.id,
       },

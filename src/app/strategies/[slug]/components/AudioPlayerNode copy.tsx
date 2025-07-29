@@ -1299,7 +1299,6 @@ export default function AudioPlayerNode({
                     onButtonClick={() => {
                       updateNodeData(data?.id, { ai_notes: userNotes });
                       analyzeAudioContent({
-                        data: { ai_notes: userNotes },
                         strategyId: strategyId,
                         peerId: data?.id,
                       });
