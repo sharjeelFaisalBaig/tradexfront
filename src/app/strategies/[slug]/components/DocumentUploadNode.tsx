@@ -22,7 +22,6 @@ import {
   Upload,
   FileText,
   Loader2,
-  Shield,
   CheckCircle,
   File,
   FileSpreadsheet,
@@ -45,6 +44,7 @@ import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 import AiNoteInput from "./common/AiNoteInput";
 import NodeHandle from "./common/NodeHandle";
 import IsReadyToInteract from "./common/IsReadyToInteract";
+import { error } from "console";
 
 // Types for AI integration
 interface AIProcessingResponse {
@@ -209,66 +209,66 @@ export default function DocumentUploadNode({
 
   // Handle initial document data from props (like VideoUploadNode)
   useEffect(() => {
-    // If document_peer_media exists, treat as already uploaded
-    if (data?.document_peer_media) {
-      // Set uploadedDocument to the media URL
-      setUploadedDocument(data.document_peer_media);
-      // Guess type from file extension
-      const ext = data.document_peer_media.split(".").pop()?.toLowerCase();
-      let type = "application/octet-stream";
-      if (ext === "pdf") type = "application/pdf";
-      else if (["doc", "docx"].includes(ext))
-        type =
-          "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-      else if (["xls", "xlsx"].includes(ext))
-        type =
-          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-      else if (["ppt", "pptx"].includes(ext))
-        type =
-          "application/vnd.openxmlformats-officedocument.presentationml.presentation";
-      else if (ext === "txt") type = "text/plain";
-      else if (ext === "rtf") type = "application/rtf";
-      else if (ext === "csv") type = "text/csv";
+    async function setDocumentWithSize() {
+      if (data?.document_peer_media) {
+        setUploadedDocument(data.document_peer_media);
 
-      setDocumentInfo({
-        name: data.title || "Document",
-        size: 0, // Size unknown when loaded from URL
-        type,
-        lastModified: Date.now(),
-      });
+        const ext = data.document_peer_media.split(".").pop()?.toLowerCase();
+        let type = "application/octet-stream";
+        if (ext === "pdf") type = "application/pdf";
+        else if (["doc", "docx"].includes(ext))
+          type =
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+        else if (["xls", "xlsx"].includes(ext))
+          type =
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+        else if (["ppt", "pptx"].includes(ext))
+          type =
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+        else if (ext === "txt") type = "text/plain";
+        else if (ext === "rtf") type = "application/rtf";
+        else if (ext === "csv") type = "text/csv";
 
-      // Optionally set AI response if available
-      if (data.ai_title || data.ai_summary) {
-        setAiResponse({
-          title: data.ai_title || data.title || "Document",
-          peerId: data.id,
-          summary: data.ai_summary || "",
-          content: "",
-          keyPoints: [],
-          documentType: getDocumentLabel(type),
-          language: "",
-          wordCount: 0,
-          pageCount: 0,
-          confidence: 0,
-          tags: [],
-          entities: [],
-          sentiment: undefined,
+        setDocumentInfo({
+          name: data.title || "Document",
+          size: 0, // actual size (bytes)
+          type,
+          lastModified: Date.now(),
         });
-        setProcessingState({
-          isProcessing: false,
-          isComplete: true,
-          error: null,
-          lastFailedOperation: null,
-        });
-      }
 
-      // Handle user notes
-      if (data?.ai_notes) {
-        setUserNotes(data.ai_notes);
+        if (data.ai_title || data.ai_summary) {
+          setAiResponse({
+            title: data.ai_title || data.title || "Document",
+            peerId: data.id,
+            summary: data.ai_summary || "",
+            content: "",
+            keyPoints: [],
+            documentType: getDocumentLabel(type),
+            language: "",
+            wordCount: 0,
+            pageCount: 0,
+            confidence: 0,
+            tags: [],
+            entities: [],
+            sentiment: undefined,
+          });
+          setProcessingState({
+            isProcessing: false,
+            isComplete: true,
+            error: null,
+            lastFailedOperation: null,
+          });
+        }
+
+        if (data?.ai_notes) {
+          setUserNotes(data.ai_notes);
+        }
+      } else if (data?.dataToAutoUpload?.data) {
+        handleFileSelect(data?.dataToAutoUpload?.data);
       }
-    } else if (data?.dataToAutoUpload?.data) {
-      handleFileSelect(data?.dataToAutoUpload?.data);
     }
+
+    setDocumentWithSize();
   }, [data]);
 
   // API Integration Function
@@ -803,6 +803,8 @@ export default function DocumentUploadNode({
     ? getDocumentIcon(documentInfo.type)
     : FileText;
 
+  console.log({ documentInfo });
+
   return (
     <>
       <NodeWrapper
@@ -844,12 +846,14 @@ export default function DocumentUploadNode({
                     className="hidden"
                   />
                   <div className="text-center">
-                    {currentError && (
-                      <div className="mb-4 px-4 py-2 bg-red-50 border border-red-200 rounded text-red-700 text-sm font-medium flex items-center gap-2">
-                        <X className="w-4 h-4 text-red-500" />
-                        {currentError.message}
-                      </div>
-                    )}
+                    {currentError &&
+                      (currentError?.type === "unknown" ||
+                        currentError?.type === "upload") && (
+                        <div className="mb-4 px-4 py-2 bg-red-50 border border-red-200 rounded text-red-700 text-sm font-medium flex items-center gap-2">
+                          <X className="w-4 h-4 text-red-500" />
+                          {currentError.message}
+                        </div>
+                      )}
                     <div className="mb-6">
                       <Button
                         onClick={(e) => {

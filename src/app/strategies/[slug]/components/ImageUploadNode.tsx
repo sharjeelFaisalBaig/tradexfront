@@ -450,6 +450,12 @@ export default function ImageUploadNode({
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
+
+    if (status?.is_ready_to_interact) {
+      status.is_ready_to_interact = false;
+      status.ai_title = "";
+    }
+
     successNote({
       title: "Image removed",
       description: "Image removed successfully",

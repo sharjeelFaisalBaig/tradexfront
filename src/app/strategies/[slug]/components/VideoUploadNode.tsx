@@ -612,7 +612,12 @@ export default function VideoUploadNode({
         strategyId: strategyId,
         peerId: data?.id,
       },
+
       {
+        onSuccess: () => {
+          setIsPollingRestarting(true);
+          restartPolling();
+        },
         onError: (error: any) => {
           toast({
             title: error?.message || "Error",

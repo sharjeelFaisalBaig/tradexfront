@@ -725,7 +725,8 @@ export default function AudioUploadNode({
           : {};
 
         setAiResponse({
-          title: parsedTitle.title || data.title || "",
+          // title: parsedTitle.title || data.title || "",
+          title: data?.ai_title || data?.title || "",
           peerId: data.id || "",
           transcription: parsedSummary.important_quotes?.join(" ") || "",
           summary: parsedSummary.summary || "",
