@@ -1,22 +1,26 @@
 "use client";
 
 import { useCallback, useMemo } from "react";
-import { toast } from "./use-toast";
-import { useGetUser } from "./auth/useAuth";
-import { auth } from "@/lib/auth";
 import { useAuth } from "@/context/AuthContext";
+import { useGetUser } from "./auth/useAuth";
+import { toast } from "./use-toast";
 
 export const useSuccessNotifier = () => {
-  // const { isLoggedIn } = useAuth();
+  // const { isLoggedIn, user } = useAuth();
 
-  // const session = await auth();
-  // console.log({ session });
+  // const { data } = useGetUser({ enabled: isLoggedIn });
 
-  // const { data } = useGetUser();
   // const isInAppNotificationsEnabled = useMemo(
-  // () => data?.data?.user?.receive_inapp_notifications,
-  // [data]
+  //   () => data?.data?.user?.receive_inapp_notifications,
+  //   [data]
   // );
+
+  // console.log("useSuccessNotifier", {
+  //   isLoggedIn,
+  //   user,
+  //   data,
+  //   isInAppNotificationsEnabled,
+  // });
 
   const isInAppNotificationsEnabled = true;
 

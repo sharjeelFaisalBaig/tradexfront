@@ -348,7 +348,7 @@ export default function ImageUploadNode({
       validateFile,
       checkIfAnimatedGif,
       strategyId,
-      data?.id,
+      data,
       uploadImageContent,
       analyzeImageContent,
     ]
@@ -397,13 +397,7 @@ export default function ImageUploadNode({
         }
       );
     }
-  }, [
-    currentError,
-    processImageFile,
-    analyzeImageContent,
-    strategyId,
-    data?.id,
-  ]);
+  }, [currentError, processImageFile, analyzeImageContent, strategyId, data]);
 
   // Event handlers
   const handleFileSelect = useCallback(
