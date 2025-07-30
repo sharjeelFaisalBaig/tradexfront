@@ -719,19 +719,20 @@ export default function AudioUploadNode({
     // Handle AI response data
     if (data?.ai_title || data?.ai_summary) {
       try {
-        const parsedTitle = data?.ai_title ? JSON.parse(data?.ai_title) : {};
-        const parsedSummary = data.ai_summary
-          ? JSON.parse(data.ai_summary)
-          : {};
+        // const parsedTitle = data?.ai_title ? JSON.parse(data?.ai_title) : {};
+        // const parsedSummary = data.ai_summary? JSON.parse(data.ai_summary): {};
 
         setAiResponse({
-          // title: data?.ai_title || data?.title || "",
-          title: parsedTitle.title || data?.ai_title || data.title || "",
+          // title: parsedTitle.title || data?.ai_title || data.title || "",
+          // transcription: parsedSummary.important_quotes?.join(" ") || "",
+          // summary: parsedSummary.summary || "",
+          // tags: parsedSummary.key_topics || [],
+          title: data?.ai_title || data?.title || "",
+          transcription: "",
+          summary: "",
+          tags: [],
           peerId: data.id || "",
-          transcription: parsedSummary.important_quotes?.join(" ") || "",
-          summary: parsedSummary.summary || "",
           confidence: data.confidence || 0.95,
-          tags: parsedSummary.key_topics || [],
           duration: data.duration || 0,
           language: data.language || "en",
         });
