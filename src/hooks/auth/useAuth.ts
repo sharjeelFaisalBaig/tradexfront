@@ -4,10 +4,11 @@ import { SignupData } from "@/services/auth/auth_Mutation";
 import { QUERY_KEYS } from "@/lib/queryKeys";
 
 // GET: Current user info
-export const useGetUser = () => {
+export const useGetUser = ({ enabled = true } = {}) => {
   return useQuery({
     queryKey: [QUERY_KEYS.USER],
     queryFn: getUser,
+    enabled: enabled,
   });
 };
 

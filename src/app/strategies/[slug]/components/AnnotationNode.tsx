@@ -354,12 +354,9 @@ export default function AnnotationNode({
                         "h-6 w-6 p-0 text-green-600 hover:text-green-700"
                       )}
                       onClick={handleSave}
+                      disabled={isUpdating}
                     >
-                      {isUpdating ? (
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                      ) : (
-                        <Save className="h-3 w-3" />
-                      )}
+                      <Save className="h-3 w-3" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent side="top">
@@ -398,12 +395,9 @@ export default function AnnotationNode({
                       size="sm"
                       className={cn("h-6 w-6 p-0", theme.button)}
                       onClick={() => setIsEditing(true)}
+                      disabled={isUpdating}
                     >
-                      {isUpdating ? (
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                      ) : (
-                        <Edit3 className="h-3 w-3" />
-                      )}
+                      <Edit3 className="h-3 w-3" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent side="top">
