@@ -1,5 +1,4 @@
 "use client";
-
 import { useCredits } from "@/context/CreditContext";
 import { QUERY_KEYS } from "@/lib/queryKeys";
 import { getPeerAnalysisStatus } from "@/services/strategy/strategy_API";
@@ -40,31 +39,24 @@ export const useGetPeerAnalysisStatus = ({
         // updateCredits({ usedCredits: data?.state?.data?.credits });
         return false;
       }
+
       return 5000;
     },
   });
 
   useEffect(() => {
-    if (!!strategyId && !!peerId && !!peerType && enabled && shouldPoll) {
-      setIsPollingLoading(true);
-    }
-  }, [strategyId, peerId, peerType, enabled, shouldPoll]);
-
-  useEffect(() => {
     if (query.isError) {
-      setShouldPoll(() => false);
-      setIsPollingLoading(() => false);
+      setShouldPoll(false);
+      setIsPollingLoading(false);
     }
   }, [query.isError]);
 
-  const restartPolling = () => {
-    setShouldPoll(() => true);
-    setIsPollingLoading(() => true);
-  };
-
   return {
     ...query,
-    restartPolling,
+    restartPolling: () => {
+      setShouldPoll(true);
+      setIsPollingLoading(true);
+    },
     isPollingLoading,
   };
 };
