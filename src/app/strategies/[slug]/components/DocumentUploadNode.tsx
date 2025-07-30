@@ -801,8 +801,6 @@ export default function DocumentUploadNode({
     ? getDocumentIcon(documentInfo.type)
     : FileText;
 
-  console.log({ documentInfo });
-
   return (
     <>
       <NodeWrapper

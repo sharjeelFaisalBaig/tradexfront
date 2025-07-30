@@ -864,8 +864,6 @@ export default function VideoUploadNode({
     data?.id,
   ]);
 
-  console.log({ aiResponse, fileName });
-
   return (
     <>
       <NodeWrapper

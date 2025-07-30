@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { CreditProvider } from "@/context/CreditContext";
 import { ReactFlowProvider } from "@xyflow/react";
 import Loader from "@/components/common/Loader";
 import Strategy from "./components/Strategy";
@@ -21,7 +22,9 @@ export default async function StrategyPage({ params }: PageProps) {
           </div>
         }
       >
-        <Strategy slug={slug} />
+        <CreditProvider>
+          <Strategy slug={slug} />
+        </CreditProvider>
       </Suspense>
     </ReactFlowProvider>
   );
