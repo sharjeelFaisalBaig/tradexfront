@@ -57,6 +57,12 @@ export const useGetPeerAnalysisStatus = ({
     }
   }, [query.isError]);
 
+  useEffect(() => {
+    if (query?.data?.is_ready_to_interact) {
+      updateCredits({ usedCredits: query?.data?.credits });
+    }
+  }, [query.data]);
+
   const restartPolling = () => {
     setShouldPoll(() => true);
     setIsPollingLoading(() => true);
