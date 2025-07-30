@@ -30,7 +30,7 @@ import {
   Eye,
   RefreshCw,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, getFileSize } from "@/lib/utils";
 import NodeWrapper from "./common/NodeWrapper";
 import { useParams } from "next/navigation";
 import {
@@ -211,7 +211,6 @@ export default function DocumentUploadNode({
     async function setDocumentWithSize() {
       if (data?.document_peer_media) {
         setUploadedDocument(data.document_peer_media);
-
         const ext = data.document_peer_media.split(".").pop()?.toLowerCase();
         let type = "application/octet-stream";
         if (ext === "pdf") type = "application/pdf";
@@ -228,9 +227,11 @@ export default function DocumentUploadNode({
         else if (ext === "rtf") type = "application/rtf";
         else if (ext === "csv") type = "text/csv";
 
+        const fileSize = await getFileSize(data.document_peer_media);
+
         setDocumentInfo({
           name: data.title || "Document",
-          size: 0, // actual size (bytes)
+          size: fileSize ? parseInt(fileSize) : 0, // Set the actual file size here
           type,
           lastModified: Date.now(),
         });
@@ -258,7 +259,6 @@ export default function DocumentUploadNode({
             lastFailedOperation: null,
           });
         }
-
         if (data?.ai_notes) {
           setUserNotes(data.ai_notes);
         }
@@ -266,7 +266,6 @@ export default function DocumentUploadNode({
         handleFileSelect(data?.dataToAutoUpload?.data);
       }
     }
-
     setDocumentWithSize();
   }, [data]);
 
@@ -681,7 +680,7 @@ export default function DocumentUploadNode({
       return {
         message:
           (statusError as any)?.response?.data?.message ||
-          "Image is not ready to interact",
+          "Document is not ready to interact",
         type: "status" as const,
       };
     }
@@ -689,7 +688,7 @@ export default function DocumentUploadNode({
       return {
         message:
           (uploadError as any)?.response?.data?.message ||
-          "Failed to upload image",
+          "Failed to upload Document",
         type: "upload" as const,
       };
     }
@@ -697,7 +696,7 @@ export default function DocumentUploadNode({
       return {
         message:
           (analyzeError as any)?.response?.data?.message ||
-          "Failed to analyze image",
+          "Failed to analyze Document",
         type: "analyze" as const,
       };
     }

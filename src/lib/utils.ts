@@ -7,6 +7,33 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+export const getFileSize = async (url: string) => {
+  let baseUrl = process.env.NEXT_PUBLIC_API_URL || "";
+
+  if (baseUrl.endsWith("/api")) {
+    baseUrl = baseUrl.replace(/\/api$/, "");
+  }
+
+  const fileUrl = `${baseUrl}${url}`;
+
+  try {
+    const response = await fetch(fileUrl, {
+      method: "HEAD",
+    });
+
+    if (response.ok) {
+      const size = response.headers.get("content-length");
+      return size;
+    } else {
+      console.error("Failed to fetch file size");
+      return null;
+    }
+  } catch (error) {
+    console.error("Error fetching file size:", error);
+    return null;
+  }
+};
+
 export const getFilteredAiModels = (
   data: {
     id: string;
