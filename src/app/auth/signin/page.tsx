@@ -247,8 +247,11 @@ export default function LoginPage() {
                 disabled={formik.isSubmitting}
                 className="h-12 w-full mb-9 bg-cyan-600 hover:bg-cyan-700"
               >
-                {/* {formik.isSubmitting ? (<Loader text="Signing In..." />) : (  "Sign In")} */}
-                {formik.isSubmitting ? "Signing In..." : "Sign In"}
+                {formik.isSubmitting ? (
+                  <Loader direction="row" text="Signing In..." />
+                ) : (
+                  "Sign In"
+                )}
               </Button>
             </form>
 
