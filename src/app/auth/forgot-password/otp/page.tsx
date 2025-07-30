@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useRef, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "@/hooks/use-toast";
@@ -13,7 +12,6 @@ import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 export default function ForgotPasswordOtpPage() {
   const router = useRouter();
   const successNote = useSuccessNotifier();
-
   const searchParams = useSearchParams();
   const email = searchParams.get("email") || "";
   const expiresIn = searchParams.get("expires_in");
@@ -38,6 +36,26 @@ export default function ForgotPasswordOtpPage() {
     if (e.key === "Backspace" && !otp[index] && index > 0) {
       inputRefs.current[index - 1]?.focus();
     }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const pasteData = e.clipboardData.getData("text/plain").trim();
+    if (!/^\d{6}$/.test(pasteData)) {
+      toast({
+        title: "Error",
+        description: "Please paste a valid 6-digit OTP.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const otpArray = pasteData.split("").slice(0, 6);
+    setOtp(otpArray);
+    inputRefs.current.forEach((input, index) => {
+      if (input) input.value = otpArray[index];
+    });
+    // Focus on the last input box
+    inputRefs.current[inputRefs.current.length - 1]?.focus();
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -68,7 +86,6 @@ export default function ForgotPasswordOtpPage() {
         setLoading(false);
         return;
       }
-      // Save password_reset_token for reset password
       sessionStorage.setItem("password_reset_token", data.password_reset_token);
       successNote({
         title: "OTP Verified",
@@ -87,7 +104,6 @@ export default function ForgotPasswordOtpPage() {
     setLoading(false);
   };
 
-  // Timer effect
   useEffect(() => {
     if (timer > 0) {
       const interval = setInterval(() => setTimer((t) => t - 1), 1000);
@@ -95,7 +111,6 @@ export default function ForgotPasswordOtpPage() {
     }
   }, [timer]);
 
-  // Resend OTP handler
   const handleResend = async () => {
     if (timer > 0 || resending) return;
     setResending(true);
@@ -152,7 +167,10 @@ export default function ForgotPasswordOtpPage() {
               below.
             </p>
             <form onSubmit={handleSubmit}>
-              <div className="flex justify-center gap-2 mb-6">
+              <div
+                className="flex justify-center gap-2 mb-6"
+                onPaste={handlePaste}
+              >
                 {otp.map((digit, i) => (
                   <input
                     key={i}
@@ -181,7 +199,6 @@ export default function ForgotPasswordOtpPage() {
                 {loading ? <Loader text="Verifying..." /> : "Verify"}
               </Button>
             </form>
-            {/* Resend OTP link */}
             <div className="mt-6 text-sm text-gray-500 flex justify-between items-center">
               <div>
                 Didn't get the code?{" "}

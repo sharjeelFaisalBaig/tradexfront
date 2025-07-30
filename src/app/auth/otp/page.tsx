@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useEffect, Suspense, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
@@ -17,18 +16,14 @@ const OtpVerificationPage = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const successNote = useSuccessNotifier();
-
-  // Get query params from URL
   const email = searchParams.get("email")?.replace(" ", "+");
   const twoFactorEnabled = searchParams.get("2fa");
   const expiresIn = searchParams.get("expires_in");
+  const [verifying, setVerifying] = useState(false);
+  const [otp, setOtp] = useState(Array(6).fill(""));
+  const [timer, setTimer] = useState(expiresIn ? parseInt(expiresIn, 10) : 600);
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  const [verifying, setVerifying] = useState(false); // Tracks verification status
-  const [otp, setOtp] = useState(Array(6).fill("")); // Stores 6-digit OTP
-  const [timer, setTimer] = useState(expiresIn ? parseInt(expiresIn, 10) : 600); // Countdown timer
-  const inputRefs = useRef<(HTMLInputElement | null)[]>([]); // Refs for OTP input fields
-
-  // Redirect to signup if no email found in query
   useEffect(() => {
     if (!email) {
       toast({
@@ -38,8 +33,6 @@ const OtpVerificationPage = () => {
       });
       router.replace("/auth/signup");
     }
-
-    // Countdown logic for OTP expiry
     if (timer > 0) {
       const interval = setInterval(() => {
         setTimer((prevTimer) => Math.max(prevTimer - 1, 0));
@@ -48,7 +41,6 @@ const OtpVerificationPage = () => {
     }
   }, [timer, email, router]);
 
-  // Handle OTP Verification (2FA)
   const verify2faMutation = useMutation({
     mutationFn: (otp: string) =>
       fetch(endpoints.AUTH.VERIFY_2FA, {
@@ -66,8 +58,6 @@ const OtpVerificationPage = () => {
         title: "Success",
         description: "2FA verified successfully.",
       });
-
-      // Sign in using NextAuth custom provider (2fa)
       signIn("2fa", {
         email,
         access_token: data.data.access_token,
@@ -87,7 +77,6 @@ const OtpVerificationPage = () => {
     },
   });
 
-  // Handle OTP Verification (Signup flow)
   const verifyOtpMutation = useMutation({
     mutationFn: (otp: string) =>
       fetch(endpoints.AUTH.VERIFY_OTP, {
@@ -118,7 +107,6 @@ const OtpVerificationPage = () => {
     },
   });
 
-  // Resend OTP (signup flow)
   const resendOtpMutation = useMutation({
     mutationFn: () =>
       fetch(endpoints.AUTH.RESEND_OTP, {
@@ -148,7 +136,6 @@ const OtpVerificationPage = () => {
     },
   });
 
-  // Resend OTP (2fa flow)
   const resend2faMutation = useMutation({
     mutationFn: () =>
       fetch(endpoints.AUTH.RESEND_OTP, {
@@ -178,7 +165,6 @@ const OtpVerificationPage = () => {
     },
   });
 
-  // Auto-submit OTP when all digits are filled
   useEffect(() => {
     const enteredOtp = otp.join("");
     if (enteredOtp.length === 6) {
@@ -190,20 +176,16 @@ const OtpVerificationPage = () => {
     }
   }, [otp]);
 
-  // Handle OTP digit change
   const handleChange = (index: number, value: string) => {
     if (!/^\d*$/.test(value)) return;
-
     const newOtp = [...otp];
     newOtp[index] = value.slice(-1);
     setOtp(newOtp);
-
     if (value && index < 5) {
       inputRefs.current[index + 1]?.focus();
     }
   };
 
-  // Handle backspace key
   const handleKeyDown = (
     index: number,
     e: React.KeyboardEvent<HTMLInputElement>
@@ -213,7 +195,25 @@ const OtpVerificationPage = () => {
     }
   };
 
-  // Handle form submit manually
+  const handlePaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const pasteData = e.clipboardData.getData("text/plain").trim();
+    if (!/^\d{6}$/.test(pasteData)) {
+      toast({
+        title: "Error",
+        description: "Please paste a valid 6-digit OTP.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const otpArray = pasteData.split("").slice(0, 6);
+    setOtp(otpArray);
+    inputRefs.current.forEach((input, index) => {
+      if (input) input.value = otpArray[index];
+    });
+    inputRefs.current[inputRefs.current.length - 1]?.focus();
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const enteredOtp = otp.join("");
@@ -230,7 +230,6 @@ const OtpVerificationPage = () => {
     }
   };
 
-  // Handle resend click
   const handleResend = () => {
     if (timer === 0) {
       twoFactorEnabled === "true"
@@ -239,7 +238,6 @@ const OtpVerificationPage = () => {
     }
   };
 
-  // Show loader while verifying
   if (verifying) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#f6f8fb] dark:bg-gray-900">
@@ -276,14 +274,12 @@ const OtpVerificationPage = () => {
       <div className="absolute top-4 right-4">
         <ThemeToggle />
       </div>
-
       <div className="w-full max-w-lg">
         <div className="rounded-t-[20px] border border-[#0088CC1C] bg-[#0088CC1C] py-2 px-3 text-left dark:border-[#0088CC1C] dark:bg-cyan-900/20">
           <p className="flex items-center gap-2 text-base font-medium text-cyan-600 dark:text-cyan-300">
             OTP Verification
           </p>
         </div>
-
         <Card className="rounded-b-[20px] rounded-t-none border-0 shadow-lg">
           <CardHeader className="flex flex-col items-center gap-2 pb-4 pt-8 text-center">
             <Image
@@ -298,21 +294,19 @@ const OtpVerificationPage = () => {
               Please check your email
             </CardTitle>
           </CardHeader>
-
           <CardContent className="px-8 sm:px-12">
             <p className="text-gray-500 text-center mb-6">
               An OTP has been sent to <strong>{email}</strong>. Please enter it
               below.
             </p>
-
-            {/* OTP Input Form */}
             <form onSubmit={handleSubmit}>
-              <div className="flex justify-center gap-2">
+              <div className="flex justify-center gap-2" onPaste={handlePaste}>
                 {otp.map((digit, i) => (
                   <input
                     key={i}
-                    // @ts-ignore
-                    ref={(el) => (inputRefs.current[i] = el)}
+                    ref={(el) => {
+                      if (el) inputRefs.current[i] = el;
+                    }}
                     id={`otp-${i}`}
                     type="tel"
                     maxLength={1}
@@ -328,7 +322,6 @@ const OtpVerificationPage = () => {
                   />
                 ))}
               </div>
-
               <Button
                 type="submit"
                 disabled={
@@ -341,8 +334,6 @@ const OtpVerificationPage = () => {
                   : "Verify"}
               </Button>
             </form>
-
-            {/* Resend and Timer */}
             <div className="mt-6 text-sm text-gray-500 flex justify-between items-center">
               <div>
                 Didn’t get the code?{" "}
@@ -386,7 +377,6 @@ const OtpVerificationPage = () => {
   );
 };
 
-// Wrap in suspense for hydration safety
 const SuspendedOtpPage = () => (
   <Suspense fallback={<div>Loading...</div>}>
     <ClientWrapper>
