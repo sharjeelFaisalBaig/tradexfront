@@ -13,12 +13,11 @@ import {
   PaginationItem,
   PaginationLink,
 } from "@/components/ui/pagination";
-import {  MoreHorizontal, Star } from "lucide-react";
+import { MoreHorizontal, Star } from "lucide-react";
 import Image from "next/image";
 import SearchIcon from "@/icons/search.svg";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Clipboard from "@/icons/double.svg";
-
 
 const sharedStrategies = [
   {
@@ -90,7 +89,6 @@ export default function SharedWithMe() {
 
           {/* Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
-
             {sharedStrategies
               .filter((s) =>
                 s.title.toLowerCase().includes(searchTerm.toLowerCase())
@@ -101,11 +99,11 @@ export default function SharedWithMe() {
                   className="group w-full hover:shadow-lg transition-shadow cursor-pointer overflow-hidden rounded-[10px]"
                 >
                   <div className="flex items-center justify-between px-5 pt-3 pb-2">
-                  <div className=" ">
-                    <Badge variant="secondary" className="text-xs">
-                      {strategy.category}
-                    </Badge>
-                  </div>
+                    <div className=" ">
+                      <Badge variant="secondary" className="text-xs">
+                        {strategy.category}
+                      </Badge>
+                    </div>
                     <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
                       <MoreHorizontal className="h-4 w-4" />
                     </Button>

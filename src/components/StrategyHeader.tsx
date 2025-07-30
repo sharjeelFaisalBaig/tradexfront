@@ -35,7 +35,7 @@ const StrategyHeader = ({
   const { updateCredits, credits } = useCredits();
   const [showNotifications, setShowNotifications] = useState(false);
 
-  const { data } = useGetUser();
+  const { data, isLoading: isLoadingUser } = useGetUser();
 
   useEffect(() => {
     if (data?.data?.credits) {
@@ -81,7 +81,9 @@ const StrategyHeader = ({
         <div className="flex items-center gap-[22px]">
           <div className="flex items-center gap-[12px]">
             <span className="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">
-              {`${credits.usedCredits}/${credits.totalCredits} Credits`}
+              {isLoadingUser
+                ? "Loading Credits..."
+                : `${credits.usedCredits}/${credits.totalCredits} Credits`}
             </span>
 
             <ThemeToggle />
