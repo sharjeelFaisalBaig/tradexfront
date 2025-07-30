@@ -1,69 +1,61 @@
 "use client";
-
-import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { toast } from "@/hooks/use-toast";
-import { endpoints } from "@/lib/endpoints";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import Image from "next/image";
-import Loader from "@/components/common/Loader";
 import useSuccessNotifier from "@/hooks/useSuccessNotifier";
+import { useForgetPassword } from "@/hooks/auth/useAuth";
+import Loader from "@/components/common/Loader";
+import { useFormik } from "formik";
+import Image from "next/image";
+import * as Yup from "yup";
 
 export default function ForgotPasswordPage() {
   const router = useRouter();
   const successNote = useSuccessNotifier();
 
-  const [email, setEmail] = useState("");
-  const [loading, setLoading] = useState(false);
+  const {
+    error,
+    isError,
+    isPending: isLoading,
+    mutate: forgetPassword,
+  } = useForgetPassword();
 
-  const handleForgotPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email) {
-      toast({
-        title: "Error",
-        description: "Please enter your email address.",
-        variant: "destructive",
+  const validationSchema = Yup.object().shape({
+    email: Yup.string()
+      .email("Please enter a valid email address.")
+      .required("Email is required."),
+  });
+
+  const formik = useFormik({
+    initialValues: {
+      email: "",
+    },
+    validationSchema: validationSchema,
+    onSubmit: async (values) => {
+      forgetPassword(values, {
+        onSuccess: (data) => {
+          successNote({
+            title: "OTP Sent",
+            description: "Please check your email for the OTP.",
+          });
+          router.replace(
+            `/auth/forgot-password/otp?email=${encodeURIComponent(
+              values.email
+            )}&expires_in=${data?.otp_expires_in || 600}` // Why we set 600 conditionaly
+          );
+        },
+        onError: (error: any) => {
+          toast({
+            title: "Error",
+            description:
+              error?.response?.data?.message || "Failed to send OTP.",
+            variant: "destructive",
+          });
+        },
       });
-      return;
-    }
-    setLoading(true);
-    try {
-      const res = await fetch(endpoints.AUTH.FORGOT_PASSWORD, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-      const data = await res.json();
-      if (!res.ok || data.status === "Error") {
-        const message =
-          data?.errors && Object.values(data.errors).flat().join(", ");
-        toast({
-          title: data.message || "Error",
-          description: message || "Failed to send OTP.",
-          variant: "destructive",
-        });
-        setLoading(false);
-        return;
-      }
-      successNote({
-        title: "OTP Sent",
-        description: "Please check your email for the OTP.",
-      });
-      router.replace(
-        `/auth/forgot-password/otp?email=${encodeURIComponent(
-          email
-        )}&expires_in=${data.data?.otp_expires_in || 600}`
-      );
-    } catch (err) {
-      toast({
-        title: "Error",
-        description: "Something went wrong.",
-        variant: "destructive",
-      });
-    }
-    setLoading(false);
-  };
+    },
+  });
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#f6f8fb] dark:bg-gray-900">
@@ -83,26 +75,46 @@ export default function ForgotPasswordPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="px-8 sm:px-12">
-            <form onSubmit={handleForgotPassword}>
+            {isError && (
+              <div className="bg-red-50 p-3 rounded-lg mb-4">
+                <p className="text-sm text-red-700 text-center">
+                  {/* @ts-ignore */}
+                  {error?.response?.data?.message || "Failed to send OTP."}
+                </p>
+              </div>
+            )}
+
+            <form onSubmit={formik.handleSubmit}>
               <div className="mb-6">
                 <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
                   Email Address
                 </label>
                 <input
                   type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  name="email"
+                  disabled={isLoading}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                  value={formik.values.email}
                   className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 dark:bg-gray-800 dark:text-gray-100 focus:ring-2 focus:ring-cyan-500 outline-none"
                   placeholder="Enter your email"
                 />
+                {formik.touched.email && formik.errors.email ? (
+                  <div className="text-red-500 text-xs mt-1">
+                    {formik.errors.email}
+                  </div>
+                ) : null}
               </div>
               <Button
                 type="submit"
-                disabled={loading}
+                disabled={isLoading}
                 className="w-full py-3 h-12 rounded-full bg-cyan-600 text-white text-lg font-semibold transition-colors hover:bg-cyan-700 disabled:bg-gray-400"
               >
-                {loading ? <Loader text="Sending..." /> : "Send OTP"}
+                {isLoading ? (
+                  <Loader direction="row" text="Sending..." />
+                ) : (
+                  "Send OTP"
+                )}
               </Button>
             </form>
           </CardContent>

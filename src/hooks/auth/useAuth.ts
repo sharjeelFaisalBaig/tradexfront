@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getUser, createUser } from "@/services/auth/auth_API";
+import { getUser, createUser, forgetPassword } from "@/services/auth/auth_API";
 import { SignupData } from "@/services/auth/auth_Mutation";
 import { QUERY_KEYS } from "@/lib/queryKeys";
 
@@ -14,15 +14,17 @@ export const useGetUser = ({ enabled = true } = {}) => {
 
 // POST: Register new user
 export const useCreateUser = () => {
-  const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: (data: SignupData) => createUser(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.USER] });
-    },
     onError: (err) => {
       console.error("Signup failed:", err);
     },
+  });
+};
+
+// POST: Register new user
+export const useForgetPassword = () => {
+  return useMutation({
+    mutationFn: (data: { email: string }) => forgetPassword(data),
   });
 };

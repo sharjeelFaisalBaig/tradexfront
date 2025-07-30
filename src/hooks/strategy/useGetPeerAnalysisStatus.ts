@@ -1,3 +1,5 @@
+"use client";
+
 import { useCredits } from "@/context/CreditContext";
 import { QUERY_KEYS } from "@/lib/queryKeys";
 import { getPeerAnalysisStatus } from "@/services/strategy/strategy_API";

@@ -13,3 +13,12 @@ export const createUser = async (userData: SignupData) => {
   const response = await axiosInstance.post(endpoints.AUTH.SIGNUP, userData);
   return response.data;
 };
+
+// forget password
+export const forgetPassword = async (userData: { email: string }) => {
+  const response = await axiosInstance.post(
+    endpoints.AUTH.FORGOT_PASSWORD,
+    userData
+  );
+  return response.data;
+};
