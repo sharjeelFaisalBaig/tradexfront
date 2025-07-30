@@ -7,7 +7,9 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export const getFileSize = async (url: string) => {
+export const getFileSize = async (url?: string) => {
+  if (!url) return null;
+
   let baseUrl = process.env.NEXT_PUBLIC_API_URL || "";
 
   if (baseUrl.endsWith("/api")) {
