@@ -47,6 +47,7 @@ export const useGetPeerAnalysisStatus = ({
   useEffect(() => {
     if (query.isError) {
       setShouldPoll(false);
+      setIsPollingLoading(false);
     }
   }, [query.isError]);
 

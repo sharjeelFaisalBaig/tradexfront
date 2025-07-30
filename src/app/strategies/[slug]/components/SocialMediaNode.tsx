@@ -499,9 +499,8 @@ export default function SocialMediaNode({
                       {"Add Social Media Video"}
                     </h3>
                     <p className="text-sm text-gray-600">
-                      {
-                        "Enter a URL from Instagram, YouTube, TikTok, or Facebook"
-                      }
+                      {/*{"Enter a URL from Instagram, YouTube, TikTok, or Facebook"}*/}
+                      {"Enter a URL from YouTube or TikTok"}
                     </p>
                   </div>
                   <div className="space-y-4">

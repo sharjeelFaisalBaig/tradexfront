@@ -44,7 +44,6 @@ import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 import AiNoteInput from "./common/AiNoteInput";
 import NodeHandle from "./common/NodeHandle";
 import IsReadyToInteract from "./common/IsReadyToInteract";
-import { error } from "console";
 
 // Types for AI integration
 interface AIProcessingResponse {
