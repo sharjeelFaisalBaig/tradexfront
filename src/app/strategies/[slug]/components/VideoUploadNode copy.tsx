@@ -22,6 +22,7 @@ import {
   X,
   Upload,
   Loader2,
+  Shield,
   CheckCircle,
   Play,
   Pause,
@@ -95,6 +96,8 @@ const SUPPORTED_VIDEO_FORMATS = [
   "video/x-matroska", // .mkv
 ];
 
+// https://tradexfront.isoft-digital.net/api/strategies/9f6404ba-60ff-4bb1-ae45-55bc12c3c3f9/peers/video/peer_gasos6ofubu/upload
+
 export default function VideoUploadNode({
   id,
   sourcePosition = Position.Left,
@@ -136,7 +139,7 @@ export default function VideoUploadNode({
   const nodeControlRef = useRef(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const { setEdges, updateNodeData } = useReactFlow();
+  const { setEdges } = useReactFlow();
 
   // Video states
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
@@ -164,6 +167,9 @@ export default function VideoUploadNode({
   });
 
   // AI Response states
+  const [aiResponse, setAiResponse] = useState<AIProcessingResponse | null>(
+    null
+  );
   const [userNotes, setUserNotes] = useState<string>("");
 
   // Only poll for status if analysis is successful
@@ -200,6 +206,29 @@ export default function VideoUploadNode({
       setFileName(
         data?.ai_title || data.title || parts[parts.length - 1] || "video"
       );
+    }
+
+    // If backend provides AI info, set it
+    if (data?.ai_title || data?.ai_summary) {
+      setAiResponse({
+        title: data.ai_title || data.title || "",
+        peerId: data.id || "",
+        analysis: data.ai_summary || "",
+        confidence: 0.95, // fallback
+        tags: [], // fallback
+        transcript: data.transcript || "", // fallback
+        keyTopics: data.keyTopics || [], // fallback
+        sentiment: data.sentiment || "neutral", // fallback
+        videoMetrics: data.videoMetrics || {
+          duration: "",
+          format: "",
+          resolution: "",
+          frameRate: "",
+          bitrate: "",
+          audioChannels: "",
+        },
+        insights: data.insights || [],
+      });
     }
 
     // Set user notes if present
@@ -350,6 +379,7 @@ export default function VideoUploadNode({
     try {
       // Simulate AI processing
       const result = processVideo(filename);
+      setAiResponse(result);
       setProcessingState({
         isProcessing: false,
         isComplete: true,
@@ -606,6 +636,7 @@ export default function VideoUploadNode({
     setUploadedVideo(null);
     setFileName("");
     setVideoMetadata(null);
+    setAiResponse(null);
     setProcessingState({
       isProcessing: false,
       isComplete: false,
@@ -618,25 +649,14 @@ export default function VideoUploadNode({
     setCurrentTime(0);
     setDuration(0);
     setUploadedFile(null);
-
-    updateNodeData(data?.id, {
-      is_ready_to_interact: false,
-      ai_summary: "",
-      ai_title: "",
-      video: "",
-      title: "",
-    });
-
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
 
     if (data?.is_ready_to_interact) {
       data.is_ready_to_interact = false;
-      data.ai_summary = "";
       data.ai_title = "";
       data.video = "";
-      data.title = "";
     }
 
     if (status?.is_ready_to_interact) {
@@ -930,6 +950,20 @@ export default function VideoUploadNode({
                           <span className="text-sm font-medium">
                             Processing failed
                           </span>
+                        </div>
+                      ) : aiResponse ? (
+                        <div className="flex items-center gap-2">
+                          <FileVideo className="w-4 h-4" />
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="text-sm font-medium truncate w-80 text-left">
+                                {aiResponse.title}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="text-sm">{aiResponse.title}</p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                       ) : (
                         <div className="flex items-center gap-2">

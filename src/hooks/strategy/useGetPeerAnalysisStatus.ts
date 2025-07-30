@@ -1,3 +1,4 @@
+import { useCredits } from "@/context/CreditContext";
 import { QUERY_KEYS } from "@/lib/queryKeys";
 import { getPeerAnalysisStatus } from "@/services/strategy/strategy_API";
 import { useQuery } from "@tanstack/react-query";
@@ -14,6 +15,7 @@ export const useGetPeerAnalysisStatus = ({
   peerType: string;
   enabled?: boolean;
 }) => {
+  const { updateCredits } = useCredits();
   const [shouldPoll, setShouldPoll] = useState(true);
   const [isPollingLoading, setIsPollingLoading] = useState(false);
 
@@ -29,9 +31,11 @@ export const useGetPeerAnalysisStatus = ({
     enabled: !!strategyId && !!peerId && !!peerType && enabled && shouldPoll,
     refetchInterval: (data) => {
       const isReady = data?.state?.data?.is_ready_to_interact === true;
+
       if (isReady) {
         setShouldPoll(false);
         setIsPollingLoading(false);
+        updateCredits({ usedCredits: data?.state?.data?.credits });
         return false;
       }
       return 5000;
@@ -46,21 +50,22 @@ export const useGetPeerAnalysisStatus = ({
 
   useEffect(() => {
     if (query.isError) {
-      setShouldPoll(false);
+      setShouldPoll(() => false);
+      setIsPollingLoading(() => false);
     }
   }, [query.isError]);
 
-  useEffect(() => {
-    if (!shouldPoll) {
-      setIsPollingLoading(false);
-    }
-  }, [shouldPoll]);
+  // useEffect(() => {
+  //   if (!shouldPoll) {
+  //     setIsPollingLoading(false);
+  //   }
+  // }, [shouldPoll]);
 
   return {
     ...query,
     restartPolling: () => {
-      setShouldPoll(true);
-      setIsPollingLoading(true);
+      setShouldPoll(() => true);
+      setIsPollingLoading(() => true);
     },
     isPollingLoading,
   };

@@ -1,7 +1,7 @@
 "use client";
 
 import { Dialog } from "@headlessui/react";
-import { useState, FormEvent, KeyboardEvent } from "react";
+import { useState, FormEvent, KeyboardEvent, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -125,6 +125,11 @@ function NewStrategyForm({
     }
   };
 
+  const isLoading = useMemo(
+    () => createMutation?.isPending || updateMutation?.isPending,
+    [createMutation, updateMutation]
+  );
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {/* Name */}
@@ -135,6 +140,7 @@ function NewStrategyForm({
         <Input
           type="text"
           placeholder="e.g. My AI Campaign"
+          disabled={isLoading}
           value={name}
           onChange={(e) => setName(e.target.value)}
           className={cn(
@@ -152,6 +158,7 @@ function NewStrategyForm({
           Description
         </label>
         <Textarea
+          disabled={isLoading}
           value={desc}
           onChange={(e) => setDesc(e.target.value)}
           placeholder="Describe your strategy..."
@@ -175,7 +182,7 @@ function NewStrategyForm({
           onChange={(e) => setTagInput(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Type a tag and press enter or comma"
-          disabled={tags.length >= MAX_TAGS} // disable input if limit reached
+          disabled={isLoading || tags.length >= MAX_TAGS} // disable input if limit reached
           className={cn(
             errors.tags && "border-red-500 focus-visible:ring-red-500",
             tags.length >= MAX_TAGS && "opacity-50 cursor-not-allowed"
@@ -195,6 +202,7 @@ function NewStrategyForm({
                 {tag}
                 <button
                   type="button"
+                  disabled={isLoading}
                   onClick={() => handleRemoveTag(tag)}
                   className="ml-2 text-red-500 hover:text-red-600"
                 >
@@ -208,7 +216,7 @@ function NewStrategyForm({
 
       <Button
         type="submit"
-        disabled={createMutation.isPending || updateMutation.isPending}
+        disabled={isLoading}
         className="w-full h-11 text-base"
       >
         {strategy

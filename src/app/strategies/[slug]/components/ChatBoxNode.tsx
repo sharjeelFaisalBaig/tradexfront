@@ -40,6 +40,7 @@ import ReactMarkdown from "react-markdown";
 import { toast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import NodeHandle from "./common/NodeHandle";
+import { useCredits } from "@/context/CreditContext";
 
 // Types
 interface AIModel {
@@ -94,6 +95,7 @@ export default function ChatBoxNode({
   data,
 }: ChatBoxNodeProps) {
   const strategyId = useParams()?.slug as string;
+  const { updateCredits } = useCredits();
 
   // State
   const [activeConversationId, setActiveConversationId] = useState<
@@ -442,11 +444,15 @@ export default function ChatBoxNode({
         throw new Error("No response received from AI");
       }
 
+      // update credits
+      updateCredits({ usedCredits: response?.credits });
+
       // Remove optimistic user message and add real messages
       setMessages((prev) => {
         const withoutOptimistic = prev.filter(
           (msg) => msg.id !== optimisticUserId
         );
+
         return [
           ...withoutOptimistic,
           {

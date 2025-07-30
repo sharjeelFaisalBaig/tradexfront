@@ -1,5 +1,5 @@
 "use client";
-import { useState, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -9,14 +9,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ChevronDown, ChevronLeft, PencilLine } from "lucide-react";
+import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import Image from "next/image";
+import { useCredits } from "@/context/CreditContext";
+import { useGetUser } from "@/hooks/auth/useAuth";
 import { useRouter } from "next/navigation";
 import BellIcon from "../icons/bell.svg";
 import { signOut } from "next-auth/react";
 import { IStrategy } from "@/lib/types";
-import { useGetUser } from "@/hooks/auth/useAuth";
-import useSuccessNotifier from "@/hooks/useSuccessNotifier";
+import Image from "next/image";
 
 interface HeaderInterface {
   strategy?: IStrategy | null;
@@ -31,10 +32,19 @@ const StrategyHeader = ({
 }: HeaderInterface) => {
   const router = useRouter();
   const successNote = useSuccessNotifier();
+  const { updateCredits, credits } = useCredits();
   const [showNotifications, setShowNotifications] = useState(false);
 
-  const { data } = useGetUser();
-  const profile = useMemo(() => data?.data, [data]);
+  const { data, isLoading: isLoadingUser } = useGetUser();
+
+  useEffect(() => {
+    if (data?.data?.credits) {
+      updateCredits({
+        usedCredits: data.data.credits.total_spent_this_month,
+        totalCredits: data.data.credits.total_earned_this_month,
+      });
+    }
+  }, [data?.data?.credits]);
 
   return (
     <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-6 py-2">
@@ -71,9 +81,9 @@ const StrategyHeader = ({
         <div className="flex items-center gap-[22px]">
           <div className="flex items-center gap-[12px]">
             <span className="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">
-              {profile
-                ? `${profile.credits.total_spent_this_month}/${profile.credits.total_earned_this_month} Credits`
-                : "0/0 Credits"}
+              {isLoadingUser
+                ? "Loading Credits..."
+                : `${credits.usedCredits}/${credits.totalCredits} Credits`}
             </span>
 
             <ThemeToggle />

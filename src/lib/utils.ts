@@ -7,6 +7,33 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+export const getFileSize = async (url: string) => {
+  let baseUrl = process.env.NEXT_PUBLIC_API_URL || "";
+
+  if (baseUrl.endsWith("/api")) {
+    baseUrl = baseUrl.replace(/\/api$/, "");
+  }
+
+  const fileUrl = `${baseUrl}${url}`;
+
+  try {
+    const response = await fetch(fileUrl, {
+      method: "HEAD",
+    });
+
+    if (response.ok) {
+      const size = response.headers.get("content-length");
+      return size;
+    } else {
+      console.error("Failed to fetch file size");
+      return null;
+    }
+  } catch (error) {
+    console.error("Error fetching file size:", error);
+    return null;
+  }
+};
+
 export const getFilteredAiModels = (
   data: {
     id: string;
@@ -127,17 +154,30 @@ export interface URLValidationResult {
 
 // Supported platforms with their URL patterns and branding
 export const SUPPORTED_PLATFORMS = {
-  instagram: {
-    name: "Instagram",
-    icon: "📷",
-    color: "from-purple-500 to-pink-500",
-    textColor: "text-purple-600",
-    patterns: [
-      /^https?:\/\/(www\.)?instagram\.com\/(p|reel|tv)\/[a-zA-Z0-9_-]+/,
-      /^https?:\/\/(www\.)?instagram\.com\/stories\/[a-zA-Z0-9_.]+\/[0-9]+/,
-      /^https?:\/\/(www\.)?instagram\.com\/s\/[a-zA-Z0-9_-]+/,
-    ],
-  },
+  // instagram: {
+  //   name: "Instagram",
+  //   icon: "📷",
+  //   color: "from-purple-500 to-pink-500",
+  //   textColor: "text-purple-600",
+  //   patterns: [
+  //     /^https?:\/\/(www\.)?instagram\.com\/(p|reel|tv)\/[a-zA-Z0-9_-]+/,
+  //     /^https?:\/\/(www\.)?instagram\.com\/stories\/[a-zA-Z0-9_.]+\/[0-9]+/,
+  //     /^https?:\/\/(www\.)?instagram\.com\/s\/[a-zA-Z0-9_-]+/,
+  //   ],
+  // },
+  // facebook: {
+  //   name: "Facebook",
+  //   icon: "📘",
+  //   color: "from-blue-600 to-blue-700",
+  //   textColor: "text-blue-600",
+  //   patterns: [
+  //     /^https?:\/\/(www\.)?facebook\.com\/watch\/?v=[0-9]+/,
+  //     /^https?:\/\/(www\.)?facebook\.com\/[a-zA-Z0-9.]+\/videos\/[0-9]+/,
+  //     /^https?:\/\/(www\.)?fb\.watch\/[a-zA-Z0-9_-]+/,
+  //     /^https?:\/\/(www\.)?facebook\.com\/share\/r\/[a-zA-Z0-9_-]+\/?$/,
+  //     /^https?:\/\/(www\.)?facebook\.com\/reel\/[0-9]+/, // NEW: Reel pattern
+  //   ],
+  // },
   youtube: {
     name: "YouTube",
     icon: "🎥",
@@ -159,19 +199,6 @@ export const SUPPORTED_PLATFORMS = {
       /^https?:\/\/(www\.)?tiktok\.com\/@[a-zA-Z0-9_.]+\/video\/[0-9]+/,
       /^https?:\/\/(vm\.)?tiktok\.com\/[a-zA-Z0-9]+/,
       /^https?:\/\/(www\.)?tiktok\.com\/[a-zA-Z0-9_.]+\/video\/[0-9]+/,
-    ],
-  },
-  facebook: {
-    name: "Facebook",
-    icon: "📘",
-    color: "from-blue-600 to-blue-700",
-    textColor: "text-blue-600",
-    patterns: [
-      /^https?:\/\/(www\.)?facebook\.com\/watch\/?v=[0-9]+/,
-      /^https?:\/\/(www\.)?facebook\.com\/[a-zA-Z0-9.]+\/videos\/[0-9]+/,
-      /^https?:\/\/(www\.)?fb\.watch\/[a-zA-Z0-9_-]+/,
-      /^https?:\/\/(www\.)?facebook\.com\/share\/r\/[a-zA-Z0-9_-]+\/?$/,
-      /^https?:\/\/(www\.)?facebook\.com\/reel\/[0-9]+/, // NEW: Reel pattern
     ],
   },
 };

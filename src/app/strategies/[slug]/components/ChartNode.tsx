@@ -108,7 +108,7 @@ export default function ChartNode({
         error: null,
       });
 
-      console.log("🤖 AI Response:", result);
+      // console.log("🤖 AI Response:", result);
     } catch (error) {
       console.error("AI Processing Error:", error);
       setProcessingState({

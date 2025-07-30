@@ -148,15 +148,19 @@ export default function ImageUploadNode({
   );
 
   const currentError = useMemo(() => {
+    if (isStatusError) {
+      setIsPollingRestarting(false);
+    }
+
     if (
       (isStatusError && statusError) ||
-      (aiResponse && !data?.is_ready_to_interact && uploadedImage)
+      (!data?.is_ready_to_interact && uploadedImage)
     ) {
       return {
         message:
           (statusError as any)?.response?.data?.message ||
           "Image is not ready to interact",
-        type: "Status" as const,
+        type: "status" as const,
       };
     }
     if (isUploadError && uploadError && uploadedImage) {
@@ -450,6 +454,12 @@ export default function ImageUploadNode({
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
+
+    if (status?.is_ready_to_interact) {
+      status.is_ready_to_interact = false;
+      status.ai_title = "";
+    }
+
     successNote({
       title: "Image removed",
       description: "Image removed successfully",
@@ -618,7 +628,7 @@ export default function ImageUploadNode({
                   />
 
                   <div className="text-center">
-                    {currentError && (
+                    {currentError && currentError?.type === "unknown" && (
                       <div className="mb-4 px-4 py-2 bg-red-50 border border-red-200 rounded text-red-700 text-sm font-medium flex items-center gap-2">
                         <X className="w-4 h-4 text-red-500" />
                         {currentError.message}
@@ -741,7 +751,7 @@ export default function ImageUploadNode({
                       }}
                       size="sm"
                       variant="destructive"
-                      className="absolute -top-2 -right-2 rounded-full w-8 h-8 p-0"
+                      className="absolute -top-2 -right-2 rounded-full w-8 h-8 p-0 z-10"
                       disabled={isProcessingAny || isResetting}
                     >
                       {isResetting ? (
@@ -766,11 +776,11 @@ export default function ImageUploadNode({
                 </div>
 
                 {/* Error State with Retry */}
-                {currentError && (
+                {!isProcessingAny && currentError && (
                   <div className="px-4">
                     <div className="bg-red-50 p-3 rounded-lg">
-                      <div className="text-xs text-red-600 font-medium mb-1">
-                        Processing Error
+                      <div className="text-xs text-red-600 font-medium mb-1 capitalize">
+                        {currentError?.type} Error
                       </div>
                       <div className="text-sm text-red-700 mb-2">
                         {currentError.message}
