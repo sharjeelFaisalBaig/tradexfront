@@ -1,12 +1,21 @@
-'use client'
+"use client";
 
-export default function Loader({ text = "Loading..." }: { text?: string }) {
+type LoaderProps = {
+  text?: string;
+  direction?: "row" | "column";
+};
+
+export default function Loader({
+  text = "Loading...",
+  direction = "column",
+}: LoaderProps) {
+  const flexDirectionClass = direction === "row" ? "flex-row" : "flex-col";
+
   return (
-    <div className="flex flex-col items-center justify-center gap-2">
-      <svg
-        className="animate-spin h-12 w-12 text-cyan-600"
-        viewBox="0 0 24 24"
-      >
+    <div
+      className={`flex ${flexDirectionClass} items-center justify-center gap-2`}
+    >
+      <svg className="animate-spin h-12 w-12 text-cyan-600" viewBox="0 0 24 24">
         <circle
           className="opacity-25"
           cx="12"
