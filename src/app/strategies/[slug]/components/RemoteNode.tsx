@@ -30,7 +30,7 @@ import {
   Shield,
   ArrowRight,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, preventNodeDeletionKeys } from "@/lib/utils";
 import NodeWrapper from "./common/NodeWrapper";
 import { useParams } from "next/navigation";
 import {
@@ -540,7 +540,7 @@ export default function RemoteNode({
       strategyId={strategyId}
       className={cn("bg-white", websiteData ? "h-[2px]" : "h-[1px]")}
     >
-      <div className="react-flow__node">
+      <div className="react-flow__node" onKeyDown={preventNodeDeletionKeys}>
         <div ref={nodeControlRef} className={`nodrag`} />
         <TooltipProvider>
           <div className="w-[1000px] max-w-md mx-auto bg-white rounded-lg shadow-sm border overflow-hidden relative">

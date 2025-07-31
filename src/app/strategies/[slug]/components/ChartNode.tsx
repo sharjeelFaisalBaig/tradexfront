@@ -9,7 +9,7 @@ import {
 } from "react";
 import { Position, useReactFlow } from "@xyflow/react";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
+import { cn, preventNodeDeletionKeys } from "@/lib/utils";
 import NodeWrapper from "./common/NodeWrapper";
 import { useParams } from "next/navigation";
 import NodeHandle from "./common/NodeHandle";
@@ -217,7 +217,10 @@ export default function ChartNode({
         strategyId={strategyId}
         className={cn("bg-white", uploadedImage ? "h-[1px]" : "h-[2px]")}
       >
-        <div className="relative react-flow__node">
+        <div
+          className="relative react-flow__node"
+          onKeyDown={preventNodeDeletionKeys}
+        >
           <div ref={nodeControlRef} className={`nodrag`} />
 
           <TooltipProvider>

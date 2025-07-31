@@ -26,6 +26,7 @@ import {
   extractSocialVideoDetails,
   validateSocialMediaUrl,
   SUPPORTED_PLATFORMS,
+  preventNodeDeletionKeys,
 } from "@/lib/utils"; // Import updated helpers
 import NodeWrapper from "./common/NodeWrapper";
 import { useParams } from "next/navigation";
@@ -471,7 +472,7 @@ export default function SocialMediaNode({
         type="socialMediaNode"
         className={cn("bg-white", socialMediaData ? "h-[1px]" : "h-[2px]")}
       >
-        <div className="react-flow__node">
+        <div className="react-flow__node" onKeyDown={preventNodeDeletionKeys}>
           <div ref={nodeControlRef} className={`nodrag`} />
           <TooltipProvider>
             <div

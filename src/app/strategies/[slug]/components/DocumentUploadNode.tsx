@@ -30,7 +30,7 @@ import {
   Eye,
   RefreshCw,
 } from "lucide-react";
-import { cn, getFileSize } from "@/lib/utils";
+import { cn, getFileSize, preventNodeDeletionKeys } from "@/lib/utils";
 import NodeWrapper from "./common/NodeWrapper";
 import { useParams } from "next/navigation";
 import {
@@ -804,7 +804,7 @@ export default function DocumentUploadNode({
         // FIX: Removed problematic height classes. Let content define height.
         className={cn("bg-white")}
       >
-        <div className="react-flow__node">
+        <div className="react-flow__node" onKeyDown={preventNodeDeletionKeys}>
           <div ref={nodeControlRef} className={`nodrag`} />
           <TooltipProvider>
             <div

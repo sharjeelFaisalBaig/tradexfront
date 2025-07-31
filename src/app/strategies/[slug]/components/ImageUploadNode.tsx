@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { X, Plus, Upload, Lightbulb, Loader2, RefreshCw } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, preventNodeDeletionKeys } from "@/lib/utils";
 import NodeWrapper from "./common/NodeWrapper";
 import {
   useAnalyzeImagePeer,
@@ -575,7 +575,10 @@ export default function ImageUploadNode({
       strategyId={strategyId}
       className={cn("bg-white", uploadedImage ? "h-[1px]" : "h-[2px]")}
     >
-      <div className="relative react-flow__node">
+      <div
+        className="relative react-flow__node"
+        onKeyDown={preventNodeDeletionKeys}
+      >
         <div ref={nodeControlRef} className="nodrag" />
 
         <TooltipProvider>

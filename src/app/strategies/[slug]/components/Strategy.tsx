@@ -32,7 +32,7 @@ import {
   useUpdatePeerPosition,
   useConnectNodes,
 } from "@/hooks/strategy/useStrategyMutations";
-import { getPeerTypeFromNodeType } from "@/lib/utils";
+import { getPeerTypeFromNodeType, preventNodeDeletionKeys } from "@/lib/utils";
 import StrategyHeader from "@/components/StrategyHeader";
 import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 import ChatBoxNode from "./ChatBoxNode";
@@ -141,6 +141,31 @@ const Strategy = (props: StrategyProps) => {
     };
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Check if the Backspace key is pressed
+      if (event.key === "Backspace") {
+        // Check if the active element is a node or if you have a node selected
+        const activeElement = document.activeElement;
+        if (
+          activeElement &&
+          activeElement.classList.contains("react-flow__node")
+        ) {
+          // Prevent the default behavior
+          event.preventDefault();
+        }
+      }
+    };
+
+    // Add event listener for keydown
+    document.addEventListener("keydown", handleKeyDown);
+
+    // Cleanup: Remove event listener on component unmount
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
   }, []);
 
   // Handle undo operation
@@ -752,8 +777,6 @@ const Strategy = (props: StrategyProps) => {
             </div>
           ) : (
             <>
-              {/* Undo/Redo Controls */}
-              <div className="absolute top-4 left-4 z-10"></div>
               <ReactFlow
                 nodes={nodes}
                 edges={edges}
@@ -764,7 +787,7 @@ const Strategy = (props: StrategyProps) => {
                 onNodeDrag={onNodeDrag}
                 onNodeDragStop={onNodeDragStop}
                 onConnect={onConnect}
-                defaultViewport={{ x: 0, y: 0, zoom: 0.7578582832551992 }}
+                defaultViewport={{ x: 500, y: 500, zoom: 0.7578582832551992 }}
                 zoomOnScroll={true}
                 zoomOnPinch={true}
                 zoomOnDoubleClick={false}
@@ -782,6 +805,7 @@ const Strategy = (props: StrategyProps) => {
                 maxZoom={2}
                 onDragOver={onDragOver}
                 onDrop={onDrop}
+                onKeyDown={preventNodeDeletionKeys}
               >
                 <Background />
                 <Controls>

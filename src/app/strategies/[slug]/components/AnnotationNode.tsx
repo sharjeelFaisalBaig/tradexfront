@@ -202,9 +202,6 @@ export default function AnnotationNode({
     if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
       handleSave();
-    } else if (e.key === "Escape") {
-      e.preventDefault();
-      handleCancel();
     }
   };
 

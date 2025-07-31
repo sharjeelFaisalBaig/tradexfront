@@ -7,6 +7,13 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+export const preventNodeDeletionKeys = (e: KeyboardEvent | any) => {
+  if (["Backspace", "Delete", "Escape"].includes(e.key)) {
+    e.stopPropagation();
+    e.preventDefault();
+  }
+};
+
 export const getFileSize = async (url?: string) => {
   if (!url) return null;
 

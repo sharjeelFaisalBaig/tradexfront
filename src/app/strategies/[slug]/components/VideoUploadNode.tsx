@@ -32,7 +32,7 @@ import {
   Maximize,
   RefreshCw,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, preventNodeDeletionKeys } from "@/lib/utils";
 import NodeWrapper from "./common/NodeWrapper";
 import { useParams } from "next/navigation";
 import {
@@ -848,7 +848,7 @@ export default function VideoUploadNode({
         type="videoUploadNode"
         className={cn("bg-white", uploadedVideo ? "h-[1px]" : "h-[2px]")}
       >
-        <div className="react-flow__node">
+        <div className="react-flow__node" onKeyDown={preventNodeDeletionKeys}>
           <div ref={nodeControlRef} className={`nodrag`} />
 
           <TooltipProvider>
