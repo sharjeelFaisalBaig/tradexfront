@@ -107,6 +107,7 @@ export default function AudioUploadNode({
   const strategyId = useParams()?.slug as string;
   const successNote = useSuccessNotifier();
   const { setEdges, updateNodeData } = useReactFlow();
+  const [isPollingRestarting, setIsPollingRestarting] = useState(false);
 
   // Refs
   const nodeControlRef = useRef<HTMLDivElement>(null);
@@ -126,6 +127,8 @@ export default function AudioUploadNode({
     isPending: isUploading,
     isError: isUploadError,
     error: uploadError,
+    data: uploadData,
+    isSuccess: uploadSuccess,
   } = useUploadAudioContent();
   const {
     mutate: analyzeAudioContent,
@@ -133,7 +136,6 @@ export default function AudioUploadNode({
     isSuccess: isAnalyzeSuccess,
     isError: isAnalyzeError,
     error: analyzeError,
-    reset: resetAnalyzeAudioContentMutation,
   } = useAnalyzeAudioPeer();
 
   // Status polling
@@ -147,7 +149,7 @@ export default function AudioUploadNode({
     strategyId,
     peerId: data?.id,
     peerType: "audio",
-    enabled: isAnalyzeSuccess,
+    enabled: (isPollingRestarting || isAnalyzeSuccess) && !isResetting,
   });
 
   // State
@@ -161,6 +163,7 @@ export default function AudioUploadNode({
   // Audio upload states
   const [uploadedAudio, setUploadedAudio] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string>("");
+  const [currentFile, setCurrentFile] = useState<File | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
 
   // Audio player states
@@ -289,6 +292,8 @@ export default function AudioUploadNode({
 
       // Store file for retry functionality
       lastUploadedFileRef.current = file;
+      setCurrentFile(file);
+
       setProcessingState({
         isProcessing: true,
         isComplete: false,
@@ -382,6 +387,7 @@ export default function AudioUploadNode({
       processAudioFile(lastUploadedFileRef.current);
     } else if (currentError.type === "status") {
       // Retry upload
+      setIsPollingRestarting(true);
       restartPolling();
     } else if (currentError.type === "analyze") {
       // Retry analysis
@@ -449,6 +455,7 @@ export default function AudioUploadNode({
   const handleRemoveAudio = useCallback(() => {
     setUploadedAudio(null);
     setFileName("");
+    setCurrentFile(null);
     setAiResponse(null);
     lastUploadedFileRef.current = null;
     setProcessingState({
@@ -462,15 +469,6 @@ export default function AudioUploadNode({
     setCurrentTime(0);
     setDuration(0);
     setShowRecordingInterface(false);
-    resetAnalyzeAudioContentMutation();
-    setRecordedChunks([]);
-
-    setRecordingState({
-      isRecording: false,
-      isPaused: false,
-      duration: 0,
-      audioLevel: 0,
-    });
 
     updateNodeData(data?.id, {
       audio: "",
@@ -502,16 +500,7 @@ export default function AudioUploadNode({
         },
       }
     );
-  }, [
-    data?.id,
-    resetPeer,
-    strategyId,
-    successNote,
-    updateNodeData,
-    setRecordingState,
-    setRecordedChunks,
-    resetAnalyzeAudioContentMutation,
-  ]);
+  }, [data?.id, updateNodeData, successNote, resetPeer, strategyId]);
 
   // Drag and drop handlers
   const handleDragEnter = useCallback((e: DragEvent<HTMLDivElement>) => {
@@ -570,7 +559,6 @@ export default function AudioUploadNode({
       source.connect(analyserRef.current);
 
       const mediaRecorder = new MediaRecorder(stream, {
-        // mimeType: "audio/mp3;codecs=opus",
         mimeType: "audio/webm;codecs=opus",
       });
       mediaRecorderRef.current = mediaRecorder;
