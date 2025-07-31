@@ -1,4 +1,5 @@
 "use client";
+
 import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,7 +28,7 @@ const Header = ({}: HeaderInterface) => {
   const [showNotifications, setShowNotifications] = useState(false);
 
   const { data, isLoading: isLoadingUser } = useGetUser();
-  const credits = useMemo(() => data.data.credits.current_credits, [data]);
+  const credits = useMemo(() => data?.data?.credits?.current_credits, [data]);
 
   return (
     <header className="flex items-center justify-between bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-6 py-4">
