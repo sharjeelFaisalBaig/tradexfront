@@ -132,10 +132,6 @@ export default function RemoteNode({
     lastFailedOperation: null,
   });
 
-  // AI Response states
-  const [aiResponse, setAiResponse] = useState<AIProcessingResponse | null>(
-    null
-  );
   const [userNotes, setUserNotes] = useState<string>("");
 
   // If data?.url exists, show preview directly
@@ -304,11 +300,10 @@ export default function RemoteNode({
           // start polling
           restartPolling();
           // You may need to adjust result structure based on API
-          setAiResponse(result?.aiResponse || result);
           setWebsiteData({
             url,
-            title: result?.aiResponse?.title || result?.title || url,
-            content: result?.aiResponse?.summary || result?.summary || "",
+            title: url,
+            content: "",
             favicon: "🌐",
             screenshot: "",
           });
@@ -365,7 +360,6 @@ export default function RemoteNode({
     resetAnalyzeRemotePeerMutation();
     setWebsiteUrl("");
     setWebsiteData(null);
-    setAiResponse(null);
     setProcessingState({
       isProcessing: false,
       isComplete: false,
@@ -450,6 +444,10 @@ export default function RemoteNode({
         error: null,
         lastFailedOperation: null,
       });
+      setWebsiteData((prev: any) => ({
+        ...prev,
+        title: status?.ai_title ?? "",
+      }));
     }
   }, [status]);
 
@@ -682,26 +680,6 @@ export default function RemoteNode({
                       </div>
                     </div>
                   </div>
-
-                  {/* Notes Input */}
-                  <AiNoteInput
-                    color="cyan"
-                    note={userNotes}
-                    readOnly={!canConnect}
-                    hideButton={!canConnect}
-                    onButtonClick={handleUrlSubmit}
-                    setNote={(val) => setUserNotes(val ?? "")}
-                    isLoading={
-                      processingState.isProcessing || isStatusPollingLoading
-                    }
-                    isInputDisabled={processingState.isProcessing}
-                    isButtonDisabled={
-                      !urlValidation.isValid || processingState.isProcessing
-                    }
-                    strategyId={strategyId}
-                    peerId={data?.id}
-                    peerType="remote"
-                  />
                 </div>
               </div>
             ) : (
@@ -724,36 +702,17 @@ export default function RemoteNode({
                           Analysis failed
                         </span>
                       </div>
-                    ) : aiResponse ? (
-                      <div className="flex items-center gap-2">
-                        <Lightbulb className="w-4 h-4 text-yellow-300" />
-                        <span className="text-sm font-medium truncate w-60 text-left">
-                          {aiResponse.title ?? "Website"}
-                        </span>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <span className="text-sm font-medium truncate w-60 text-left">
-                              {aiResponse.title}
-                            </span>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p className="text-sm">{aiResponse.title}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </div>
                     ) : (
                       <div className="flex items-center gap-2">
-                        <Globe className="w-4 h-4" />
+                        <Lightbulb className="w-4 h-4 text-yellow-300" />
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <span className="text-sm font-medium truncate w-60 text-left">
-                              {status?.ai_title || websiteData.title}
+                              {websiteData.title}
                             </span>
                           </TooltipTrigger>
                           <TooltipContent>
-                            <p className="text-sm">
-                              {status?.ai_title || websiteData.title}
-                            </p>
+                            <p className="text-sm">{websiteData.title}</p>
                           </TooltipContent>
                         </Tooltip>
                       </div>
@@ -761,10 +720,12 @@ export default function RemoteNode({
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <IsReadyToInteract
-                      canConnect={canConnect}
-                      isLoading={isStatusPollingLoading}
-                    />
+                    {websiteData?.url && (
+                      <IsReadyToInteract
+                        canConnect={canConnect}
+                        isLoading={isStatusPollingLoading}
+                      />
+                    )}
 
                     <Button
                       onClick={handleVisitWebsite}

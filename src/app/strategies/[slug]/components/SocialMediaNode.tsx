@@ -193,8 +193,13 @@ export default function SocialMediaNode({
         setUrlValidation(validation);
         handleProcessUrl(data?.dataToAutoUpload?.data);
       } else {
-        setSocialUrl("");
-        setUrlValidation({ isValid: false });
+        // setSocialUrl("");
+        // setUrlValidation({ isValid: false });
+        setSocialUrl((prev) => {
+          const val = prev ?? "";
+          setUrlValidation({ isValid: !!val });
+          return val;
+        });
       }
 
       setSocialMediaData(null);

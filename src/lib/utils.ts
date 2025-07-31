@@ -8,10 +8,10 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export const preventNodeDeletionKeys = (e: KeyboardEvent | any) => {
-  if (["Backspace", "Delete", "Escape"].includes(e.key)) {
-    e.stopPropagation();
-    e.preventDefault();
-  }
+  // if (["Backspace", "Delete", "Escape"].includes(e.key)) {
+  //   e.stopPropagation();
+  //   e.preventDefault();
+  // }
 };
 
 export const getFileSize = async (url?: string) => {
