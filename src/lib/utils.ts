@@ -229,8 +229,8 @@ export const validateSocialMediaUrl = (url: string): URLValidationResult => {
   }
   return {
     isValid: false,
-    error:
-      "Unsupported platform. Please use Instagram, YouTube, TikTok, or Facebook video URLs.",
+    // error: "Unsupported platform. Please use Instagram, YouTube, TikTok, or Facebook video URLs.",
+    error: "Unsupported platform. Please use YouTube, or TikTok video URLs.",
   };
 };
 

@@ -510,7 +510,7 @@ export default function SocialMediaNode({
                     <div className="relative">
                       <Input
                         type="url"
-                        placeholder="https://www.instagram.com/p/example..."
+                        placeholder="https://www.youtube.com/example..."
                         value={socialUrl}
                         onChange={handleUrlChange}
                         className={cn(
