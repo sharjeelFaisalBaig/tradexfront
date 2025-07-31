@@ -86,13 +86,14 @@ interface AudioUploadNodeProps {
 
 // Audio file validation constants
 const ALLOWED_AUDIO_TYPES = [
-  "audio/mpeg",
-  "audio/wav",
-  "audio/mp4",
-  "audio/m4a",
-  "audio/ogg",
   "audio/webm",
-  "audio/flac",
+  "audio/mpeg",
+  // "audio/mp3",
+  // "audio/mp4",
+  // "audio/wav",
+  // "audio/m4a",
+  // "audio/ogg",
+  // "audio/flac",
 ];
 
 const MAX_AUDIO_FILE_SIZE = 50 * 1024 * 1024; // 50MB
@@ -220,7 +221,7 @@ export default function AudioUploadNode({
         message:
           (statusError as any)?.response?.data?.message ||
           "Audio is not ready to interact",
-        type: "status" as const,
+        type: "analyze" as const,
       };
     }
     if (isUploadError && uploadError) {
@@ -263,12 +264,13 @@ export default function AudioUploadNode({
     if (!file) return "No file selected";
 
     if (!ALLOWED_AUDIO_TYPES.includes(file.type)) {
-      return "Unsupported audio format. Supported formats: MP3, WAV, M4A, OGG, WebM, FLAC.";
+      // return "Unsupported audio format. Supported formats: MP3, WAV, M4A, OGG, WebM, FLAC.";
+      return "Unsupported audio format. Supported formats: MP3, WebM.";
     }
 
-    if (file.size > MAX_AUDIO_FILE_SIZE) {
-      return "File size too large. Maximum size is 50MB.";
-    }
+    // if (file.size > MAX_AUDIO_FILE_SIZE) {
+    //   return "File size too large. Maximum size is 50MB.";
+    // }
 
     return null;
   }, []);
@@ -277,6 +279,7 @@ export default function AudioUploadNode({
   const processAudioFile = useCallback(
     async (file: File) => {
       const validationError = validateFile(file);
+
       if (validationError) {
         setProcessingState({
           isProcessing: false,
@@ -380,9 +383,6 @@ export default function AudioUploadNode({
     if (currentError.type === "upload" && lastUploadedFileRef.current) {
       // Retry upload
       processAudioFile(lastUploadedFileRef.current);
-    } else if (currentError.type === "status") {
-      // Retry upload
-      restartPolling();
     } else if (currentError.type === "analyze") {
       // Retry analysis
       setProcessingState((prev) => ({
@@ -988,7 +988,8 @@ export default function AudioUploadNode({
                     Drag and drop an audio file here
                   </div>
                   <div className="text-sm text-gray-500 mt-4">
-                    Supports: MP3, WAV, M4A, OGG, WebM, FLAC (Max 50MB)
+                    {/* Supports: MP3, WAV, M4A, OGG, WebM, FLAC (Max 50MB) */}
+                    Supports: MP3, WebM.
                   </div>
                 </div>
                 {isDragOver && (

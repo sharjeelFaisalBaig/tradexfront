@@ -56,13 +56,8 @@ interface ImageUploadNodeProps {
   data: any;
 }
 
-const ALLOWED_IMAGE_TYPES = [
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/gif",
-];
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
 export default function ImageUploadNode({
   id,
@@ -203,12 +198,13 @@ export default function ImageUploadNode({
     if (!file) return "No file selected";
 
     if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-      return "Unsupported image format. Only JPEG, PNG, WEBP, and static GIF are allowed.";
+      // return "Unsupported image format. Only JPEG, PNG, WEBP, and static GIF are allowed.";
+      return "Unsupported image format. Only JPEG, PNG, and WEBP are allowed.";
     }
 
-    if (file.size > MAX_FILE_SIZE) {
-      return "File size too large. Maximum size is 10MB.";
-    }
+    // if (file.size > MAX_FILE_SIZE) {
+    //   return "File size too large. Maximum size is 10MB.";
+    // }
 
     return null;
   }, []);
@@ -638,7 +634,7 @@ export default function ImageUploadNode({
                     </div>
 
                     <div className="text-sm text-gray-500 mt-4">
-                      Supports: JPG, PNG, GIF, WebP (Max 10MB)
+                      Supports: JPEG, PNG, WebP
                     </div>
                   </div>
 

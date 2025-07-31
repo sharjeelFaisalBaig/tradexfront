@@ -62,7 +62,7 @@ interface ProcessingState {
   isProcessing: boolean;
   isComplete: boolean;
   error: string | null;
-  lastFailedOperation: "status" | "analyze" | null;
+  lastFailedOperation: "analyze" | null;
 }
 
 interface WebsiteData {
@@ -467,7 +467,7 @@ export default function RemoteNode({
         message:
           (statusError as any)?.response?.data?.message ||
           "Website is not ready to interact",
-        type: "status" as const,
+        type: "analyze" as const,
       };
     }
     if (isAnalyzeError && analyzeError) {
@@ -507,9 +507,6 @@ export default function RemoteNode({
       }));
       // Retry analyze
       handleReprocess();
-    } else if (currentError.type === "status") {
-      // Retry status
-      restartPolling();
     }
   }, [
     currentError,

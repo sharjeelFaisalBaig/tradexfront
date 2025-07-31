@@ -62,7 +62,7 @@ interface ProcessingState {
   isProcessing: boolean;
   isComplete: boolean;
   error: string | null;
-  lastFailedOperation: "analyze" | "status" | null;
+  lastFailedOperation: "analyze" | null;
 }
 
 // Re-import SocialMediaData and URLValidationResult types if they are exported from utils.ts
@@ -398,7 +398,7 @@ export default function SocialMediaNode({
         message:
           (statusError as any)?.response?.data?.message ||
           "Image is not ready to interact",
-        type: "status" as const,
+        type: "analyze" as const,
       };
     }
     if (isAnalyzeError && analyzeError) {
@@ -432,9 +432,6 @@ export default function SocialMediaNode({
     if (currentError.type === "analyze") {
       // Retry upload
       handleReprocess();
-    } else if (currentError.type === "status") {
-      // Retry status
-      restartPolling();
     }
   }, [currentError, handleReprocess, analyzeSocialPeer, strategyId, data?.id]);
 

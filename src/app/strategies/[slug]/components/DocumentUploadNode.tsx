@@ -680,7 +680,7 @@ export default function DocumentUploadNode({
         message:
           (statusError as any)?.response?.data?.message ||
           "Document is not ready to interact",
-        type: "status" as const,
+        type: "analyze" as const,
       };
     }
     if (isUploadError && uploadError) {
@@ -725,9 +725,6 @@ export default function DocumentUploadNode({
     if (currentError.type === "upload" && uploadedDocument) {
       // Retry upload
       handleReprocess();
-    } else if (currentError.type === "status" && uploadedDocument) {
-      // Retry status
-      restartPolling();
     } else if (currentError.type === "analyze") {
       // Retry analysis
       setProcessingState((prev) => ({

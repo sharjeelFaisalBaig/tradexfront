@@ -86,13 +86,13 @@ interface VideoMetadata {
 const SUPPORTED_VIDEO_FORMATS = [
   "video/mp4",
   "video/webm",
-  "video/ogg",
-  "video/quicktime",
-  "video/x-msvideo", // .avi
-  "video/x-ms-wmv", // .wmv
-  "video/x-flv", // .flv
-  "video/3gpp", // .3gp
-  "video/x-matroska", // .mkv
+  // "video/ogg",
+  // "video/quicktime",
+  // "video/x-msvideo", // .avi
+  // "video/x-ms-wmv", // .wmv
+  // "video/x-flv", // .flv
+  // "video/3gpp", // .3gp
+  // "video/x-matroska", // .mkv
 ];
 
 export default function VideoUploadNode({
@@ -408,17 +408,17 @@ export default function VideoUploadNode({
     file: File
   ): { isValid: boolean; error?: string } => {
     // Check file size (max 50MB)
-    const maxSize = 50 * 1024 * 1024; // 50MB
-    if (file.size > maxSize) {
-      return { isValid: false, error: "File size must be less than 50MB" };
-    }
+    // const maxSize = 50 * 1024 * 1024; // 50MB
+    // if (file.size > maxSize) {
+    //   return { isValid: false, error: "File size must be less than 50MB" };
+    // }
 
     // Check file type
     if (!SUPPORTED_VIDEO_FORMATS.includes(file.type)) {
       return {
         isValid: false,
-        error:
-          "Unsupported video format. Please use MP4, WebM, MOV, AVI, or other common video formats.",
+        // error: "Unsupported video format. Please use MP4, WebM, MOV, AVI, or other common video formats.",
+        error: "Unsupported video format. Please use MP4, WebM video formats.",
       };
     }
 
@@ -427,6 +427,7 @@ export default function VideoUploadNode({
 
   const handleFileSelect = (file: File) => {
     const validation = validateVideoFile(file);
+
     if (!validation.isValid) {
       setProcessingState({
         isProcessing: false,
@@ -718,7 +719,7 @@ export default function VideoUploadNode({
         message:
           (statusError as any)?.response?.data?.message ||
           "Video is not ready to interact",
-        type: "status" as const,
+        type: "analyze" as const,
       };
     }
     if (isUploadError && uploadError) {
@@ -800,9 +801,6 @@ export default function VideoUploadNode({
     if (currentError.type === "upload" && uploadedVideo && uploadedFile) {
       // Retry upload
       processVideoWithAI(uploadedVideo, fileName, uploadedFile);
-    } else if (currentError.type === "status") {
-      // Retry upload
-      restartPolling();
     } else if (currentError.type === "analyze") {
       // Retry analysis
       setProcessingState((prev) => ({
@@ -873,6 +871,16 @@ export default function VideoUploadNode({
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
                 >
+                  {processingState.error && (
+                    <div className="px-4 mb-4">
+                      <div className="bg-red-50 p-3 rounded-lg">
+                        <div className="text-sm text-red-700 mb-2">
+                          {processingState.error}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="text-center space-y-4">
                     <div className="mx-auto h-16 w-16 text-gray-400">
                       <FileVideo className="h-full w-full" />
@@ -893,11 +901,9 @@ export default function VideoUploadNode({
                       </Button>
                     </div>
                     <div className="text-xs text-gray-500 space-y-1">
-                      <div>
-                        Supported formats: MP4, WebM, MOV, AVI, WMV, FLV, 3GP,
-                        MKV
-                      </div>
-                      <div>Maximum file size: 50MB</div>
+                      {/* <div>Supported formats: MP4, WebM, MOV, AVI, WMV, FLV, 3GP, MKV</div> */}
+                      {/* <div>Maximum file size: 50MB</div> */}
+                      <div>Supported formats: MP4, WebM</div>
                     </div>
                   </div>
 
