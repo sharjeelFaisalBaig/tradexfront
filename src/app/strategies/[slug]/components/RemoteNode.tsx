@@ -30,7 +30,7 @@ import {
   Shield,
   ArrowRight,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, preventNodeDeletionKeys } from "@/lib/utils";
 import NodeWrapper from "./common/NodeWrapper";
 import { useParams } from "next/navigation";
 import {
@@ -62,7 +62,7 @@ interface ProcessingState {
   isProcessing: boolean;
   isComplete: boolean;
   error: string | null;
-  lastFailedOperation: "status" | "analyze" | null;
+  lastFailedOperation: "analyze" | null;
 }
 
 interface WebsiteData {
@@ -89,7 +89,6 @@ export default function RemoteNode({
 
   const strategyId = useParams()?.slug as string;
   const successNote = useSuccessNotifier();
-  const [isPollingRestarting, setIsPollingRestarting] = useState(false);
 
   // mutations
   const { mutate: resetPeer, isPending: isReseting } = useResetPeer();
@@ -99,6 +98,7 @@ export default function RemoteNode({
     isError: isAnalyzeError,
     error: analyzeError,
     isSuccess: isAnalyzeSuccess,
+    reset: resetAnalyzeRemotePeerMutation,
   } = useAnalyzeRemotePeer();
 
   // Poll for status only if analysis is successful
@@ -112,7 +112,7 @@ export default function RemoteNode({
     peerId: data?.id,
     strategyId,
     peerType: "remote",
-    enabled: isPollingRestarting || isAnalyzeSuccess,
+    enabled: isAnalyzeSuccess,
   });
 
   // Website states
@@ -302,7 +302,6 @@ export default function RemoteNode({
       {
         onSuccess: (result: any) => {
           // start polling
-          setIsPollingRestarting(true);
           restartPolling();
           // You may need to adjust result structure based on API
           setAiResponse(result?.aiResponse || result);
@@ -363,6 +362,7 @@ export default function RemoteNode({
   };
 
   const handleRemoveWebsite = () => {
+    resetAnalyzeRemotePeerMutation();
     setWebsiteUrl("");
     setWebsiteData(null);
     setAiResponse(null);
@@ -467,7 +467,7 @@ export default function RemoteNode({
         message:
           (statusError as any)?.response?.data?.message ||
           "Website is not ready to interact",
-        type: "status" as const,
+        type: "analyze" as const,
       };
     }
     if (isAnalyzeError && analyzeError) {
@@ -507,10 +507,6 @@ export default function RemoteNode({
       }));
       // Retry analyze
       handleReprocess();
-    } else if (currentError.type === "status") {
-      // Retry status
-      setIsPollingRestarting(true);
-      restartPolling();
     }
   }, [
     currentError,
@@ -544,7 +540,7 @@ export default function RemoteNode({
       strategyId={strategyId}
       className={cn("bg-white", websiteData ? "h-[2px]" : "h-[1px]")}
     >
-      <div className="react-flow__node">
+      <div className="react-flow__node" onKeyDown={preventNodeDeletionKeys}>
         <div ref={nodeControlRef} className={`nodrag`} />
         <TooltipProvider>
           <div className="w-[1000px] max-w-md mx-auto bg-white rounded-lg shadow-sm border overflow-hidden relative">

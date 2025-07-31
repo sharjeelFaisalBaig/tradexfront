@@ -33,7 +33,7 @@ import {
   RotateCcw,
   RefreshCw,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, preventNodeDeletionKeys } from "@/lib/utils";
 import NodeWrapper from "./common/NodeWrapper";
 import { useParams } from "next/navigation";
 import {
@@ -86,13 +86,14 @@ interface AudioUploadNodeProps {
 
 // Audio file validation constants
 const ALLOWED_AUDIO_TYPES = [
-  "audio/mpeg",
-  "audio/wav",
-  "audio/mp4",
-  "audio/m4a",
-  "audio/ogg",
   "audio/webm",
-  "audio/flac",
+  "audio/mpeg",
+  // "audio/mp3",
+  // "audio/mp4",
+  // "audio/wav",
+  // "audio/m4a",
+  // "audio/ogg",
+  // "audio/flac",
 ];
 
 const MAX_AUDIO_FILE_SIZE = 50 * 1024 * 1024; // 50MB
@@ -107,7 +108,6 @@ export default function AudioUploadNode({
   const strategyId = useParams()?.slug as string;
   const successNote = useSuccessNotifier();
   const { setEdges, updateNodeData } = useReactFlow();
-  const [isPollingRestarting, setIsPollingRestarting] = useState(false);
 
   // Refs
   const nodeControlRef = useRef<HTMLDivElement>(null);
@@ -127,8 +127,6 @@ export default function AudioUploadNode({
     isPending: isUploading,
     isError: isUploadError,
     error: uploadError,
-    data: uploadData,
-    isSuccess: uploadSuccess,
   } = useUploadAudioContent();
   const {
     mutate: analyzeAudioContent,
@@ -136,6 +134,7 @@ export default function AudioUploadNode({
     isSuccess: isAnalyzeSuccess,
     isError: isAnalyzeError,
     error: analyzeError,
+    reset: resetAnalyzeAudioContentMutation,
   } = useAnalyzeAudioPeer();
 
   // Status polling
@@ -149,7 +148,7 @@ export default function AudioUploadNode({
     strategyId,
     peerId: data?.id,
     peerType: "audio",
-    enabled: (isPollingRestarting || isAnalyzeSuccess) && !isResetting,
+    enabled: isAnalyzeSuccess,
   });
 
   // State
@@ -163,7 +162,6 @@ export default function AudioUploadNode({
   // Audio upload states
   const [uploadedAudio, setUploadedAudio] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string>("");
-  const [currentFile, setCurrentFile] = useState<File | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
 
   // Audio player states
@@ -223,7 +221,7 @@ export default function AudioUploadNode({
         message:
           (statusError as any)?.response?.data?.message ||
           "Audio is not ready to interact",
-        type: "status" as const,
+        type: "analyze" as const,
       };
     }
     if (isUploadError && uploadError) {
@@ -266,12 +264,13 @@ export default function AudioUploadNode({
     if (!file) return "No file selected";
 
     if (!ALLOWED_AUDIO_TYPES.includes(file.type)) {
-      return "Unsupported audio format. Supported formats: MP3, WAV, M4A, OGG, WebM, FLAC.";
+      // return "Unsupported audio format. Supported formats: MP3, WAV, M4A, OGG, WebM, FLAC.";
+      return "Unsupported audio format. Supported formats: MP3, WebM.";
     }
 
-    if (file.size > MAX_AUDIO_FILE_SIZE) {
-      return "File size too large. Maximum size is 50MB.";
-    }
+    // if (file.size > MAX_AUDIO_FILE_SIZE) {
+    //   return "File size too large. Maximum size is 50MB.";
+    // }
 
     return null;
   }, []);
@@ -280,6 +279,7 @@ export default function AudioUploadNode({
   const processAudioFile = useCallback(
     async (file: File) => {
       const validationError = validateFile(file);
+
       if (validationError) {
         setProcessingState({
           isProcessing: false,
@@ -292,8 +292,6 @@ export default function AudioUploadNode({
 
       // Store file for retry functionality
       lastUploadedFileRef.current = file;
-      setCurrentFile(file);
-
       setProcessingState({
         isProcessing: true,
         isComplete: false,
@@ -385,10 +383,6 @@ export default function AudioUploadNode({
     if (currentError.type === "upload" && lastUploadedFileRef.current) {
       // Retry upload
       processAudioFile(lastUploadedFileRef.current);
-    } else if (currentError.type === "status") {
-      // Retry upload
-      setIsPollingRestarting(true);
-      restartPolling();
     } else if (currentError.type === "analyze") {
       // Retry analysis
       setProcessingState((prev) => ({
@@ -455,7 +449,6 @@ export default function AudioUploadNode({
   const handleRemoveAudio = useCallback(() => {
     setUploadedAudio(null);
     setFileName("");
-    setCurrentFile(null);
     setAiResponse(null);
     lastUploadedFileRef.current = null;
     setProcessingState({
@@ -469,6 +462,15 @@ export default function AudioUploadNode({
     setCurrentTime(0);
     setDuration(0);
     setShowRecordingInterface(false);
+    resetAnalyzeAudioContentMutation();
+    setRecordedChunks([]);
+
+    setRecordingState({
+      isRecording: false,
+      isPaused: false,
+      duration: 0,
+      audioLevel: 0,
+    });
 
     updateNodeData(data?.id, {
       audio: "",
@@ -500,7 +502,16 @@ export default function AudioUploadNode({
         },
       }
     );
-  }, [data?.id, updateNodeData, successNote, resetPeer, strategyId]);
+  }, [
+    data?.id,
+    resetPeer,
+    strategyId,
+    successNote,
+    updateNodeData,
+    setRecordingState,
+    setRecordedChunks,
+    resetAnalyzeAudioContentMutation,
+  ]);
 
   // Drag and drop handlers
   const handleDragEnter = useCallback((e: DragEvent<HTMLDivElement>) => {
@@ -559,6 +570,7 @@ export default function AudioUploadNode({
       source.connect(analyserRef.current);
 
       const mediaRecorder = new MediaRecorder(stream, {
+        // mimeType: "audio/mp3;codecs=opus",
         mimeType: "audio/webm;codecs=opus",
       });
       mediaRecorderRef.current = mediaRecorder;
@@ -913,7 +925,7 @@ export default function AudioUploadNode({
         uploadedAudio || showRecordingInterface ? "h-[2px]" : "h-[1px]"
       )}
     >
-      <div className="react-flow__node">
+      <div className="react-flow__node" onKeyDown={preventNodeDeletionKeys}>
         <div ref={nodeControlRef} className="nodrag" />
         <TooltipProvider>
           <div className="w-[1000px] max-w-md mx-auto bg-white rounded-lg shadow-sm border overflow-hidden relative">
@@ -976,7 +988,8 @@ export default function AudioUploadNode({
                     Drag and drop an audio file here
                   </div>
                   <div className="text-sm text-gray-500 mt-4">
-                    Supports: MP3, WAV, M4A, OGG, WebM, FLAC (Max 50MB)
+                    {/* Supports: MP3, WAV, M4A, OGG, WebM, FLAC (Max 50MB) */}
+                    Supports: MP3, WebM.
                   </div>
                 </div>
                 {isDragOver && (

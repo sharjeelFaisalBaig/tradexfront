@@ -35,7 +35,7 @@ import {
   useGetAiModels,
   useGetChatTemplates,
 } from "@/hooks/strategy/useStrategyQueries";
-import { getFilteredAiModels } from "@/lib/utils";
+import { getFilteredAiModels, preventNodeDeletionKeys } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
 import { toast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -820,7 +820,10 @@ export default function ChatBoxNode({
         type="chatbox"
         className="bg-white"
       >
-        <div className="w-[1100px] h-[700px] bg-white rounded-lg shadow-lg flex items-center justify-center">
+        <div
+          onKeyDown={preventNodeDeletionKeys}
+          className="w-[1100px] h-[700px] bg-white rounded-lg shadow-lg flex items-center justify-center"
+        >
           <div className="text-center">
             <Loader2 className="w-8 h-8 mx-auto mb-4 animate-spin text-blue-600" />
             <p className="text-gray-500">Loading chat interface...</p>
@@ -837,7 +840,10 @@ export default function ChatBoxNode({
       type="chatbox"
       className="bg-white"
     >
-      <div className="react-flow__node nowheel">
+      <div
+        className="react-flow__node nowheel"
+        onKeyDown={preventNodeDeletionKeys}
+      >
         <div ref={nodeControlRef} className="nodrag" />
         <div className="w-[1100px] h-[700px] bg-white rounded-lg shadow-lg overflow-hidden">
           {/* Header */}

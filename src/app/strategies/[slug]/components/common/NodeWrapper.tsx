@@ -2,7 +2,7 @@
 
 import type React from "react";
 import { X } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, preventNodeDeletionKeys } from "@/lib/utils";
 import { useNodeOperations } from "../../hooks/useNodeOperations";
 
 interface NodeWrapperProps {
@@ -43,7 +43,10 @@ export default function NodeWrapper({
   }
 
   return (
-    <div className={cn("relative group", className)}>
+    <div
+      onKeyDown={preventNodeDeletionKeys}
+      className={cn("relative group", className)}
+    >
       {children}
 
       {/* Delete button in top-left corner */}

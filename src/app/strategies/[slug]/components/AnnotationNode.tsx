@@ -154,9 +154,6 @@ export default function AnnotationNode({
     }
   }, [isEditing]);
 
-  // Get current user (mock implementation - replace with actual auth)
-  const getCurrentUser = () => "Current User"; // Replace with actual user context
-
   // Get formatted timestamp
   const getFormattedTime = (dateString: string) => {
     const date = new Date(dateString);
@@ -205,9 +202,6 @@ export default function AnnotationNode({
     if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
       handleSave();
-    } else if (e.key === "Escape") {
-      e.preventDefault();
-      handleCancel();
     }
   };
 
@@ -469,26 +463,52 @@ export default function AnnotationNode({
       {!isUpdating && nodeData?.annotation_message && (
         <div
           className={cn(
-            "px-3 py-2 border-t flex items-center justify-between text-xs",
+            // "px-3 py-2 border-t grid grid-cols-2 gap-4 text-xs",
+            "px-3 py-2 border-t flex items-center justify-between gap-4 text-xs",
             theme.border,
             theme.accent
           )}
         >
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 truncate">
             <User className="h-3 w-3" />
-            <span>
-              {/* {data.annotation.author} */}
-              {getCurrentUser()}
-            </span>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="truncate max-w-[120px] overflow-hidden whitespace-nowrap">
+                    {nodeData?.edited_by ?? ""}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  <span>{nodeData?.edited_by ?? ""}</span>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
 
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 truncate">
             <Clock className="h-3 w-3" />
-            <span>
-              {nodeData?.updated_at
-                ? `Updated ${getFormattedTime(nodeData?.updated_at)}`
-                : `Created ${getFormattedTime(nodeData?.created_at ?? "")}`}
-            </span>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span>
+                    {nodeData?.updated_at
+                      ? `Updated ${getFormattedTime(nodeData?.updated_at)}`
+                      : `Created ${getFormattedTime(
+                          nodeData?.created_at ?? ""
+                        )}`}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  <span>
+                    {nodeData?.updated_at
+                      ? `Updated ${getFormattedTime(nodeData?.updated_at)}`
+                      : `Created ${getFormattedTime(
+                          nodeData?.created_at ?? ""
+                        )}`}
+                  </span>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
         </div>
       )}

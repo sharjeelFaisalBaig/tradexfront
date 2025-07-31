@@ -30,7 +30,7 @@ import {
   Eye,
   RefreshCw,
 } from "lucide-react";
-import { cn, getFileSize } from "@/lib/utils";
+import { cn, getFileSize, preventNodeDeletionKeys } from "@/lib/utils";
 import NodeWrapper from "./common/NodeWrapper";
 import { useParams } from "next/navigation";
 import {
@@ -155,6 +155,7 @@ export default function DocumentUploadNode({
     isSuccess: isAnalyzeSuccess,
     isError: isAnalyzeError,
     error: analyzeError,
+    reset: resetAnalyzeDocContenttMutation,
   } = useAnalyzeDocumentPeer();
 
   // Upload state
@@ -190,7 +191,6 @@ export default function DocumentUploadNode({
     null
   );
   const [userNotes, setUserNotes] = useState<string>("");
-  const [isPollingRestarting, setIsPollingRestarting] = useState(false);
 
   // Only poll for status if analysis is successful
   const {
@@ -203,7 +203,7 @@ export default function DocumentUploadNode({
     peerId: data?.id,
     strategyId,
     peerType: "docs",
-    enabled: isPollingRestarting || isAnalyzeSuccess,
+    enabled: isAnalyzeSuccess,
   });
 
   // Handle initial document data from props (like VideoUploadNode)
@@ -459,7 +459,6 @@ export default function DocumentUploadNode({
       {
         onSuccess: () => {
           // Retry status
-          setIsPollingRestarting(true);
           restartPolling();
         },
         onError: (error: any) => {
@@ -475,6 +474,7 @@ export default function DocumentUploadNode({
   };
 
   const handleRemoveDocument = () => {
+    resetAnalyzeDocContenttMutation();
     updateNodeData(data?.id, {});
     setUploadedDocument(null);
     setDocumentInfo(null);
@@ -551,7 +551,6 @@ export default function DocumentUploadNode({
           {
             onSuccess: () => {
               // Retry status
-              setIsPollingRestarting(true);
               restartPolling();
               setProcessingState({
                 isProcessing: false,
@@ -681,7 +680,7 @@ export default function DocumentUploadNode({
         message:
           (statusError as any)?.response?.data?.message ||
           "Document is not ready to interact",
-        type: "status" as const,
+        type: "analyze" as const,
       };
     }
     if (isUploadError && uploadError) {
@@ -726,10 +725,6 @@ export default function DocumentUploadNode({
     if (currentError.type === "upload" && uploadedDocument) {
       // Retry upload
       handleReprocess();
-    } else if (currentError.type === "status" && uploadedDocument) {
-      // Retry status
-      setIsPollingRestarting(true);
-      restartPolling();
     } else if (currentError.type === "analyze") {
       // Retry analysis
       setProcessingState((prev) => ({
@@ -743,7 +738,6 @@ export default function DocumentUploadNode({
         {
           onSuccess: () => {
             // Retry status
-            setIsPollingRestarting(true);
             restartPolling();
             setProcessingState({
               isProcessing: false,
@@ -810,7 +804,7 @@ export default function DocumentUploadNode({
         // FIX: Removed problematic height classes. Let content define height.
         className={cn("bg-white")}
       >
-        <div className="react-flow__node">
+        <div className="react-flow__node" onKeyDown={preventNodeDeletionKeys}>
           <div ref={nodeControlRef} className={`nodrag`} />
           <TooltipProvider>
             <div

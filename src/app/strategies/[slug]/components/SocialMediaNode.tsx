@@ -26,6 +26,7 @@ import {
   extractSocialVideoDetails,
   validateSocialMediaUrl,
   SUPPORTED_PLATFORMS,
+  preventNodeDeletionKeys,
 } from "@/lib/utils"; // Import updated helpers
 import NodeWrapper from "./common/NodeWrapper";
 import { useParams } from "next/navigation";
@@ -62,7 +63,7 @@ interface ProcessingState {
   isProcessing: boolean;
   isComplete: boolean;
   error: string | null;
-  lastFailedOperation: "analyze" | "status" | null;
+  lastFailedOperation: "analyze" | null;
 }
 
 // Re-import SocialMediaData and URLValidationResult types if they are exported from utils.ts
@@ -92,7 +93,6 @@ export default function SocialMediaNode({
     isValid: false,
   });
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [isPollingRestarting, setIsPollingRestarting] = useState(false);
 
   // Video data states
   const [socialMediaData, setSocialMediaData] =
@@ -122,6 +122,7 @@ export default function SocialMediaNode({
     isPending: isAnalyzing,
     isSuccess: isAnalyzeSuccess,
     isError: isAnalyzeError,
+    reset: resetAnalyzeSocialPeerMutation,
   } = useAnalyzeSocialPeer();
 
   // Only poll for status if analysis is successful
@@ -135,7 +136,7 @@ export default function SocialMediaNode({
     peerId: id,
     strategyId,
     peerType: "social_media",
-    enabled: isPollingRestarting || isAnalyzeSuccess,
+    enabled: isAnalyzeSuccess,
   });
 
   // Sync state with incoming data props (like VideoUploadNode)
@@ -289,6 +290,7 @@ export default function SocialMediaNode({
 
   // Reset all states
   const handleReset = () => {
+    resetAnalyzeSocialPeerMutation();
     setSocialUrl("");
     setSocialMediaData(null);
     setUrlValidation({ isValid: false });
@@ -397,7 +399,7 @@ export default function SocialMediaNode({
         message:
           (statusError as any)?.response?.data?.message ||
           "Image is not ready to interact",
-        type: "status" as const,
+        type: "analyze" as const,
       };
     }
     if (isAnalyzeError && analyzeError) {
@@ -431,10 +433,6 @@ export default function SocialMediaNode({
     if (currentError.type === "analyze") {
       // Retry upload
       handleReprocess();
-    } else if (currentError.type === "status") {
-      // Retry status
-      setIsPollingRestarting(true);
-      restartPolling();
     }
   }, [currentError, handleReprocess, analyzeSocialPeer, strategyId, data?.id]);
 
@@ -474,7 +472,7 @@ export default function SocialMediaNode({
         type="socialMediaNode"
         className={cn("bg-white", socialMediaData ? "h-[1px]" : "h-[2px]")}
       >
-        <div className="react-flow__node">
+        <div className="react-flow__node" onKeyDown={preventNodeDeletionKeys}>
           <div ref={nodeControlRef} className={`nodrag`} />
           <TooltipProvider>
             <div

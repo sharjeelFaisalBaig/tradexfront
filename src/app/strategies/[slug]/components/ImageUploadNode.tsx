@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { X, Plus, Upload, Lightbulb, Loader2, RefreshCw } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, preventNodeDeletionKeys } from "@/lib/utils";
 import NodeWrapper from "./common/NodeWrapper";
 import {
   useAnalyzeImagePeer,
@@ -56,13 +56,8 @@ interface ImageUploadNodeProps {
   data: any;
 }
 
-const ALLOWED_IMAGE_TYPES = [
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/gif",
-];
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
 export default function ImageUploadNode({
   id,
@@ -93,12 +88,12 @@ export default function ImageUploadNode({
     isSuccess: isAnalyzeSuccess,
     isError: isAnalyzeError,
     error: analyzeError,
+    reset: resetAnalyzeImageContentMutation,
   } = useAnalyzeImagePeer();
 
   // State
   const [isDragOver, setIsDragOver] = useState(false);
   const [fileName, setFileName] = useState<string>("");
-  const [isPollingRestarting, setIsPollingRestarting] = useState(false);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [userNotes, setUserNotes] = useState<string>("");
   const [aiResponse, setAiResponse] = useState<AIProcessingResponse | null>(
@@ -122,7 +117,7 @@ export default function ImageUploadNode({
     peerId: data?.id,
     strategyId,
     peerType: "image",
-    enabled: isPollingRestarting || isAnalyzeSuccess,
+    enabled: isAnalyzeSuccess,
   });
 
   // Memoized values
@@ -148,10 +143,6 @@ export default function ImageUploadNode({
   );
 
   const currentError = useMemo(() => {
-    if (isStatusError) {
-      setIsPollingRestarting(false);
-    }
-
     if (
       (isStatusError && statusError) ||
       (!data?.is_ready_to_interact && uploadedImage)
@@ -207,12 +198,13 @@ export default function ImageUploadNode({
     if (!file) return "No file selected";
 
     if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-      return "Unsupported image format. Only JPEG, PNG, WEBP, and static GIF are allowed.";
+      // return "Unsupported image format. Only JPEG, PNG, WEBP, and static GIF are allowed.";
+      return "Unsupported image format. Only JPEG, PNG, and WEBP are allowed.";
     }
 
-    if (file.size > MAX_FILE_SIZE) {
-      return "File size too large. Maximum size is 10MB.";
-    }
+    // if (file.size > MAX_FILE_SIZE) {
+    //   return "File size too large. Maximum size is 10MB.";
+    // }
 
     return null;
   }, []);
@@ -313,7 +305,6 @@ export default function ImageUploadNode({
               { strategyId, peerId: data?.id },
               {
                 onSuccess: () => {
-                  setIsPollingRestarting(true);
                   restartPolling(); // Restart polling after successful analysis
                   setProcessingState({
                     isProcessing: false,
@@ -363,7 +354,6 @@ export default function ImageUploadNode({
       processImageFile(lastUploadedFileRef.current);
     } else if (currentError.type === "status" && lastUploadedFileRef.current) {
       // Retry status
-      setIsPollingRestarting(true);
       restartPolling();
     } else if (currentError.type === "analyze") {
       // Retry analysis
@@ -377,7 +367,6 @@ export default function ImageUploadNode({
         { strategyId, peerId: data?.id },
         {
           onSuccess: () => {
-            setIsPollingRestarting(true);
             restartPolling();
             setProcessingState({
               isProcessing: false,
@@ -424,7 +413,8 @@ export default function ImageUploadNode({
   }, []);
 
   // Inside the handleRemoveImage function
-  const handleRemoveImage = useCallback(() => {
+  const handleRemoveImage = () => {
+    resetAnalyzeImageContentMutation();
     setUploadedImage(null);
     setFileName("");
     setUserNotes("");
@@ -471,14 +461,7 @@ export default function ImageUploadNode({
         },
       }
     );
-  }, [
-    data?.id,
-    updateNodeData,
-    successNote,
-    resetPeer,
-    strategyId,
-    restartPolling,
-  ]);
+  };
 
   // Drag and drop handlers
   const handleDragEnter = useCallback((e: DragEvent<HTMLDivElement>) => {
@@ -592,7 +575,10 @@ export default function ImageUploadNode({
       strategyId={strategyId}
       className={cn("bg-white", uploadedImage ? "h-[1px]" : "h-[2px]")}
     >
-      <div className="relative react-flow__node">
+      <div
+        className="relative react-flow__node"
+        onKeyDown={preventNodeDeletionKeys}
+      >
         <div ref={nodeControlRef} className="nodrag" />
 
         <TooltipProvider>
@@ -651,7 +637,7 @@ export default function ImageUploadNode({
                     </div>
 
                     <div className="text-sm text-gray-500 mt-4">
-                      Supports: JPG, PNG, GIF, WebP (Max 10MB)
+                      Supports: JPEG, PNG, WebP
                     </div>
                   </div>
 
