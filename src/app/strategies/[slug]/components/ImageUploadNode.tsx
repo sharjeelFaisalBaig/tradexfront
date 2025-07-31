@@ -93,12 +93,12 @@ export default function ImageUploadNode({
     isSuccess: isAnalyzeSuccess,
     isError: isAnalyzeError,
     error: analyzeError,
+    reset: resetAnalyzeImageContentMutation,
   } = useAnalyzeImagePeer();
 
   // State
   const [isDragOver, setIsDragOver] = useState(false);
   const [fileName, setFileName] = useState<string>("");
-  const [isPollingRestarting, setIsPollingRestarting] = useState(false);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [userNotes, setUserNotes] = useState<string>("");
   const [aiResponse, setAiResponse] = useState<AIProcessingResponse | null>(
@@ -122,7 +122,7 @@ export default function ImageUploadNode({
     peerId: data?.id,
     strategyId,
     peerType: "image",
-    enabled: isPollingRestarting || isAnalyzeSuccess,
+    enabled: isAnalyzeSuccess,
   });
 
   // Memoized values
@@ -148,10 +148,6 @@ export default function ImageUploadNode({
   );
 
   const currentError = useMemo(() => {
-    if (isStatusError) {
-      setIsPollingRestarting(false);
-    }
-
     if (
       (isStatusError && statusError) ||
       (!data?.is_ready_to_interact && uploadedImage)
@@ -313,7 +309,6 @@ export default function ImageUploadNode({
               { strategyId, peerId: data?.id },
               {
                 onSuccess: () => {
-                  setIsPollingRestarting(true);
                   restartPolling(); // Restart polling after successful analysis
                   setProcessingState({
                     isProcessing: false,
@@ -363,7 +358,6 @@ export default function ImageUploadNode({
       processImageFile(lastUploadedFileRef.current);
     } else if (currentError.type === "status" && lastUploadedFileRef.current) {
       // Retry status
-      setIsPollingRestarting(true);
       restartPolling();
     } else if (currentError.type === "analyze") {
       // Retry analysis
@@ -377,7 +371,6 @@ export default function ImageUploadNode({
         { strategyId, peerId: data?.id },
         {
           onSuccess: () => {
-            setIsPollingRestarting(true);
             restartPolling();
             setProcessingState({
               isProcessing: false,
@@ -424,7 +417,8 @@ export default function ImageUploadNode({
   }, []);
 
   // Inside the handleRemoveImage function
-  const handleRemoveImage = useCallback(() => {
+  const handleRemoveImage = () => {
+    resetAnalyzeImageContentMutation();
     setUploadedImage(null);
     setFileName("");
     setUserNotes("");
@@ -471,14 +465,7 @@ export default function ImageUploadNode({
         },
       }
     );
-  }, [
-    data?.id,
-    updateNodeData,
-    successNote,
-    resetPeer,
-    strategyId,
-    restartPolling,
-  ]);
+  };
 
   // Drag and drop handlers
   const handleDragEnter = useCallback((e: DragEvent<HTMLDivElement>) => {

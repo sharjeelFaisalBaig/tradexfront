@@ -89,7 +89,6 @@ export default function RemoteNode({
 
   const strategyId = useParams()?.slug as string;
   const successNote = useSuccessNotifier();
-  const [isPollingRestarting, setIsPollingRestarting] = useState(false);
 
   // mutations
   const { mutate: resetPeer, isPending: isReseting } = useResetPeer();
@@ -99,6 +98,7 @@ export default function RemoteNode({
     isError: isAnalyzeError,
     error: analyzeError,
     isSuccess: isAnalyzeSuccess,
+    reset: resetAnalyzeRemotePeerMutation,
   } = useAnalyzeRemotePeer();
 
   // Poll for status only if analysis is successful
@@ -112,7 +112,7 @@ export default function RemoteNode({
     peerId: data?.id,
     strategyId,
     peerType: "remote",
-    enabled: isPollingRestarting || isAnalyzeSuccess,
+    enabled: isAnalyzeSuccess,
   });
 
   // Website states
@@ -302,7 +302,6 @@ export default function RemoteNode({
       {
         onSuccess: (result: any) => {
           // start polling
-          setIsPollingRestarting(true);
           restartPolling();
           // You may need to adjust result structure based on API
           setAiResponse(result?.aiResponse || result);
@@ -363,6 +362,7 @@ export default function RemoteNode({
   };
 
   const handleRemoveWebsite = () => {
+    resetAnalyzeRemotePeerMutation();
     setWebsiteUrl("");
     setWebsiteData(null);
     setAiResponse(null);
@@ -509,7 +509,6 @@ export default function RemoteNode({
       handleReprocess();
     } else if (currentError.type === "status") {
       // Retry status
-      setIsPollingRestarting(true);
       restartPolling();
     }
   }, [

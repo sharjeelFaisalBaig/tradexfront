@@ -131,6 +131,7 @@ export default function VideoUploadNode({
     isSuccess: isAnalyzeSuccess,
     isError: isAnalyzeError,
     error: analyzeError,
+    reset: resetAnalyzeVideoContentMutation,
   } = useAnalyzeVideoPeer();
 
   const nodeControlRef = useRef(null);
@@ -146,7 +147,6 @@ export default function VideoUploadNode({
     null
   );
   const [isDragOver, setIsDragOver] = useState(false);
-  const [isPollingRestarting, setIsPollingRestarting] = useState(false);
 
   // Video player states
   const [isPlaying, setIsPlaying] = useState(false);
@@ -177,7 +177,7 @@ export default function VideoUploadNode({
     peerId: data?.id,
     strategyId,
     peerType: "video",
-    enabled: isPollingRestarting || isAnalyzeSuccess,
+    enabled: isAnalyzeSuccess,
   });
 
   // Sync state with incoming data props (like ImageUploadNode)
@@ -587,7 +587,6 @@ export default function VideoUploadNode({
 
       {
         onSuccess: () => {
-          setIsPollingRestarting(true);
           restartPolling();
         },
         onError: (error: any) => {
@@ -603,6 +602,7 @@ export default function VideoUploadNode({
   };
 
   const handleRemoveVideo = () => {
+    resetAnalyzeVideoContentMutation();
     setUploadedVideo(null);
     setFileName("");
     setVideoMetadata(null);
@@ -802,7 +802,6 @@ export default function VideoUploadNode({
       processVideoWithAI(uploadedVideo, fileName, uploadedFile);
     } else if (currentError.type === "status") {
       // Retry upload
-      setIsPollingRestarting(true);
       restartPolling();
     } else if (currentError.type === "analyze") {
       // Retry analysis
@@ -816,7 +815,6 @@ export default function VideoUploadNode({
         { strategyId, peerId: data?.id },
         {
           onSuccess: () => {
-            setIsPollingRestarting(true);
             restartPolling();
             setProcessingState({
               isProcessing: false,

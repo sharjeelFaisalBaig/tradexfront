@@ -92,7 +92,6 @@ export default function SocialMediaNode({
     isValid: false,
   });
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [isPollingRestarting, setIsPollingRestarting] = useState(false);
 
   // Video data states
   const [socialMediaData, setSocialMediaData] =
@@ -122,6 +121,7 @@ export default function SocialMediaNode({
     isPending: isAnalyzing,
     isSuccess: isAnalyzeSuccess,
     isError: isAnalyzeError,
+    reset: resetAnalyzeSocialPeerMutation,
   } = useAnalyzeSocialPeer();
 
   // Only poll for status if analysis is successful
@@ -135,7 +135,7 @@ export default function SocialMediaNode({
     peerId: id,
     strategyId,
     peerType: "social_media",
-    enabled: isPollingRestarting || isAnalyzeSuccess,
+    enabled: isAnalyzeSuccess,
   });
 
   // Sync state with incoming data props (like VideoUploadNode)
@@ -289,6 +289,7 @@ export default function SocialMediaNode({
 
   // Reset all states
   const handleReset = () => {
+    resetAnalyzeSocialPeerMutation();
     setSocialUrl("");
     setSocialMediaData(null);
     setUrlValidation({ isValid: false });
@@ -433,7 +434,6 @@ export default function SocialMediaNode({
       handleReprocess();
     } else if (currentError.type === "status") {
       // Retry status
-      setIsPollingRestarting(true);
       restartPolling();
     }
   }, [currentError, handleReprocess, analyzeSocialPeer, strategyId, data?.id]);

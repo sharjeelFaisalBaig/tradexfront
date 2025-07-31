@@ -155,6 +155,7 @@ export default function DocumentUploadNode({
     isSuccess: isAnalyzeSuccess,
     isError: isAnalyzeError,
     error: analyzeError,
+    reset: resetAnalyzeDocContenttMutation,
   } = useAnalyzeDocumentPeer();
 
   // Upload state
@@ -190,7 +191,6 @@ export default function DocumentUploadNode({
     null
   );
   const [userNotes, setUserNotes] = useState<string>("");
-  const [isPollingRestarting, setIsPollingRestarting] = useState(false);
 
   // Only poll for status if analysis is successful
   const {
@@ -203,7 +203,7 @@ export default function DocumentUploadNode({
     peerId: data?.id,
     strategyId,
     peerType: "docs",
-    enabled: isPollingRestarting || isAnalyzeSuccess,
+    enabled: isAnalyzeSuccess,
   });
 
   // Handle initial document data from props (like VideoUploadNode)
@@ -459,7 +459,6 @@ export default function DocumentUploadNode({
       {
         onSuccess: () => {
           // Retry status
-          setIsPollingRestarting(true);
           restartPolling();
         },
         onError: (error: any) => {
@@ -475,6 +474,7 @@ export default function DocumentUploadNode({
   };
 
   const handleRemoveDocument = () => {
+    resetAnalyzeDocContenttMutation();
     updateNodeData(data?.id, {});
     setUploadedDocument(null);
     setDocumentInfo(null);
@@ -551,7 +551,6 @@ export default function DocumentUploadNode({
           {
             onSuccess: () => {
               // Retry status
-              setIsPollingRestarting(true);
               restartPolling();
               setProcessingState({
                 isProcessing: false,
@@ -728,7 +727,6 @@ export default function DocumentUploadNode({
       handleReprocess();
     } else if (currentError.type === "status" && uploadedDocument) {
       // Retry status
-      setIsPollingRestarting(true);
       restartPolling();
     } else if (currentError.type === "analyze") {
       // Retry analysis
@@ -743,7 +741,6 @@ export default function DocumentUploadNode({
         {
           onSuccess: () => {
             // Retry status
-            setIsPollingRestarting(true);
             restartPolling();
             setProcessingState({
               isProcessing: false,
