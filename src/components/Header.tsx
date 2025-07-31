@@ -67,7 +67,9 @@ const Header = ({}: HeaderInterface) => {
         <div className="flex items-center gap-[12px]">
           <span className="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">
             {/* {profile ? `${profile.credits.total_spent_this_month}/${profile.credits.total_earned_this_month} Credits` : "0/0 Credits"} */}
-            {isLoadingUser ? "Loading Credits..." : `${credits} Credits`}
+            {isLoadingUser
+              ? "Loading Credits..."
+              : `${credits ?? "Unknown"} Credits`}
           </span>
 
           <ThemeToggle />
