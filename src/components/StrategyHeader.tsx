@@ -40,7 +40,7 @@ const StrategyHeader = ({
   useEffect(() => {
     if (data?.data?.credits) {
       updateCredits({
-        usedCredits: data.data.credits.total_spent_this_month,
+        usedCredits: data.data.credits.current_credits,
         totalCredits: data.data.credits.total_earned_this_month,
       });
     }
@@ -81,9 +81,10 @@ const StrategyHeader = ({
         <div className="flex items-center gap-[22px]">
           <div className="flex items-center gap-[12px]">
             <span className="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">
+              {/* {isLoadingUser? "Loading Credits...": `${credits.usedCredits}/${credits.totalCredits} Credits`} */}
               {isLoadingUser
                 ? "Loading Credits..."
-                : `${credits.usedCredits}/${credits.totalCredits} Credits`}
+                : `${credits.usedCredits} Credits`}
             </span>
 
             <ThemeToggle />

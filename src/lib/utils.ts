@@ -12,6 +12,16 @@ export const preventNodeDeletionKeys = (e: KeyboardEvent | any) => {
   //   e.stopPropagation();
   //   e.preventDefault();
   // }
+  // const activeElement = document.activeElement;
+  // // Allow default behavior if the active element is an input or textarea
+  // if (activeElement && ["INPUT", "TEXTAREA"].includes(activeElement.tagName)) {
+  //   return;
+  // }
+  // // Prevent node deletion for specific keys
+  // if (["Backspace", "Delete", "Escape"].includes(e.key)) {
+  //   e.stopPropagation();
+  //   e.preventDefault();
+  // }
 };
 
 export const getFileSize = async (url?: string) => {

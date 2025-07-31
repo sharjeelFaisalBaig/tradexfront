@@ -26,8 +26,8 @@ const Header = ({}: HeaderInterface) => {
   const successNote = useSuccessNotifier();
   const [showNotifications, setShowNotifications] = useState(false);
 
-  const { data } = useGetUser();
-  const profile = useMemo(() => data?.data, [data]);
+  const { data, isLoading: isLoadingUser } = useGetUser();
+  const credits = useMemo(() => data.data.credits.current_credits, [data]);
 
   return (
     <header className="flex items-center justify-between bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-6 py-4">
@@ -65,9 +65,8 @@ const Header = ({}: HeaderInterface) => {
       <div className="flex items-center gap-[22px]">
         <div className="flex items-center gap-[12px]">
           <span className="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">
-            {profile
-              ? `${profile.credits.total_spent_this_month}/${profile.credits.total_earned_this_month} Credits`
-              : "0/0 Credits"}
+            {/* {profile ? `${profile.credits.total_spent_this_month}/${profile.credits.total_earned_this_month} Credits` : "0/0 Credits"} */}
+            {isLoadingUser ? "Loading Credits..." : `${credits} Credits`}
           </span>
 
           <ThemeToggle />

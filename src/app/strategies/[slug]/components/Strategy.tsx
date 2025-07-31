@@ -805,7 +805,6 @@ const Strategy = (props: StrategyProps) => {
                 maxZoom={2}
                 onDragOver={onDragOver}
                 onDrop={onDrop}
-                onKeyDown={preventNodeDeletionKeys}
               >
                 <Background />
                 <Controls>
