@@ -143,10 +143,7 @@ export default function ImageUploadNode({
   );
 
   const currentError = useMemo(() => {
-    if (
-      (isStatusError && statusError) ||
-      (!data?.is_ready_to_interact && uploadedImage)
-    ) {
+    if (isStatusError && statusError) {
       return {
         message:
           (statusError as any)?.response?.data?.message ||
@@ -567,6 +564,16 @@ export default function ImageUploadNode({
       }));
     }
   }, [isStatusError]);
+
+  useEffect(() => {
+    if (data?.image && !data?.is_ready_to_interact) {
+      setProcessingState((prev) => ({
+        ...prev,
+        error: "Status request was rejected, Image is not ready to interact",
+        lastFailedOperation: "analyze",
+      }));
+    }
+  }, []);
 
   return (
     <NodeWrapper

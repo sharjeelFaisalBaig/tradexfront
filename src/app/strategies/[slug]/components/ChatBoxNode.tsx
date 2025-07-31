@@ -1172,7 +1172,7 @@ export default function ChatBoxNode({
                           onKeyDown={handleKeyPress}
                           placeholder="Ask anything..."
                           className="w-full border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 text-sm resize-none min-h-[20px] max-h-[120px] scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100 hover:scrollbar-thumb-gray-500"
-                          disabled={isLoading}
+                          disabled={isAnyConversationLoading || isLoading}
                           rows={1}
                         />
                       </div>
@@ -1193,7 +1193,7 @@ export default function ChatBoxNode({
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
-                            disabled={isLoading}
+                            disabled={isLoading || isAnyConversationLoading}
                             variant="ghost"
                             size="sm"
                             className="flex items-center gap-1 text-xs h-7"
@@ -1238,7 +1238,7 @@ export default function ChatBoxNode({
                           size="sm"
                           className="text-xs h-7 bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100"
                           onClick={() => handlePredefinedPromptClick(prompt)}
-                          disabled={isLoading}
+                          disabled={isLoading || isAnyConversationLoading}
                         >
                           {prompt.label}
                         </Button>

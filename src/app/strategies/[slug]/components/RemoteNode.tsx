@@ -457,10 +457,7 @@ export default function RemoteNode({
   );
 
   const currentError = useMemo(() => {
-    if (
-      (isStatusError && statusError) ||
-      (data?.url && !data?.is_ready_to_interact)
-    ) {
+    if (isStatusError && statusError) {
       return {
         message:
           (statusError as any)?.response?.data?.message ||

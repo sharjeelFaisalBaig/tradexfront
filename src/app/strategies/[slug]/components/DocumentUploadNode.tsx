@@ -123,11 +123,11 @@ const SUPPORTED_DOCUMENT_TYPES = {
     label: "Rich Text Document",
     color: "text-purple-500",
   },
-  "text/csv": {
-    icon: FileSpreadsheet,
-    label: "CSV File",
-    color: "text-green-600",
-  },
+  // "text/csv": {
+  //   icon: FileSpreadsheet,
+  //   label: "CSV File",
+  //   color: "text-green-600",
+  // },
 };
 
 export default function DocumentUploadNode({
@@ -1072,26 +1072,6 @@ export default function DocumentUploadNode({
                         <span className="text-sm text-blue-700">
                           Uploading document...
                         </span>
-                      </div>
-                    </div>
-                  )}
-                  {uploadState.error && (
-                    <div className="px-4">
-                      <div className="bg-red-50 p-3 rounded-lg">
-                        <div className="text-xs text-red-600 font-medium mb-1">
-                          Upload Error
-                        </div>
-                        <div className="text-sm text-red-700 mb-2">
-                          {uploadState.error}
-                        </div>
-                        <Button
-                          onClick={handleReprocess}
-                          size="sm"
-                          variant="outline"
-                          className="text-red-600 border-red-200 hover:bg-red-50 bg-transparent"
-                        >
-                          Retry Upload
-                        </Button>
                       </div>
                     </div>
                   )}
