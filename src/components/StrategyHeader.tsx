@@ -183,14 +183,7 @@ const StrategyHeader = ({
                 <DropdownMenuItem onClick={() => router.push("/settings")}>
                   Settings
                 </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => {
-                    signOut();
-                    successNote({
-                      title: "Logout successfully",
-                    });
-                  }}
-                >
+                <DropdownMenuItem onClick={() => signOut()}>
                   Logout
                 </DropdownMenuItem>
               </DropdownMenuContent>

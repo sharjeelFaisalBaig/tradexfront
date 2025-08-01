@@ -1,12 +1,10 @@
 "use client";
-
 import React from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { useFormik } from "formik";
 import * as Yup from "yup";
-
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -22,15 +20,24 @@ import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 // Yup validation schema
 const validationSchema = Yup.object().shape({
   firstName: Yup.string().required("First name is required"),
-  lastName: Yup.string().required("Last name is required"),
-  email: Yup.string().email("Invalid email").required("Email is required"),
+  lastName: Yup.string(), // Making last name optional
+  email: Yup.string()
+    .email("Please enter a valid email address")
+    .required("Email is required"),
   password: Yup.string()
     .min(8, "Password must be at least 8 characters")
+    .matches(
+      /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]+$/,
+      "Password must be alphanumeric"
+    )
     .required("Password is required"),
   confirmPassword: Yup.string()
-    .required("Confirm Password is required")
+    .required("Please confirm your password")
     .oneOf([Yup.ref("password")], "Passwords do not match"),
-  agreeTerms: Yup.bool().oneOf([true], "You must agree to the terms"),
+  agreeTerms: Yup.bool().oneOf(
+    [true],
+    "You need to agree to the Terms of Service, Privacy Policy, and Refund Policy before continuing."
+  ),
 });
 
 const labelClass = "text-gray-700 dark:text-gray-300 block mb-1";
@@ -40,7 +47,6 @@ const linkClass = "text-cyan-600 underline hover:underline";
 const Signup = () => {
   const router = useRouter();
   const successNote = useSuccessNotifier();
-
   const { mutate, isPending } = useSignup();
 
   // Formik setup
@@ -56,16 +62,13 @@ const Signup = () => {
     validationSchema,
     onSubmit: async (values, { setSubmitting }) => {
       const { confirmPassword, ...formData } = values;
-
       await getCsrfToken();
-
       const payload = {
         first_name: formData.firstName,
         last_name: formData.lastName,
         email: formData?.email,
         password: formData?.password,
       };
-
       mutate(payload, {
         onSuccess: (data) => {
           if (data && data.data) {
@@ -91,7 +94,6 @@ const Signup = () => {
           });
         },
       });
-
       setSubmitting(false);
     },
   });
@@ -105,7 +107,6 @@ const Signup = () => {
       <div className="absolute top-4 right-4">
         <ThemeToggle />
       </div>
-
       <div className="w-full max-w-xl">
         {/* Top Bar */}
         <div className="rounded-t-[20px] border border-[#0088CC1C] bg-[#0088CC1C] py-2 px-3 text-left dark:border-[#0088CC1C] dark:bg-cyan-900/20">
@@ -113,7 +114,6 @@ const Signup = () => {
             Sign Up with Tradex AI
           </p>
         </div>
-
         <Card className="rounded-b-[20px] rounded-t-none border-0 shadow-lg">
           <CardHeader className="flex flex-col items-center gap-2 pb-4 pt-8 text-center">
             <Image
@@ -128,7 +128,6 @@ const Signup = () => {
               Join Tradex AI today
             </CardTitle>
           </CardHeader>
-
           <CardContent className="px-10 sm:px-14">
             {/* Google OAuth Button */}
             <Button
@@ -151,13 +150,11 @@ const Signup = () => {
               </svg>
               Continue with Google
             </Button>
-
             <div className="my-6 flex items-center">
               <hr className="flex-grow border-t border-gray-300" />
               <span className="mx-4 text-sm text-gray-500">OR</span>
               <hr className="flex-grow border-t border-gray-300" />
             </div>
-
             {/* Signup Form */}
             <form onSubmit={formik.handleSubmit} className="space-y-6">
               {/* First & Last Name */}
@@ -177,10 +174,9 @@ const Signup = () => {
                     </p>
                   )}
                 </div>
-
                 <div className="w-1/2">
                   <Label htmlFor="lastName" className={labelClass}>
-                    Last Name
+                    Last Name <span className="opacity-50">(optional)</span>
                   </Label>
                   <Input
                     id="lastName"
@@ -194,7 +190,6 @@ const Signup = () => {
                   )}
                 </div>
               </div>
-
               {/* Email */}
               <div>
                 <Label htmlFor="email" className={labelClass}>
@@ -212,7 +207,6 @@ const Signup = () => {
                   </p>
                 )}
               </div>
-
               {/* Password */}
               <div>
                 <Label htmlFor="password" className={labelClass}>
@@ -230,7 +224,6 @@ const Signup = () => {
                   </p>
                 )}
               </div>
-
               {/* Confirm Password */}
               <div>
                 <Label htmlFor="confirmPassword" className={labelClass}>
@@ -249,7 +242,6 @@ const Signup = () => {
                     </p>
                   )}
               </div>
-
               {/* Agree to Terms */}
               <div className="mb-6">
                 <div className="flex items-center space-x-2">
@@ -281,7 +273,6 @@ const Signup = () => {
                   </p>
                 )}
               </div>
-
               {/* Submit Button */}
               <Button
                 disabled={formik.isSubmitting || isPending}
@@ -295,7 +286,6 @@ const Signup = () => {
                 )}
               </Button>
             </form>
-
             {/* Footer */}
             <div className="mt-6 text-center">
               <span className="text-sm text-gray-600">

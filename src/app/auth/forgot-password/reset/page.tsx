@@ -115,7 +115,7 @@ export default function ResetPasswordPage() {
           <CardContent className="px-8 sm:px-12">
             <form onSubmit={handleResetPassword}>
               <div className="mb-4">
-                <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
                   Email Address
                 </label>
                 <input
@@ -126,7 +126,7 @@ export default function ResetPasswordPage() {
                 />
               </div>
               <div className="mb-4">
-                <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
                   New Password
                 </label>
                 <input
@@ -139,7 +139,7 @@ export default function ResetPasswordPage() {
                 />
               </div>
               <div className="mb-6">
-                <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
                   Re-enter New Password
                 </label>
                 <input
@@ -156,7 +156,11 @@ export default function ResetPasswordPage() {
                 disabled={loading}
                 className="w-full py-3 h-12 rounded-full bg-cyan-600 text-white text-lg font-semibold transition-colors hover:bg-cyan-700 disabled:bg-gray-400"
               >
-                {loading ? <Loader text="Resetting..." /> : "Reset Password"}
+                {loading ? (
+                  <Loader direction="row" text="Resetting..." />
+                ) : (
+                  "Reset Password"
+                )}
               </Button>
             </form>
           </CardContent>

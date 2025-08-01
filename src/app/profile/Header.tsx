@@ -1,22 +1,22 @@
-'use client'
+"use client";
 
-import Image from 'next/image'
-import { useRouter } from 'next/navigation'
-import { Button } from '@/components/ui/button'
-import { ThemeToggle } from '@/components/ThemeToggle'
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 interface HeaderProps {
-  onBackClick?: () => void
-  onSave?: () => void
+  onBackClick?: () => void;
+  onSave?: () => void;
 }
 
 const Header: React.FC<HeaderProps> = ({ onBackClick, onSave }) => {
-  const router = useRouter()
+  const router = useRouter();
 
   const handleBack = () => {
-    if (onBackClick) onBackClick()
-    else router.replace('/dashboard')
-  }
+    if (onBackClick) onBackClick();
+    else router.replace("/dashboard");
+  };
 
   return (
     <header className="h-20 px-6 border-b border-border bg-background shadow-sm">
@@ -31,7 +31,11 @@ const Header: React.FC<HeaderProps> = ({ onBackClick, onSave }) => {
             className="object-contain mr-6"
             priority
           />
-          <Button variant="ghost" onClick={handleBack} className="text-muted-foreground text-sm">
+          <Button
+            variant="ghost"
+            onClick={handleBack}
+            className="text-muted-foreground text-sm"
+          >
             ← Profile Setting
           </Button>
         </div>
@@ -48,7 +52,7 @@ const Header: React.FC<HeaderProps> = ({ onBackClick, onSave }) => {
         </div>
       </div>
     </header>
-  )
-}
+  );
+};
 
-export default Header
+export default Header;

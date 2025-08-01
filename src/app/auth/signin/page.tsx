@@ -89,7 +89,7 @@ export default function LoginPage() {
           }
         } else {
           // Successful login – redirect to dashboard
-          router.push("/dashboard");
+          router.replace("/dashboard");
           successNote({
             title: "Login Successful",
             description: "Navigating to dashboard.",
@@ -109,8 +109,13 @@ export default function LoginPage() {
   });
 
   // Google OAuth sign-in handler
-  const handleGoogleSignIn = () => {
-    signIn("google", { callbackUrl: "/dashboard" });
+  const handleGoogleSignIn = async () => {
+    try {
+      await signIn("google", { callbackUrl: "/dashboard" });
+    } catch (error) {
+      console.error("Error during Google sign-in:", error);
+      // Optionally, show an error message to the user
+    }
   };
 
   return (
@@ -181,7 +186,7 @@ export default function LoginPage() {
                   htmlFor="email"
                   className="text-sm text-gray-700 dark:text-gray-300"
                 >
-                  Email address <span className="text-cyan-500">*</span>
+                  Email address
                 </Label>
                 <Input
                   id="email"
@@ -203,7 +208,7 @@ export default function LoginPage() {
                   htmlFor="password"
                   className="text-sm text-gray-700 dark:text-gray-300"
                 >
-                  Password <span className="text-cyan-500">*</span>
+                  Password
                 </Label>
                 <Input
                   id="password"
