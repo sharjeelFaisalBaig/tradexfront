@@ -808,30 +808,26 @@ export default function ChatBoxNode({
     });
   };
 
-  if (
-    isLoadingModels ||
-    !isInitialized ||
-    (activeConversationId && isLoadingConversationMessages)
-  ) {
-    return (
-      <NodeWrapper
-        id={id}
-        strategyId={strategyId}
-        type="chatbox"
-        className="bg-white"
-      >
-        <div
-          onKeyDown={preventNodeDeletionKeys}
-          className="w-[1100px] h-[700px] bg-white rounded-lg shadow-lg flex items-center justify-center"
-        >
-          <div className="text-center">
-            <Loader2 className="w-8 h-8 mx-auto mb-4 animate-spin text-blue-600" />
-            <p className="text-gray-500">Loading chat interface...</p>
-          </div>
-        </div>
-      </NodeWrapper>
-    );
-  }
+  // if (isLoadingModels || !isInitialized || (activeConversationId && isLoadingConversationMessages)) {
+  //   return (
+  //     <NodeWrapper
+  //       id={id}
+  //       strategyId={strategyId}
+  //       type="chatbox"
+  //       className="bg-white"
+  //     >
+  //       <div
+  //         onKeyDown={preventNodeDeletionKeys}
+  //         className="w-[1100px] h-[700px] bg-white rounded-lg shadow-lg flex items-center justify-center"
+  //       >
+  //         <div className="text-center">
+  //           <Loader2 className="w-8 h-8 mx-auto mb-4 animate-spin text-blue-600" />
+  //           <p className="text-gray-500">Loading chat interface...</p>
+  //         </div>
+  //       </div>
+  //     </NodeWrapper>
+  //   );
+  // }
 
   return (
     <NodeWrapper
@@ -1172,7 +1168,13 @@ export default function ChatBoxNode({
                           onKeyDown={handleKeyPress}
                           placeholder="Ask anything..."
                           className="w-full border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 text-sm resize-none min-h-[20px] max-h-[120px] scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100 hover:scrollbar-thumb-gray-500"
-                          disabled={isAnyConversationLoading || isLoading}
+                          disabled={
+                            isLoadingConversationMessages ||
+                            isAnyConversationLoading ||
+                            isLoadingModels ||
+                            !isInitialized ||
+                            isLoading
+                          }
                           rows={1}
                         />
                       </div>
@@ -1180,7 +1182,11 @@ export default function ChatBoxNode({
                         size="sm"
                         className="absolute bottom-2 right-2 bg-blue-600 hover:bg-blue-700 rounded-full w-8 h-8 p-0 flex-shrink-0 z-10"
                         onClick={handleSendMessage}
-                        disabled={isLoading || !message.trim()}
+                        disabled={
+                          isLoading ||
+                          !message.trim() ||
+                          isLoadingConversationMessages
+                        }
                       >
                         <ArrowUp className="w-4 h-4" />
                       </Button>
@@ -1193,7 +1199,11 @@ export default function ChatBoxNode({
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
-                            disabled={isLoading || isAnyConversationLoading}
+                            disabled={
+                              isLoading ||
+                              isAnyConversationLoading ||
+                              isLoadingConversationMessages
+                            }
                             variant="ghost"
                             size="sm"
                             className="flex items-center gap-1 text-xs h-7"
@@ -1238,7 +1248,11 @@ export default function ChatBoxNode({
                           size="sm"
                           className="text-xs h-7 bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100"
                           onClick={() => handlePredefinedPromptClick(prompt)}
-                          disabled={isLoading || isAnyConversationLoading}
+                          disabled={
+                            isLoading ||
+                            isAnyConversationLoading ||
+                            isLoadingConversationMessages
+                          }
                         >
                           {prompt.label}
                         </Button>
