@@ -11,6 +11,9 @@ import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { signIn } from "next-auth/react";
 import useSuccessNotifier from "@/hooks/useSuccessNotifier";
+import Loader from "@/components/common/Loader";
+import { resendOtpRequest } from "@/services/auth/auth_API";
+import { showAPIErrorToast } from "@/lib/utils";
 
 const OtpVerificationPage = () => {
   const router = useRouter();
@@ -67,13 +70,7 @@ const OtpVerificationPage = () => {
       });
     },
     onError: (error: any) => {
-      const message =
-        error?.errors && Object.values(error.errors).flat().join(", ");
-      toast({
-        title: error?.message || "Error",
-        description: message || "Invalid or expired OTP.",
-        variant: "destructive",
-      });
+      showAPIErrorToast(error, "Validation failed", "Invalid or expired OTP.");
     },
   });
 
@@ -97,84 +94,38 @@ const OtpVerificationPage = () => {
       setTimeout(() => router.replace("/auth/signin"), 1200);
     },
     onError: (error: any) => {
-      const message =
-        error?.errors && Object.values(error.errors).flat().join(", ");
-      toast({
-        title: error?.message || "Error",
-        description: message || "Invalid or expired OTP.",
-        variant: "destructive",
-      });
+      showAPIErrorToast(error, "Validation failed", "Invalid or expired OTP.");
     },
   });
 
   const resendOtpMutation = useMutation({
     mutationFn: () =>
-      fetch(endpoints.AUTH.RESEND_OTP, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, type: "verification" }),
-      }).then(async (res) => {
-        const data = await res.json();
-        if (!res.ok || data.status === "Error") throw data;
-        return data;
-      }),
+      resendOtpRequest({ email: email ?? "", type: "verification" }),
     onSuccess: (data) => {
-      setTimer(data.data.otp_expires_in);
+      setTimer(data?.data?.otp_expires_in ?? 0);
       successNote({
         title: "Success",
         description: "A new OTP has been sent to your email.",
       });
     },
     onError: (error: any) => {
-      const message =
-        error?.errors && Object.values(error.errors).flat().join(", ");
-      toast({
-        title: error?.message || "Error",
-        description: message || "Failed to resend OTP.",
-        variant: "destructive",
-      });
+      showAPIErrorToast(error, "Validation failed", "Failed to resend OTP.");
     },
   });
 
   const resend2faMutation = useMutation({
-    mutationFn: () =>
-      fetch(endpoints.AUTH.RESEND_OTP, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, type: "2fa" }),
-      }).then(async (res) => {
-        const data = await res.json();
-        if (!res.ok || data.status === "Error") throw data;
-        return data;
-      }),
+    mutationFn: () => resendOtpRequest({ email: email ?? "", type: "2fa" }),
     onSuccess: (data) => {
-      setTimer(data.data.otp_expires_in);
+      setTimer(data?.data?.otp_expires_in ?? 0);
       successNote({
         title: "Success",
         description: "A new OTP has been sent to your email.",
       });
     },
-    onError: (error: any) => {
-      const message =
-        error?.errors && Object.values(error.errors).flat().join(", ");
-      toast({
-        title: error?.message || "Error",
-        description: message || "Failed to resend OTP.",
-        variant: "destructive",
-      });
+    onError: (error) => {
+      showAPIErrorToast(error, "Validation failed", "Failed to resend OTP.");
     },
   });
-
-  useEffect(() => {
-    const enteredOtp = otp.join("");
-    if (enteredOtp.length === 6) {
-      if (twoFactorEnabled === "true") {
-        if (!verify2faMutation.isSuccess) verify2faMutation.mutate(enteredOtp);
-      } else {
-        if (!verifyOtpMutation.isSuccess) verifyOtpMutation.mutate(enteredOtp);
-      }
-    }
-  }, [otp]);
 
   const handleChange = (index: number, value: string) => {
     if (!/^\d*$/.test(value)) return;
@@ -223,7 +174,7 @@ const OtpVerificationPage = () => {
         : verifyOtpMutation.mutate(enteredOtp);
     } else {
       toast({
-        title: "Error",
+        title: "Validation Error",
         description: "Please enter all 6 digits of the OTP.",
         variant: "destructive",
       });
@@ -283,11 +234,19 @@ const OtpVerificationPage = () => {
         <Card className="rounded-b-[20px] rounded-t-none border-0 shadow-lg">
           <CardHeader className="flex flex-col items-center gap-2 pb-4 pt-8 text-center">
             <Image
-              src="/logo.png"
+              src="/tradex-logo.svg"
               alt="Tradex AI Logo"
               width={148}
               height={32}
-              className="mt-2 object-contain"
+              className="mt-2 object-contain dark:hidden"
+              priority
+            />
+            <Image
+              src="/tradex-logo-dark.svg"
+              alt="Tradex AI Logo"
+              width={148}
+              height={32}
+              className="mt-2 object-contain hidden dark:block"
               priority
             />
             <CardTitle className="text-base font-normal text-gray-700 dark:text-gray-300">
@@ -325,13 +284,17 @@ const OtpVerificationPage = () => {
               <Button
                 type="submit"
                 disabled={
-                  verifyOtpMutation.isPending || verify2faMutation.isPending
+                  otp.join("").length !== 6 ||
+                  verifyOtpMutation.isPending ||
+                  verify2faMutation.isPending
                 }
                 className="w-full mt-8 py-3 h-12 rounded-full bg-cyan-600 text-white text-lg font-semibold transition-colors hover:bg-cyan-700 disabled:bg-gray-400"
               >
-                {verifyOtpMutation.isPending || verify2faMutation.isPending
-                  ? "Verifying..."
-                  : "Verify"}
+                {verifyOtpMutation.isPending || verify2faMutation.isPending ? (
+                  <Loader direction="row" text="Verifying..." />
+                ) : (
+                  "Verify"
+                )}
               </Button>
             </form>
             <div className="mt-6 text-sm text-gray-500 flex justify-between items-center">
@@ -354,11 +317,11 @@ const OtpVerificationPage = () => {
                       : "text-cyan-600 hover:text-cyan-700"
                   }`}
                 >
-                  {(
-                    twoFactorEnabled === "true"
-                      ? resend2faMutation.isPending
-                      : resendOtpMutation.isPending
-                  )
+                  {twoFactorEnabled === "true"
+                    ? resend2faMutation.isPending
+                      ? "Sending..."
+                      : "Resend"
+                    : resendOtpMutation.isPending
                     ? "Sending..."
                     : "Resend"}
                 </button>

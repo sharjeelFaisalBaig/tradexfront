@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -9,13 +9,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ChevronDown, ChevronLeft, PencilLine } from "lucide-react";
-import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useCredits } from "@/context/CreditContext";
 import { useGetUser } from "@/hooks/auth/useAuth";
 import { useRouter } from "next/navigation";
 import BellIcon from "../icons/bell.svg";
 import { signOut } from "next-auth/react";
+import { getFullUrl } from "@/lib/utils";
 import { IStrategy } from "@/lib/types";
 import Image from "next/image";
 
@@ -31,11 +31,13 @@ const StrategyHeader = ({
   isLoadingStrategy,
 }: HeaderInterface) => {
   const router = useRouter();
-  const successNote = useSuccessNotifier();
   const { updateCredits, credits } = useCredits();
+  const { data, isLoading: isLoadingUser } = useGetUser();
+
   const [showNotifications, setShowNotifications] = useState(false);
 
-  const { data, isLoading: isLoadingUser } = useGetUser();
+  const userData = useMemo(() => data?.data?.user, [data]);
+  const profileImage = useMemo(() => getFullUrl(userData?.avatar), [userData]);
 
   useEffect(() => {
     if (data?.data?.credits) {
@@ -81,7 +83,6 @@ const StrategyHeader = ({
         <div className="flex items-center gap-[22px]">
           <div className="flex items-center gap-[12px]">
             <span className="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">
-              {/* {isLoadingUser? "Loading Credits...": `${credits.usedCredits}/${credits.totalCredits} Credits`} */}
               {isLoadingUser
                 ? "Loading Credits..."
                 : `${credits.usedCredits} Credits`}
@@ -168,10 +169,14 @@ const StrategyHeader = ({
                 <div className="flex items-center space-x-1 cursor-pointer">
                   <Avatar>
                     <AvatarImage
-                      src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face"
-                      alt="User"
+                      src={profileImage}
+                      alt={`${userData?.first_name} ${userData?.last_name}`}
                     />
-                    <AvatarFallback>JD</AvatarFallback>
+                    <AvatarFallback>
+                      {`${userData?.first_name?.[0] ?? ""}${
+                        userData?.last_name?.[0] ?? ""
+                      }`.toUpperCase()}
+                    </AvatarFallback>{" "}
                   </Avatar>
                   <ChevronDown className="h-4 w-4 text-gray-600 dark:text-gray-300" />
                 </div>
@@ -183,14 +188,7 @@ const StrategyHeader = ({
                 <DropdownMenuItem onClick={() => router.push("/settings")}>
                   Settings
                 </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => {
-                    signOut();
-                    successNote({
-                      title: "Logout successfully",
-                    });
-                  }}
-                >
+                <DropdownMenuItem onClick={() => signOut()}>
                   Logout
                 </DropdownMenuItem>
               </DropdownMenuContent>

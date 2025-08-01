@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "@/hooks/use-toast";
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -22,6 +23,45 @@ export const preventNodeDeletionKeys = (e: KeyboardEvent | any) => {
   //   e.stopPropagation();
   //   e.preventDefault();
   // }
+};
+
+export const getFullUrl = (endpoint: string = ""): string => {
+  if (!endpoint) return "";
+
+  let baseUrl = process.env.NEXT_PUBLIC_API_URL || "";
+  if (baseUrl.endsWith("/api")) {
+    baseUrl = baseUrl.replace(/\/api$/, "");
+  }
+
+  // Ensure there's exactly one slash between base URL and endpoint
+  return `${baseUrl.replace(/\/+$/, "")}/${endpoint.replace(/^\/+/, "")}`;
+};
+
+export const showAPIErrorToast = (
+  error?: unknown | any,
+  fallbackTitle = "Validation failed",
+  fallbackMessage = "Something went wrong"
+) => {
+  let description = fallbackMessage;
+
+  // Axios-style error check
+  if (error) {
+    const responseData = error.response?.data;
+
+    const messageFromErrors =
+      responseData?.errors &&
+      Object.values(responseData.errors).flat().join(", ");
+
+    const messageFromMessage = responseData?.message;
+
+    description = messageFromErrors || messageFromMessage || fallbackMessage;
+  }
+
+  toast({
+    title: fallbackTitle,
+    description,
+    variant: "destructive",
+  });
 };
 
 export const getFileSize = async (url?: string) => {

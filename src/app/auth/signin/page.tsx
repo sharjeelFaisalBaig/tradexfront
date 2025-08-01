@@ -49,6 +49,8 @@ export default function LoginPage() {
           redirect: false,
         });
 
+        console.log({ res });
+
         // Handle different possible login responses
         if (res?.error) {
           if (res.error === "CredentialsSignin") {
@@ -79,7 +81,16 @@ export default function LoginPage() {
               title: "2FA Required",
               description: "Please verify your email with the OTP.",
             });
-          } else {
+          }
+          //  else if (res.error === "Configuration") {
+          //   // General "Configuration" error – unverified user - redirect to forget password for email verification
+          //   router.replace(`/auth/forgot-password`);
+          //   successNote({
+          //     title: "2FA Required",
+          //     description: "Please verify your email with the OTP.",
+          //   });
+          // }
+          else {
             // Invalid credentials
             toast({
               title: "Login Failed",
@@ -89,7 +100,7 @@ export default function LoginPage() {
           }
         } else {
           // Successful login – redirect to dashboard
-          router.push("/dashboard");
+          router.replace("/dashboard");
           successNote({
             title: "Login Successful",
             description: "Navigating to dashboard.",
@@ -109,8 +120,13 @@ export default function LoginPage() {
   });
 
   // Google OAuth sign-in handler
-  const handleGoogleSignIn = () => {
-    signIn("google", { callbackUrl: "/dashboard" });
+  const handleGoogleSignIn = async () => {
+    try {
+      await signIn("google", { callbackUrl: "/dashboard" });
+    } catch (error) {
+      console.error("Error during Google sign-in:", error);
+      // Optionally, show an error message to the user
+    }
   };
 
   return (
@@ -133,11 +149,19 @@ export default function LoginPage() {
           <CardHeader className="flex flex-col items-center gap-2 pb-4 pt-8 text-center">
             {/* Logo */}
             <Image
-              src="/logo.png"
+              src="/tradex-logo.svg"
               alt="Tradex AI Logo"
               width={148}
               height={32}
-              className="mt-2 object-contain"
+              className="mt-2 object-contain dark:hidden"
+              priority
+            />
+            <Image
+              src="/tradex-logo-dark.svg"
+              alt="Tradex AI Logo"
+              width={148}
+              height={32}
+              className="mt-2 object-contain hidden dark:block"
               priority
             />
             <CardTitle className="text-base font-normal text-gray-700 dark:text-gray-300">
@@ -181,7 +205,7 @@ export default function LoginPage() {
                   htmlFor="email"
                   className="text-sm text-gray-700 dark:text-gray-300"
                 >
-                  Email address <span className="text-cyan-500">*</span>
+                  Email address
                 </Label>
                 <Input
                   id="email"
@@ -203,7 +227,7 @@ export default function LoginPage() {
                   htmlFor="password"
                   className="text-sm text-gray-700 dark:text-gray-300"
                 >
-                  Password <span className="text-cyan-500">*</span>
+                  Password
                 </Label>
                 <Input
                   id="password"
@@ -245,7 +269,7 @@ export default function LoginPage() {
               <Button
                 type="submit"
                 disabled={formik.isSubmitting}
-                className="h-12 w-full mb-9 bg-cyan-600 hover:bg-cyan-700"
+                className="w-full py-3 h-12 rounded-full bg-cyan-600 text-white text-lg font-semibold transition-colors hover:bg-cyan-700 disabled:bg-gray-400"
               >
                 {formik.isSubmitting ? (
                   <Loader direction="row" text="Signing In..." />

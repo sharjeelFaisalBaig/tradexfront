@@ -1,5 +1,4 @@
 "use client";
-import { toast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +8,7 @@ import Loader from "@/components/common/Loader";
 import { useFormik } from "formik";
 import Image from "next/image";
 import * as Yup from "yup";
+import { showAPIErrorToast } from "@/lib/utils";
 
 export default function ForgotPasswordPage() {
   const router = useRouter();
@@ -42,16 +42,13 @@ export default function ForgotPasswordPage() {
           router.replace(
             `/auth/forgot-password/otp?email=${encodeURIComponent(
               values.email
-            )}&expires_in=${data?.otp_expires_in || 600}` // Why we set 600 conditionaly
+            )}&expires_in=${data?.data?.otp_expires_in || 60}` // Why we set 60 conditionaly
           );
         },
         onError: (error: any) => {
-          toast({
-            title: "Error",
-            description:
-              error?.response?.data?.message || "Failed to send OTP.",
-            variant: "destructive",
-          });
+          const fallbackTitle = "Failed to send OTP";
+          // const fallbackMessage = "Failed to send OTP.";
+          showAPIErrorToast(error, fallbackTitle);
         },
       });
     },
@@ -63,11 +60,19 @@ export default function ForgotPasswordPage() {
         <Card className="rounded-2xl shadow-lg">
           <CardHeader className="flex flex-col items-center gap-2 pb-4 pt-8 text-center">
             <Image
-              src="/logo.png"
+              src="/tradex-logo.svg"
               alt="Tradex AI Logo"
               width={148}
               height={32}
-              className="mt-2 object-contain"
+              className="mt-2 object-contain dark:hidden"
+              priority
+            />
+            <Image
+              src="/tradex-logo-dark.svg"
+              alt="Tradex AI Logo"
+              width={148}
+              height={32}
+              className="mt-2 object-contain hidden dark:block"
               priority
             />
             <CardTitle className="text-base font-normal text-gray-700 dark:text-gray-300">

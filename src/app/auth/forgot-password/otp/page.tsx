@@ -8,6 +8,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Image from "next/image";
 import Loader from "@/components/common/Loader";
 import useSuccessNotifier from "@/hooks/useSuccessNotifier";
+import {
+  useResendOtpMutation,
+  useVerifyOtpMutation,
+} from "@/hooks/auth/useAuth";
+import { showAPIErrorToast } from "@/lib/utils";
 
 export default function ForgotPasswordOtpPage() {
   const router = useRouter();
@@ -16,10 +21,11 @@ export default function ForgotPasswordOtpPage() {
   const email = searchParams.get("email") || "";
   const expiresIn = searchParams.get("expires_in");
   const [otp, setOtp] = useState(Array(6).fill(""));
-  const [loading, setLoading] = useState(false);
-  const [timer, setTimer] = useState(expiresIn ? parseInt(expiresIn, 10) : 0);
-  const [resending, setResending] = useState(false);
+  const [timer, setTimer] = useState(expiresIn ? parseInt(expiresIn, 10) : 60);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  const verifyOtpMutation = useVerifyOtpMutation();
+  const resendOtpMutation = useResendOtpMutation();
 
   const handleChange = (index: number, value: string) => {
     if (!/^\d*$/.test(value)) return;
@@ -54,13 +60,13 @@ export default function ForgotPasswordOtpPage() {
     inputRefs.current.forEach((input, index) => {
       if (input) input.value = otpArray[index];
     });
-    // Focus on the last input box
     inputRefs.current[inputRefs.current.length - 1]?.focus();
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const enteredOtp = otp.join("");
+
     if (enteredOtp.length !== 6) {
       toast({
         title: "Error",
@@ -69,39 +75,32 @@ export default function ForgotPasswordOtpPage() {
       });
       return;
     }
-    setLoading(true);
-    try {
-      const res = await fetch(endpoints.AUTH.VERIFY_OTP, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, otp: enteredOtp, type: "reset" }),
-      });
-      const data = await res.json();
-      if (!res.ok || data.status === "Error") {
-        toast({
-          title: "Error",
-          description: data.message || "Invalid or expired OTP.",
-          variant: "destructive",
-        });
-        setLoading(false);
-        return;
+
+    verifyOtpMutation.mutate(
+      {
+        email,
+        otp: enteredOtp,
+        type: "reset",
+      },
+      {
+        onSuccess: (res) => {
+          sessionStorage.setItem(
+            "password_reset_token",
+            res?.data?.password_reset_token
+          );
+          successNote({
+            title: "OTP Verified",
+            description: "Please set your new password.",
+          });
+          router.replace(
+            `/auth/forgot-password/reset?email=${encodeURIComponent(email)}`
+          );
+        },
+        onError: (error) => {
+          showAPIErrorToast(error);
+        },
       }
-      sessionStorage.setItem("password_reset_token", data.password_reset_token);
-      successNote({
-        title: "OTP Verified",
-        description: "Please set your new password.",
-      });
-      router.replace(
-        `/auth/forgot-password/reset?email=${encodeURIComponent(email)}`
-      );
-    } catch (err) {
-      toast({
-        title: "Error",
-        description: "Something went wrong.",
-        variant: "destructive",
-      });
-    }
-    setLoading(false);
+    );
   };
 
   useEffect(() => {
@@ -111,37 +110,23 @@ export default function ForgotPasswordOtpPage() {
     }
   }, [timer]);
 
-  const handleResend = async () => {
-    if (timer > 0 || resending) return;
-    setResending(true);
-    try {
-      const res = await fetch(endpoints.AUTH.RESEND_OTP, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, type: "reset" }),
-      });
-      const data = await res.json();
-      if (!res.ok || data.status === "Error") {
-        toast({
-          title: "Error",
-          description: data.message || "Failed to resend OTP.",
-          variant: "destructive",
-        });
-      } else {
+  const handleResend = () => {
+    if (timer > 0 || resendOtpMutation.isPending) return;
+
+    const payload: any = { email, type: "reset" };
+
+    resendOtpMutation.mutate(payload, {
+      onSuccess: (data) => {
         setTimer(data.data?.otp_expires_in || 60);
         successNote({
           title: "Success",
           description: "A new OTP has been sent to your email.",
         });
-      }
-    } catch {
-      toast({
-        title: "Error",
-        description: "Something went wrong.",
-        variant: "destructive",
-      });
-    }
-    setResending(false);
+      },
+      onError: (error) => {
+        showAPIErrorToast(error);
+      },
+    });
   };
 
   return (
@@ -150,11 +135,19 @@ export default function ForgotPasswordOtpPage() {
         <Card className="rounded-2xl shadow-lg">
           <CardHeader className="flex flex-col items-center gap-2 pb-4 pt-8 text-center">
             <Image
-              src="/logo.png"
+              src="/tradex-logo.svg"
               alt="Tradex AI Logo"
               width={148}
               height={32}
-              className="mt-2 object-contain"
+              className="mt-2 object-contain dark:hidden"
+              priority
+            />
+            <Image
+              src="/tradex-logo-dark.svg"
+              alt="Tradex AI Logo"
+              width={148}
+              height={32}
+              className="mt-2 object-contain hidden dark:block"
               priority
             />
             <CardTitle className="text-base font-normal text-gray-700 dark:text-gray-300">
@@ -193,10 +186,16 @@ export default function ForgotPasswordOtpPage() {
               </div>
               <Button
                 type="submit"
-                disabled={loading}
+                disabled={
+                  verifyOtpMutation?.isPending || otp.join("").length !== 6
+                }
                 className="w-full py-3 h-12 rounded-full bg-cyan-600 text-white text-lg font-semibold transition-colors hover:bg-cyan-700 disabled:bg-gray-400"
               >
-                {loading ? <Loader text="Verifying..." /> : "Verify"}
+                {verifyOtpMutation?.isPending ? (
+                  <Loader direction="row" text="Verifying..." />
+                ) : (
+                  "Verify"
+                )}
               </Button>
             </form>
             <div className="mt-6 text-sm text-gray-500 flex justify-between items-center">
@@ -204,15 +203,15 @@ export default function ForgotPasswordOtpPage() {
                 Didn't get the code?{" "}
                 <button
                   onClick={handleResend}
-                  disabled={timer > 0 || resending}
+                  disabled={timer > 0 || resendOtpMutation?.isPending}
                   className={`font-semibold underline transition-colors
                     ${
-                      timer > 0 || resending
+                      timer > 0 || resendOtpMutation?.isPending
                         ? "text-gray-400 cursor-not-allowed"
                         : "text-cyan-600 hover:text-cyan-700"
                     }`}
                 >
-                  {resending ? "Sending..." : "Resend"}
+                  {resendOtpMutation?.isPending ? "Sending..." : "Resend"}
                 </button>
               </div>
               {timer > 0 && (

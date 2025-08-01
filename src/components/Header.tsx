@@ -18,28 +18,33 @@ import Affiliate from "../icons/affiliate.svg";
 import UnlockIcon from "../icons/unlock.svg";
 import { signOut } from "next-auth/react";
 import { useGetUser } from "@/hooks/auth/useAuth";
-import useSuccessNotifier from "@/hooks/useSuccessNotifier";
+import { getFullUrl } from "@/lib/utils";
+import { useTheme } from "@/context/ThemeProvider";
 
 interface HeaderInterface {}
 
 const Header = ({}: HeaderInterface) => {
   const router = useRouter();
-  const successNote = useSuccessNotifier();
+  const { theme } = useTheme();
   const [showNotifications, setShowNotifications] = useState(false);
 
   const { data, isLoading: isLoadingUser } = useGetUser();
+
+  const userData = useMemo(() => data?.data?.user, [data]);
   const credits = useMemo(() => data?.data?.credits?.current_credits, [data]);
+  const profileImage = useMemo(() => getFullUrl(userData?.avatar), [userData]);
 
   return (
     <header className="flex items-center justify-between bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-6 py-4">
       {/* Left Section */}
       <div className="flex items-center space-x-20">
         <Image
-          src="/logo.png"
-          alt="Logo"
+          src={theme === "dark" ? "/tradex-logo-dark.svg" : "/tradex-logo.svg"}
+          alt="Tradex AI Logo"
           width={148}
           height={32}
-          className="object-contain mr-6"
+          className="mr-6 object-contain"
+          priority
         />
 
         <div className="flex items-center space-x-2 mr-4">
@@ -153,10 +158,14 @@ const Header = ({}: HeaderInterface) => {
               <div className="flex items-center space-x-1 cursor-pointer">
                 <Avatar>
                   <AvatarImage
-                    src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face"
-                    alt="User"
+                    src={profileImage}
+                    alt={`${userData?.first_name} ${userData?.last_name}`}
                   />
-                  <AvatarFallback>JD</AvatarFallback>
+                  <AvatarFallback>
+                    {`${userData?.first_name?.[0] ?? ""}${
+                      userData?.last_name?.[0] ?? ""
+                    }`.toUpperCase()}
+                  </AvatarFallback>{" "}
                 </Avatar>
                 <ChevronDown className="h-4 w-4 text-gray-600 dark:text-gray-300" />
               </div>
@@ -168,14 +177,7 @@ const Header = ({}: HeaderInterface) => {
               <DropdownMenuItem onClick={() => router.push("/settings")}>
                 Settings
               </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => {
-                  signOut();
-                  successNote({
-                    title: "Logout successfully",
-                  });
-                }}
-              >
+              <DropdownMenuItem onClick={() => signOut()}>
                 Logout
               </DropdownMenuItem>
             </DropdownMenuContent>

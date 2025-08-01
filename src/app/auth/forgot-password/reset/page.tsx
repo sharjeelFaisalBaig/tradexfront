@@ -1,99 +1,80 @@
 "use client";
-
-import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Image from "next/image";
+import { useFormik } from "formik";
+import * as Yup from "yup";
 import { toast } from "@/hooks/use-toast";
-import { endpoints } from "@/lib/endpoints";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import Image from "next/image";
 import Loader from "@/components/common/Loader";
 import useSuccessNotifier from "@/hooks/useSuccessNotifier";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useResetPassword } from "@/hooks/auth/useAuth";
+import { showAPIErrorToast } from "@/lib/utils";
 
-export default function ResetPasswordPage() {
+// Yup validation schema
+const validationSchema = Yup.object().shape({
+  password: Yup.string()
+    .min(8, "Password must be at least 8 characters")
+    .matches(
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]+$/,
+      "Password must include uppercase, lowercase, number, and special character"
+    )
+    .required("Password is required"),
+  confirmPassword: Yup.string()
+    .required("Please confirm your password")
+    .oneOf([Yup.ref("password")], "Passwords do not match"),
+});
+
+const ResetPasswordPage = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const successNote = useSuccessNotifier();
-
   const email = searchParams.get("email") || "";
-  const [password, setPassword] = useState("");
-  const [confirm, setConfirm] = useState("");
-  const [loading, setLoading] = useState(false);
+  const { mutate, isPending } = useResetPassword();
 
-  const handleResetPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!password || !confirm) {
-      toast({
-        title: "Error",
-        description: "Please fill in all fields.",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (password.length < 8) {
-      toast({
-        title: "Error",
-        description: "Password must be at least 8 characters long.",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (password !== confirm) {
-      toast({
-        title: "Error",
-        description: "Passwords do not match.",
-        variant: "destructive",
-      });
-      return;
-    }
-    const token = sessionStorage.getItem("password_reset_token");
-    if (!token) {
-      toast({
-        title: "Error",
-        description: "Session expired. Please restart the reset process.",
-        variant: "destructive",
-      });
-      router.replace("/auth/forgot-password");
-      return;
-    }
-    setLoading(true);
-    try {
-      const res = await fetch(endpoints.AUTH.RESET_PASSWORD, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          token,
-          email,
-          password,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok || data.status === "Error") {
-        const message =
-          data?.errors && Object.values(data.errors).flat().join(", ");
+  const formik = useFormik({
+    initialValues: {
+      password: "",
+      confirmPassword: "",
+    },
+    validationSchema,
+    onSubmit: async (values, { setSubmitting }) => {
+      const token = sessionStorage.getItem("password_reset_token");
+      if (!token) {
         toast({
-          title: data.message || "Error",
-          description: message || "Failed to reset password.",
+          title: "Error",
+          description: "Session expired. Please restart the reset process.",
           variant: "destructive",
         });
-        setLoading(false);
+        router.replace("/auth/forgot-password");
         return;
       }
-      successNote({
-        title: "Password Reset",
-        description: "Your password has been reset. Please log in.",
-      });
-      sessionStorage.removeItem("reset_access_token");
-      router.replace("/auth/signin");
-    } catch (err) {
-      toast({
-        title: "Error",
-        description: "Something went wrong.",
-        variant: "destructive",
-      });
-    }
-    setLoading(false);
-  };
+
+      mutate(
+        {
+          token,
+          email,
+          password: values.password,
+        },
+        {
+          onSuccess: () => {
+            successNote({
+              title: "Password Reset",
+              description: "Your password has been reset. Please log in.",
+            });
+            sessionStorage.removeItem("reset_access_token");
+            router.replace("/auth/signin");
+          },
+          onError: (error: any) => {
+            showAPIErrorToast(error);
+          },
+        }
+      );
+      setSubmitting(false);
+    },
+  });
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#f6f8fb] dark:bg-gray-900">
@@ -101,11 +82,19 @@ export default function ResetPasswordPage() {
         <Card className="rounded-2xl shadow-lg">
           <CardHeader className="flex flex-col items-center gap-2 pb-4 pt-8 text-center">
             <Image
-              src="/logo.png"
+              src="/tradex-logo.svg"
               alt="Tradex AI Logo"
               width={148}
               height={32}
-              className="mt-2 object-contain"
+              className="mt-2 object-contain dark:hidden"
+              priority
+            />
+            <Image
+              src="/tradex-logo-dark.svg"
+              alt="Tradex AI Logo"
+              width={148}
+              height={32}
+              className="mt-2 object-contain hidden dark:block"
               priority
             />
             <CardTitle className="text-base font-normal text-gray-700 dark:text-gray-300">
@@ -113,12 +102,12 @@ export default function ResetPasswordPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="px-8 sm:px-12">
-            <form onSubmit={handleResetPassword}>
+            <form onSubmit={formik.handleSubmit}>
               <div className="mb-4">
-                <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                <Label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
                   Email Address
-                </label>
-                <input
+                </Label>
+                <Input
                   type="email"
                   value={email}
                   disabled
@@ -126,37 +115,56 @@ export default function ResetPasswordPage() {
                 />
               </div>
               <div className="mb-4">
-                <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                <Label
+                  htmlFor="password"
+                  className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300"
+                >
                   New Password
-                </label>
-                <input
+                </Label>
+                <Input
+                  id="password"
                   type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  {...formik.getFieldProps("password")}
                   className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 dark:bg-gray-800 dark:text-gray-100 focus:ring-2 focus:ring-cyan-500 outline-none"
                   placeholder="Enter new password"
                 />
+                {formik.touched.password && formik.errors.password && (
+                  <p className="text-sm text-red-500 mt-1">
+                    {formik.errors.password}
+                  </p>
+                )}
               </div>
               <div className="mb-6">
-                <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                <Label
+                  htmlFor="confirmPassword"
+                  className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300"
+                >
                   Re-enter New Password
-                </label>
-                <input
+                </Label>
+                <Input
+                  id="confirmPassword"
                   type="password"
-                  required
-                  value={confirm}
-                  onChange={(e) => setConfirm(e.target.value)}
+                  {...formik.getFieldProps("confirmPassword")}
                   className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 dark:bg-gray-800 dark:text-gray-100 focus:ring-2 focus:ring-cyan-500 outline-none"
                   placeholder="Re-enter new password"
                 />
+                {formik.touched.confirmPassword &&
+                  formik.errors.confirmPassword && (
+                    <p className="text-sm text-red-500 mt-1">
+                      {formik.errors.confirmPassword}
+                    </p>
+                  )}
               </div>
               <Button
                 type="submit"
-                disabled={loading}
+                disabled={formik.isSubmitting || isPending}
                 className="w-full py-3 h-12 rounded-full bg-cyan-600 text-white text-lg font-semibold transition-colors hover:bg-cyan-700 disabled:bg-gray-400"
               >
-                {loading ? <Loader text="Resetting..." /> : "Reset Password"}
+                {formik.isSubmitting || isPending ? (
+                  <Loader direction="row" text="Resetting..." />
+                ) : (
+                  "Reset Password"
+                )}
               </Button>
             </form>
           </CardContent>
@@ -164,4 +172,6 @@ export default function ResetPasswordPage() {
       </div>
     </div>
   );
-}
+};
+
+export default ResetPasswordPage;

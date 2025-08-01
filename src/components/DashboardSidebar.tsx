@@ -61,9 +61,9 @@ const DashboardSidebar = () => {
               style={{ width: "-webkit-fill-available" }}
             >
               <div className="flex space-x-1">
-                <span className="w-2 h-2 bg-[#00AA67] rounded-full"></span>
-                <span className="w-2 h-2 bg-[#00AA67] rounded-full"></span>
-                <span className="w-2 h-2 bg-[#00AA67] rounded-full"></span>
+                <span className="w-2 h-2 bg-[#00AA67] rounded-full" />
+                <span className="w-2 h-2 bg-[#00AA67] rounded-full" />
+                <span className="w-2 h-2 bg-[#00AA67] rounded-full" />
               </div>
             </Button>
           </div>
@@ -71,7 +71,7 @@ const DashboardSidebar = () => {
           <nav className="flex-1 space-y-1 px-2">
             {navigation.map((item) => {
               const isActive = pathname === item.href;
-
+              const Icon = item.icon;
               return (
                 <div key={item.name}>
                   <Link
@@ -89,7 +89,7 @@ const DashboardSidebar = () => {
                         : "text-dark-gray dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
                     )}
                   >
-                    <item.icon
+                    <Icon
                       className={cn(
                         "h-6 w-6",
                         !collapsed && "mr-3",

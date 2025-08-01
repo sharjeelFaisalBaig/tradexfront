@@ -4,8 +4,39 @@ import { Inter } from "next/font/google";
 import { Providers } from "./providers";
 import { auth } from "@/lib/auth";
 import AuthProvider from "@/context/AuthContext";
+import { Metadata } from "next";
 
 const inter = Inter({ subsets: ["latin"] });
+
+export const metadata: Metadata = {
+  title: "Tradex Ai",
+  description:
+    "AI-powered trading assistant to make smarter investment decisions.",
+  openGraph: {
+    title: "Tradex Ai",
+    description:
+      "AI-powered trading assistant to make smarter investment decisions.",
+    url: "https://tradexfront-xi.vercel.app/dashboard",
+    siteName: "Tradex Ai",
+    images: [
+      {
+        url: "https://tradexfront-xi.vercel.app/tradex-logo.svg",
+        width: 1200,
+        height: 630,
+        alt: "Tradex Ai Logo",
+      },
+    ],
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Tradex Ai",
+    description:
+      "AI-powered trading assistant to make smarter investment decisions.",
+    images: ["https://tradexfront-xi.vercel.app/tradex-logo.svg"],
+  },
+};
 
 export default async function RootLayout({
   children,
