@@ -16,11 +16,11 @@ export const metadata: Metadata = {
     title: "Tradex Ai",
     description:
       "AI-powered trading assistant to make smarter investment decisions.",
-    url: "https://tradexfront-xi.vercel.app/dashboard",
+    url: "https://tradexfront-xi.vercel.app",
     siteName: "Tradex Ai",
     images: [
       {
-        url: "https://tradexfront-xi.vercel.app/tradex-logo.svg",
+        url: "https://tradexfront-xi.vercel.app/og-logo.png",
         width: 1200,
         height: 630,
         alt: "Tradex Ai Logo",
@@ -34,7 +34,7 @@ export const metadata: Metadata = {
     title: "Tradex Ai",
     description:
       "AI-powered trading assistant to make smarter investment decisions.",
-    images: ["https://tradexfront-xi.vercel.app/tradex-logo.svg"],
+    images: ["https://tradexfront-xi.vercel.app/og-logo.png"],
   },
 };
 
