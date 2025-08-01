@@ -25,6 +25,18 @@ export const preventNodeDeletionKeys = (e: KeyboardEvent | any) => {
   // }
 };
 
+export const getFullUrl = (endpoint: string = ""): string => {
+  if (!endpoint) return "";
+
+  let baseUrl = process.env.NEXT_PUBLIC_API_URL || "";
+  if (baseUrl.endsWith("/api")) {
+    baseUrl = baseUrl.replace(/\/api$/, "");
+  }
+
+  // Ensure there's exactly one slash between base URL and endpoint
+  return `${baseUrl.replace(/\/+$/, "")}/${endpoint.replace(/^\/+/, "")}`;
+};
+
 export const showAPIErrorToast = (
   error?: unknown | any,
   fallbackTitle = "Validation failed",
