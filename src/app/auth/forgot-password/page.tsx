@@ -42,7 +42,7 @@ export default function ForgotPasswordPage() {
           router.replace(
             `/auth/forgot-password/otp?email=${encodeURIComponent(
               values.email
-            )}&expires_in=${data?.otp_expires_in || 600}` // Why we set 600 conditionaly
+            )}&expires_in=${data?.data?.otp_expires_in || 60}` // Why we set 60 conditionaly
           );
         },
         onError: (error: any) => {

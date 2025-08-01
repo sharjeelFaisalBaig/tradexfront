@@ -17,7 +17,7 @@ export default function ForgotPasswordOtpPage() {
   const expiresIn = searchParams.get("expires_in");
   const [otp, setOtp] = useState(Array(6).fill(""));
   const [loading, setLoading] = useState(false);
-  const [timer, setTimer] = useState(expiresIn ? parseInt(expiresIn, 10) : 0);
+  const [timer, setTimer] = useState(expiresIn ? parseInt(expiresIn, 10) : 60);
   const [resending, setResending] = useState(false);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -54,7 +54,6 @@ export default function ForgotPasswordOtpPage() {
     inputRefs.current.forEach((input, index) => {
       if (input) input.value = otpArray[index];
     });
-    // Focus on the last input box
     inputRefs.current[inputRefs.current.length - 1]?.focus();
   };
 
@@ -193,10 +192,14 @@ export default function ForgotPasswordOtpPage() {
               </div>
               <Button
                 type="submit"
-                disabled={loading}
+                disabled={loading || otp.join("").length !== 6}
                 className="w-full py-3 h-12 rounded-full bg-cyan-600 text-white text-lg font-semibold transition-colors hover:bg-cyan-700 disabled:bg-gray-400"
               >
-                {loading ? <Loader text="Verifying..." /> : "Verify"}
+                {loading ? (
+                  <Loader direction="row" text="Verifying..." />
+                ) : (
+                  "Verify"
+                )}
               </Button>
             </form>
             <div className="mt-6 text-sm text-gray-500 flex justify-between items-center">

@@ -288,10 +288,11 @@ const Signup = () => {
                 type="submit"
                 className="h-12 w-full mb-9 bg-cyan-600 hover:bg-cyan-700"
               >
-                {/* {formik.isSubmitting || isPending ? (<Loader text="Creating..." />) : ("Create Account")} */}
-                {formik.isSubmitting || isPending
-                  ? "Creating..."
-                  : "Create Account"}
+                {formik.isSubmitting || isPending ? (
+                  <Loader direction="row" text="Creating..." />
+                ) : (
+                  "Create Account"
+                )}
               </Button>
             </form>
 

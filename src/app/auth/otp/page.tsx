@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { signIn } from "next-auth/react";
 import useSuccessNotifier from "@/hooks/useSuccessNotifier";
+import Loader from "@/components/common/Loader";
 
 const OtpVerificationPage = () => {
   const router = useRouter();
@@ -119,7 +120,7 @@ const OtpVerificationPage = () => {
         return data;
       }),
     onSuccess: (data) => {
-      setTimer(data.data.otp_expires_in);
+      setTimer(data?.data?.otp_expires_in);
       successNote({
         title: "Success",
         description: "A new OTP has been sent to your email.",
@@ -148,7 +149,7 @@ const OtpVerificationPage = () => {
         return data;
       }),
     onSuccess: (data) => {
-      setTimer(data.data.otp_expires_in);
+      setTimer(data?.data?.otp_expires_in);
       successNote({
         title: "Success",
         description: "A new OTP has been sent to your email.",
@@ -164,17 +165,6 @@ const OtpVerificationPage = () => {
       });
     },
   });
-
-  useEffect(() => {
-    const enteredOtp = otp.join("");
-    if (enteredOtp.length === 6) {
-      if (twoFactorEnabled === "true") {
-        if (!verify2faMutation.isSuccess) verify2faMutation.mutate(enteredOtp);
-      } else {
-        if (!verifyOtpMutation.isSuccess) verifyOtpMutation.mutate(enteredOtp);
-      }
-    }
-  }, [otp]);
 
   const handleChange = (index: number, value: string) => {
     if (!/^\d*$/.test(value)) return;
@@ -223,7 +213,7 @@ const OtpVerificationPage = () => {
         : verifyOtpMutation.mutate(enteredOtp);
     } else {
       toast({
-        title: "Error",
+        title: "Validation Error",
         description: "Please enter all 6 digits of the OTP.",
         variant: "destructive",
       });
@@ -325,13 +315,17 @@ const OtpVerificationPage = () => {
               <Button
                 type="submit"
                 disabled={
-                  verifyOtpMutation.isPending || verify2faMutation.isPending
+                  otp.join("").length !== 6 ||
+                  verifyOtpMutation.isPending ||
+                  verify2faMutation.isPending
                 }
                 className="w-full mt-8 py-3 h-12 rounded-full bg-cyan-600 text-white text-lg font-semibold transition-colors hover:bg-cyan-700 disabled:bg-gray-400"
               >
-                {verifyOtpMutation.isPending || verify2faMutation.isPending
-                  ? "Verifying..."
-                  : "Verify"}
+                {verifyOtpMutation.isPending || verify2faMutation.isPending ? (
+                  <Loader direction="row" text="Verifying..." />
+                ) : (
+                  "Verify"
+                )}
               </Button>
             </form>
             <div className="mt-6 text-sm text-gray-500 flex justify-between items-center">
@@ -354,11 +348,11 @@ const OtpVerificationPage = () => {
                       : "text-cyan-600 hover:text-cyan-700"
                   }`}
                 >
-                  {(
-                    twoFactorEnabled === "true"
-                      ? resend2faMutation.isPending
-                      : resendOtpMutation.isPending
-                  )
+                  {twoFactorEnabled === "true"
+                    ? resend2faMutation.isPending
+                      ? "Sending..."
+                      : "Resend"
+                    : resendOtpMutation.isPending
                     ? "Sending..."
                     : "Resend"}
                 </button>
