@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { useTheme } from "@/context/ThemeProvider";
 
 interface HeaderProps {
   onBackClick?: () => void;
@@ -12,6 +13,7 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ onBackClick, onSave }) => {
   const router = useRouter();
+  const { theme } = useTheme();
 
   const handleBack = () => {
     if (onBackClick) onBackClick();
@@ -24,11 +26,13 @@ const Header: React.FC<HeaderProps> = ({ onBackClick, onSave }) => {
         {/* Left Section: Logo + Back Button */}
         <div className="flex items-center gap-12">
           <Image
-            src="/logo.png"
-            alt="Logo"
+            src={
+              theme === "dark" ? "/tradex-logo-dark.svg" : "/tradex-logo.svg"
+            }
+            alt="Tradex AI Logo"
             width={148}
             height={32}
-            className="object-contain mr-6"
+            className="mr-6 object-contain"
             priority
           />
           <Button

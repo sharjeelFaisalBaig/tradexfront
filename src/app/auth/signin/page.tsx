@@ -49,6 +49,8 @@ export default function LoginPage() {
           redirect: false,
         });
 
+        console.log({ res });
+
         // Handle different possible login responses
         if (res?.error) {
           if (res.error === "CredentialsSignin") {
@@ -79,7 +81,16 @@ export default function LoginPage() {
               title: "2FA Required",
               description: "Please verify your email with the OTP.",
             });
-          } else {
+          }
+          //  else if (res.error === "Configuration") {
+          //   // General "Configuration" error – unverified user - redirect to forget password for email verification
+          //   router.replace(`/auth/forgot-password`);
+          //   successNote({
+          //     title: "2FA Required",
+          //     description: "Please verify your email with the OTP.",
+          //   });
+          // }
+          else {
             // Invalid credentials
             toast({
               title: "Login Failed",
@@ -138,11 +149,19 @@ export default function LoginPage() {
           <CardHeader className="flex flex-col items-center gap-2 pb-4 pt-8 text-center">
             {/* Logo */}
             <Image
-              src="/logo.png"
+              src="/tradex-logo.svg"
               alt="Tradex AI Logo"
               width={148}
               height={32}
-              className="mt-2 object-contain"
+              className="mt-2 object-contain dark:hidden"
+              priority
+            />
+            <Image
+              src="/tradex-logo-dark.svg"
+              alt="Tradex AI Logo"
+              width={148}
+              height={32}
+              className="mt-2 object-contain hidden dark:block"
               priority
             />
             <CardTitle className="text-base font-normal text-gray-700 dark:text-gray-300">

@@ -234,11 +234,19 @@ const OtpVerificationPage = () => {
         <Card className="rounded-b-[20px] rounded-t-none border-0 shadow-lg">
           <CardHeader className="flex flex-col items-center gap-2 pb-4 pt-8 text-center">
             <Image
-              src="/logo.png"
+              src="/tradex-logo.svg"
               alt="Tradex AI Logo"
               width={148}
               height={32}
-              className="mt-2 object-contain"
+              className="mt-2 object-contain dark:hidden"
+              priority
+            />
+            <Image
+              src="/tradex-logo-dark.svg"
+              alt="Tradex AI Logo"
+              width={148}
+              height={32}
+              className="mt-2 object-contain hidden dark:block"
               priority
             />
             <CardTitle className="text-base font-normal text-gray-700 dark:text-gray-300">

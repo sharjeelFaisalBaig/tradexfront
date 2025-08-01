@@ -19,11 +19,13 @@ import UnlockIcon from "../icons/unlock.svg";
 import { signOut } from "next-auth/react";
 import { useGetUser } from "@/hooks/auth/useAuth";
 import { getFullUrl } from "@/lib/utils";
+import { useTheme } from "@/context/ThemeProvider";
 
 interface HeaderInterface {}
 
 const Header = ({}: HeaderInterface) => {
   const router = useRouter();
+  const { theme } = useTheme();
   const [showNotifications, setShowNotifications] = useState(false);
 
   const { data, isLoading: isLoadingUser } = useGetUser();
@@ -37,11 +39,12 @@ const Header = ({}: HeaderInterface) => {
       {/* Left Section */}
       <div className="flex items-center space-x-20">
         <Image
-          src="/logo.png"
-          alt="Logo"
+          src={theme === "dark" ? "/tradex-logo-dark.svg" : "/tradex-logo.svg"}
+          alt="Tradex AI Logo"
           width={148}
           height={32}
-          className="object-contain mr-6"
+          className="mr-6 object-contain"
+          priority
         />
 
         <div className="flex items-center space-x-2 mr-4">
