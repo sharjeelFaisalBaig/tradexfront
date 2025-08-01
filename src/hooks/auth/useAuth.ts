@@ -1,5 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getUser, createUser, forgetPassword } from "@/services/auth/auth_API";
+import {
+  getUser,
+  createUser,
+  forgetPassword,
+  resetPassword,
+  VerifyOtpPayload,
+  verifyOtpRequest,
+  resendOtpRequest,
+} from "@/services/auth/auth_API";
 import { SignupData } from "@/services/auth/auth_Mutation";
 import { QUERY_KEYS } from "@/lib/queryKeys";
 
@@ -26,5 +34,28 @@ export const useCreateUser = () => {
 export const useForgetPassword = () => {
   return useMutation({
     mutationFn: (data: { email: string }) => forgetPassword(data),
+  });
+};
+
+// POST: reset password after forget password
+export const useResetPassword = () => {
+  return useMutation({
+    mutationFn: (data: { token: string; email: string; password: string }) =>
+      resetPassword(data),
+  });
+};
+
+export const useVerifyOtpMutation = () => {
+  return useMutation({
+    mutationFn: (payload: VerifyOtpPayload) => verifyOtpRequest(payload),
+  });
+};
+
+export const useResendOtpMutation = () => {
+  return useMutation({
+    mutationFn: (payload: {
+      email: string;
+      type: "reset" | "2fa" | "verification";
+    }) => resendOtpRequest(payload),
   });
 };

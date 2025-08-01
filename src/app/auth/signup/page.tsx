@@ -16,6 +16,8 @@ import { useSignup } from "@/services/auth/auth_Mutation";
 import { getCsrfToken } from "@/services/auth/csrf";
 import Loader from "@/components/common/Loader";
 import useSuccessNotifier from "@/hooks/useSuccessNotifier";
+import { showAPIErrorToast } from "@/lib/utils";
+import { signIn } from "next-auth/react";
 
 // Yup validation schema
 const validationSchema = Yup.object().shape({
@@ -27,8 +29,8 @@ const validationSchema = Yup.object().shape({
   password: Yup.string()
     .min(8, "Password must be at least 8 characters")
     .matches(
-      /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]+$/,
-      "Password must be alphanumeric"
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]+$/,
+      "Password must include uppercase, lowercase, number, and special character"
     )
     .required("Password is required"),
   confirmPassword: Yup.string()
@@ -82,24 +84,26 @@ const Signup = () => {
             });
           }
         },
-        onError: (error: any) => {
-          const message =
-            error?.errors && Object.values(error.errors).flat().join(", ");
-          toast({
-            title: error?.message || "Error",
-            description:
-              message ||
-              "There was an issue creating your account. Please try again.",
-            variant: "destructive",
-          });
+        onError: (error) => {
+          showAPIErrorToast(
+            error,
+            "Validation failed",
+            "There was an issue creating your account. Please try again."
+          );
         },
       });
       setSubmitting(false);
     },
   });
 
-  const handleGoogleLogin = () => {
-    // Implement Google OAuth logic here
+  // Google OAuth sign-in handler
+  const handleGoogleSignIn = async () => {
+    try {
+      await signIn("google", { callbackUrl: "/dashboard" });
+    } catch (error) {
+      console.error("Error during Google sign-in:", error);
+      // Optionally, show an error message to the user
+    }
   };
 
   return (
@@ -133,7 +137,7 @@ const Signup = () => {
             <Button
               variant="outline"
               className="mb-6 flex h-12 w-full items-center justify-center bg-teal-900 text-sm text-white"
-              onClick={handleGoogleLogin}
+              onClick={handleGoogleSignIn}
               type="button"
             >
               <svg

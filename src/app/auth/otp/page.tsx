@@ -12,6 +12,8 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { signIn } from "next-auth/react";
 import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 import Loader from "@/components/common/Loader";
+import { resendOtpRequest } from "@/services/auth/auth_API";
+import { showAPIErrorToast } from "@/lib/utils";
 
 const OtpVerificationPage = () => {
   const router = useRouter();
@@ -68,13 +70,7 @@ const OtpVerificationPage = () => {
       });
     },
     onError: (error: any) => {
-      const message =
-        error?.errors && Object.values(error.errors).flat().join(", ");
-      toast({
-        title: error?.message || "Error",
-        description: message || "Invalid or expired OTP.",
-        variant: "destructive",
-      });
+      showAPIErrorToast(error, "Validation failed", "Invalid or expired OTP.");
     },
   });
 
@@ -98,71 +94,36 @@ const OtpVerificationPage = () => {
       setTimeout(() => router.replace("/auth/signin"), 1200);
     },
     onError: (error: any) => {
-      const message =
-        error?.errors && Object.values(error.errors).flat().join(", ");
-      toast({
-        title: error?.message || "Error",
-        description: message || "Invalid or expired OTP.",
-        variant: "destructive",
-      });
+      showAPIErrorToast(error, "Validation failed", "Invalid or expired OTP.");
     },
   });
 
   const resendOtpMutation = useMutation({
     mutationFn: () =>
-      fetch(endpoints.AUTH.RESEND_OTP, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, type: "verification" }),
-      }).then(async (res) => {
-        const data = await res.json();
-        if (!res.ok || data.status === "Error") throw data;
-        return data;
-      }),
+      resendOtpRequest({ email: email ?? "", type: "verification" }),
     onSuccess: (data) => {
-      setTimer(data?.data?.otp_expires_in);
+      setTimer(data?.data?.otp_expires_in ?? 0);
       successNote({
         title: "Success",
         description: "A new OTP has been sent to your email.",
       });
     },
     onError: (error: any) => {
-      const message =
-        error?.errors && Object.values(error.errors).flat().join(", ");
-      toast({
-        title: error?.message || "Error",
-        description: message || "Failed to resend OTP.",
-        variant: "destructive",
-      });
+      showAPIErrorToast(error, "Validation failed", "Failed to resend OTP.");
     },
   });
 
   const resend2faMutation = useMutation({
-    mutationFn: () =>
-      fetch(endpoints.AUTH.RESEND_OTP, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, type: "2fa" }),
-      }).then(async (res) => {
-        const data = await res.json();
-        if (!res.ok || data.status === "Error") throw data;
-        return data;
-      }),
+    mutationFn: () => resendOtpRequest({ email: email ?? "", type: "2fa" }),
     onSuccess: (data) => {
-      setTimer(data?.data?.otp_expires_in);
+      setTimer(data?.data?.otp_expires_in ?? 0);
       successNote({
         title: "Success",
         description: "A new OTP has been sent to your email.",
       });
     },
-    onError: (error: any) => {
-      const message =
-        error?.errors && Object.values(error.errors).flat().join(", ");
-      toast({
-        title: error?.message || "Error",
-        description: message || "Failed to resend OTP.",
-        variant: "destructive",
-      });
+    onError: (error) => {
+      showAPIErrorToast(error, "Validation failed", "Failed to resend OTP.");
     },
   });
 

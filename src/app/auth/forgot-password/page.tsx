@@ -1,5 +1,4 @@
 "use client";
-import { toast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +8,7 @@ import Loader from "@/components/common/Loader";
 import { useFormik } from "formik";
 import Image from "next/image";
 import * as Yup from "yup";
+import { showAPIErrorToast } from "@/lib/utils";
 
 export default function ForgotPasswordPage() {
   const router = useRouter();
@@ -46,12 +46,9 @@ export default function ForgotPasswordPage() {
           );
         },
         onError: (error: any) => {
-          toast({
-            title: "Error",
-            description:
-              error?.response?.data?.message || "Failed to send OTP.",
-            variant: "destructive",
-          });
+          const fallbackTitle = "Failed to send OTP";
+          // const fallbackMessage = "Failed to send OTP.";
+          showAPIErrorToast(error, fallbackTitle);
         },
       });
     },

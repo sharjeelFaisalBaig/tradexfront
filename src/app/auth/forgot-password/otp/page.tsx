@@ -8,6 +8,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Image from "next/image";
 import Loader from "@/components/common/Loader";
 import useSuccessNotifier from "@/hooks/useSuccessNotifier";
+import {
+  useResendOtpMutation,
+  useVerifyOtpMutation,
+} from "@/hooks/auth/useAuth";
+import { showAPIErrorToast } from "@/lib/utils";
 
 export default function ForgotPasswordOtpPage() {
   const router = useRouter();
@@ -16,10 +21,11 @@ export default function ForgotPasswordOtpPage() {
   const email = searchParams.get("email") || "";
   const expiresIn = searchParams.get("expires_in");
   const [otp, setOtp] = useState(Array(6).fill(""));
-  const [loading, setLoading] = useState(false);
   const [timer, setTimer] = useState(expiresIn ? parseInt(expiresIn, 10) : 60);
-  const [resending, setResending] = useState(false);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  const verifyOtpMutation = useVerifyOtpMutation();
+  const resendOtpMutation = useResendOtpMutation();
 
   const handleChange = (index: number, value: string) => {
     if (!/^\d*$/.test(value)) return;
@@ -57,9 +63,10 @@ export default function ForgotPasswordOtpPage() {
     inputRefs.current[inputRefs.current.length - 1]?.focus();
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const enteredOtp = otp.join("");
+
     if (enteredOtp.length !== 6) {
       toast({
         title: "Error",
@@ -68,39 +75,32 @@ export default function ForgotPasswordOtpPage() {
       });
       return;
     }
-    setLoading(true);
-    try {
-      const res = await fetch(endpoints.AUTH.VERIFY_OTP, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, otp: enteredOtp, type: "reset" }),
-      });
-      const data = await res.json();
-      if (!res.ok || data.status === "Error") {
-        toast({
-          title: "Error",
-          description: data.message || "Invalid or expired OTP.",
-          variant: "destructive",
-        });
-        setLoading(false);
-        return;
+
+    verifyOtpMutation.mutate(
+      {
+        email,
+        otp: enteredOtp,
+        type: "reset",
+      },
+      {
+        onSuccess: (res) => {
+          sessionStorage.setItem(
+            "password_reset_token",
+            res?.data?.password_reset_token
+          );
+          successNote({
+            title: "OTP Verified",
+            description: "Please set your new password.",
+          });
+          router.replace(
+            `/auth/forgot-password/reset?email=${encodeURIComponent(email)}`
+          );
+        },
+        onError: (error) => {
+          showAPIErrorToast(error);
+        },
       }
-      sessionStorage.setItem("password_reset_token", data.password_reset_token);
-      successNote({
-        title: "OTP Verified",
-        description: "Please set your new password.",
-      });
-      router.replace(
-        `/auth/forgot-password/reset?email=${encodeURIComponent(email)}`
-      );
-    } catch (err) {
-      toast({
-        title: "Error",
-        description: "Something went wrong.",
-        variant: "destructive",
-      });
-    }
-    setLoading(false);
+    );
   };
 
   useEffect(() => {
@@ -110,37 +110,23 @@ export default function ForgotPasswordOtpPage() {
     }
   }, [timer]);
 
-  const handleResend = async () => {
-    if (timer > 0 || resending) return;
-    setResending(true);
-    try {
-      const res = await fetch(endpoints.AUTH.RESEND_OTP, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, type: "reset" }),
-      });
-      const data = await res.json();
-      if (!res.ok || data.status === "Error") {
-        toast({
-          title: "Error",
-          description: data.message || "Failed to resend OTP.",
-          variant: "destructive",
-        });
-      } else {
+  const handleResend = () => {
+    if (timer > 0 || resendOtpMutation.isPending) return;
+
+    const payload: any = { email, type: "reset" };
+
+    resendOtpMutation.mutate(payload, {
+      onSuccess: (data) => {
         setTimer(data.data?.otp_expires_in || 60);
         successNote({
           title: "Success",
           description: "A new OTP has been sent to your email.",
         });
-      }
-    } catch {
-      toast({
-        title: "Error",
-        description: "Something went wrong.",
-        variant: "destructive",
-      });
-    }
-    setResending(false);
+      },
+      onError: (error) => {
+        showAPIErrorToast(error);
+      },
+    });
   };
 
   return (
@@ -192,10 +178,12 @@ export default function ForgotPasswordOtpPage() {
               </div>
               <Button
                 type="submit"
-                disabled={loading || otp.join("").length !== 6}
+                disabled={
+                  verifyOtpMutation?.isPending || otp.join("").length !== 6
+                }
                 className="w-full py-3 h-12 rounded-full bg-cyan-600 text-white text-lg font-semibold transition-colors hover:bg-cyan-700 disabled:bg-gray-400"
               >
-                {loading ? (
+                {verifyOtpMutation?.isPending ? (
                   <Loader direction="row" text="Verifying..." />
                 ) : (
                   "Verify"
@@ -207,15 +195,15 @@ export default function ForgotPasswordOtpPage() {
                 Didn't get the code?{" "}
                 <button
                   onClick={handleResend}
-                  disabled={timer > 0 || resending}
+                  disabled={timer > 0 || resendOtpMutation?.isPending}
                   className={`font-semibold underline transition-colors
                     ${
-                      timer > 0 || resending
+                      timer > 0 || resendOtpMutation?.isPending
                         ? "text-gray-400 cursor-not-allowed"
                         : "text-cyan-600 hover:text-cyan-700"
                     }`}
                 >
-                  {resending ? "Sending..." : "Resend"}
+                  {resendOtpMutation?.isPending ? "Sending..." : "Resend"}
                 </button>
               </div>
               {timer > 0 && (

@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "@/hooks/use-toast";
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -22,6 +23,33 @@ export const preventNodeDeletionKeys = (e: KeyboardEvent | any) => {
   //   e.stopPropagation();
   //   e.preventDefault();
   // }
+};
+
+export const showAPIErrorToast = (
+  error?: unknown | any,
+  fallbackTitle = "Validation failed",
+  fallbackMessage = "Something went wrong"
+) => {
+  let description = fallbackMessage;
+
+  // Axios-style error check
+  if (error) {
+    const responseData = error.response?.data;
+
+    const messageFromErrors =
+      responseData?.errors &&
+      Object.values(responseData.errors).flat().join(", ");
+
+    const messageFromMessage = responseData?.message;
+
+    description = messageFromErrors || messageFromMessage || fallbackMessage;
+  }
+
+  toast({
+    title: fallbackTitle,
+    description,
+    variant: "destructive",
+  });
 };
 
 export const getFileSize = async (url?: string) => {
