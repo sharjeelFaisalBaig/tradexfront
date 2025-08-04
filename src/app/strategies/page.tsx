@@ -15,22 +15,33 @@ import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
 import SearchIcon from "@/icons/search.svg";
 import StrategyCard from "@/components/StrategyCard";
-import { favouriteStrategy } from "@/services/strategy/strategy_Mutation";
 import { IStrategy } from "@/lib/types";
 import { toast } from "@/hooks/use-toast";
 import { useGetStrategies } from "@/hooks/strategy/useStrategyQueries";
 import Loader from "@/components/common/Loader";
 import { Pagination } from "@/components/common/Pagination";
 import NewStrategyModal from "@/components/modal/NewStrategyModal";
+import DeleteStrategyModal from "@/components/modal/DeleteStrategyModal";
+import {
+  useCopyStrategy,
+  useFavouriteStrategy,
+} from "@/hooks/strategy/useStrategyMutations";
+import useSuccessNotifier from "@/hooks/useSuccessNotifier";
+import { showAPIErrorToast } from "@/lib/utils";
 
 const Strategies = () => {
   const router = useRouter();
+  const successNote = useSuccessNotifier();
+
+  // mutations
+  const { mutate: copyStrategy } = useCopyStrategy();
+  const { mutate: toggleFavouriteStrategy } = useFavouriteStrategy();
 
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [starredItems, setStarredItems] = useState<boolean[]>([]);
   const [isForEdit, setIsForEdit] = useState<boolean>(false);
   const [isForDelete, setIsForDelete] = useState<boolean>(false);
+  const [favStrategies, setFavStrategies] = useState<IStrategy[]>([]);
   const [selectedStrategy, setSelectedStrategy] = useState<IStrategy | null>(
     null
   );
@@ -52,12 +63,12 @@ const Strategies = () => {
     }
   }, [error]);
 
-  // Sync starredItems once data is fetched
   useEffect(() => {
-    if (strategies.length) {
-      // @ts-ignore
-      setStarredItems(strategies?.map((s) => s.is_favourite));
-    }
+    strategies?.map((s) => {
+      if (s?.collaborators?.[0]?.is_favourite) {
+        setFavStrategies((prev) => [...prev, s]);
+      }
+    });
   }, [strategies]);
 
   // Filter based on search
@@ -67,46 +78,80 @@ const Strategies = () => {
     );
   }, [strategies, searchTerm]);
 
-  const toggleStar = async (index: number) => {
-    const strategy = filteredStrategies[index]; // filtered index
-    const actualIndex = strategies.findIndex((s) => s.id === strategy.id); // for starredItems
-    const newIsFavourite = !starredItems[actualIndex];
+  const handleToggleIsFavourite = (strategy: IStrategy) => {
+    const newFavouriteState = !favStrategies?.some(
+      (fav) => fav?.id === strategy?.id
+    );
 
-    try {
-      await favouriteStrategy(strategy.id, newIsFavourite);
-      const updated = [...starredItems];
-      updated[actualIndex] = newIsFavourite;
-      setStarredItems(updated);
-    } catch (error) {
-      console.error("Failed to update favourite status", error);
-    }
+    // Optimistically update local favourite strategies
+    setFavStrategies((prevFavs) => {
+      if (newFavouriteState) {
+        return [...prevFavs, strategy];
+      } else {
+        return prevFavs.filter((s) => s.id !== strategy.id);
+      }
+    });
+
+    // Show success toast immediately
+    successNote({
+      title: newFavouriteState
+        ? "Added to Favourite"
+        : "Removed from Favourite",
+      description: `“${strategy?.name}” has been ${
+        newFavouriteState ? "added to" : "removed from"
+      } favourites.`,
+    });
+
+    // API call
+    toggleFavouriteStrategy(
+      { id: strategy?.id ?? "", is_favourite: newFavouriteState },
+      {
+        onError: (error) => {
+          showAPIErrorToast(error);
+
+          // Revert local change on failure
+          setFavStrategies((prevFavs) => {
+            if (newFavouriteState) {
+              // Revert add → remove again
+              return prevFavs.filter((s) => s.id !== strategy.id);
+            } else {
+              // Revert remove → add again
+              return [...prevFavs, strategy];
+            }
+          });
+        },
+      }
+    );
   };
 
-  // if (isLoading) {
-  //   return (
-  //     <div className="flex min-h-screen items-center justify-center bg-[#f6f8fb] dark:bg-gray-900">
-  //       <Loader text="Loading strategies..." />
-  //     </div>
-  //   );
-  // }
-
-  // if (isError) {
-  //   return (
-  //     <div className="flex min-h-screen items-center justify-center">
-  //       <span className="text-red-600 text-lg font-semibold">
-  //         Failed to load strategies.
-  //       </span>
-  //     </div>
-  //   );
-  // }
+  const handleCopyStrategy = (strategy: IStrategy) => {
+    copyStrategy(strategy?.id, {
+      onSuccess: () => {
+        successNote({
+          title: "Strategy Copied",
+          description: `“${strategy?.name}” has been successfully copied.`,
+        });
+      },
+      onError: (error) => {
+        showAPIErrorToast(error);
+      },
+    });
+  };
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900">
       {isForEdit && (
         <NewStrategyModal
-          strategy={selectedStrategy}
           isOpen={isForEdit}
+          strategy={selectedStrategy}
           onClose={() => setIsForEdit(false)}
+        />
+      )}
+      {isForDelete && (
+        <DeleteStrategyModal
+          isOpen={isForDelete}
+          strategy={selectedStrategy}
+          onClose={() => setIsForDelete(false)}
         />
       )}
 
@@ -178,27 +223,30 @@ const Strategies = () => {
             <>
               {/* Strategy Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                {filteredStrategies.map((strategy, index) => (
-                  <StrategyCard
-                    key={strategy.id}
-                    strategy={strategy}
-                    isFavorite={
-                      starredItems[
-                        strategies.findIndex((s) => s.id === strategy.id)
-                      ]
-                    }
-                    onClick={() => router.push(`/strategies/${strategy.id}`)}
-                    toggleStar={() => toggleStar(index)}
-                    onEdit={() => {
-                      setIsForEdit(true);
-                      setSelectedStrategy(strategy);
-                    }}
-                    onDelete={() => {
-                      setIsForDelete(true);
-                      setSelectedStrategy(strategy);
-                    }}
-                  />
-                ))}
+                {filteredStrategies.map((strategy) => {
+                  const isFavourite = favStrategies?.some(
+                    (fav) => fav?.id === strategy?.id
+                  );
+
+                  return (
+                    <StrategyCard
+                      key={strategy.id}
+                      strategy={strategy}
+                      isFavorite={isFavourite}
+                      onClick={() => router.push(`/strategies/${strategy.id}`)}
+                      onCopy={handleCopyStrategy}
+                      toggleStar={() => handleToggleIsFavourite(strategy)}
+                      onEdit={() => {
+                        setIsForEdit(true);
+                        setSelectedStrategy(strategy);
+                      }}
+                      onDelete={() => {
+                        setIsForDelete(true);
+                        setSelectedStrategy(strategy);
+                      }}
+                    />
+                  );
+                })}
               </div>
 
               {/* Pagination */}

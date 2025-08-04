@@ -43,6 +43,7 @@ import {
   updateAnnotationContent,
   deleteAnnotationPeer,
   sendPeerAiNote,
+  deleteStrategy,
 } from "@/services/strategy/strategy_Mutation";
 import { IStrategy } from "@/lib/types";
 import { QUERY_KEYS } from "@/lib/queryKeys";
@@ -70,21 +71,22 @@ export const useUpdateStrategy = () => {
   });
 };
 
-export const useCopyStrategy = () => {
+export const useDeleteStrategy = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => copyStrategy(id),
+    mutationFn: (id: string) => deleteStrategy(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.STRATEGIES] });
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.STRATEGIES],
+      });
     },
   });
 };
 
-export const useToggleStrategy = () => {
+export const useCopyStrategy = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, is_active }: { id: string; is_active: boolean }) =>
-      toggleStrategy(id, is_active),
+    mutationFn: (id: string) => copyStrategy(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.STRATEGIES] });
     },
@@ -96,6 +98,17 @@ export const useFavouriteStrategy = () => {
   return useMutation({
     mutationFn: ({ id, is_favourite }: { id: string; is_favourite: boolean }) =>
       favouriteStrategy(id, is_favourite),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.STRATEGIES] });
+    },
+  });
+};
+
+export const useToggleStrategy = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, is_active }: { id: string; is_active: boolean }) =>
+      toggleStrategy(id, is_active),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.STRATEGIES] });
     },

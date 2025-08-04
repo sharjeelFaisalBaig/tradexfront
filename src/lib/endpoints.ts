@@ -1,6 +1,7 @@
 const API_BASE_PATH =
   process.env.NEXT_PUBLIC_API_URL ||
   "https://tradexfront.isoft-digital.net/api";
+
 export const DOMAIN_ROOT = API_BASE_PATH.replace("/api", "");
 
 interface UploadContent {
@@ -67,6 +68,7 @@ export const endpoints = {
     TOGGLE: (id: string) => `${API_BASE_PATH}/strategies/${id}/toggle`,
     FAVOURITE: (id: string) => `${API_BASE_PATH}/strategies/${id}/favourite`,
     UPDATE: (id: string) => `${API_BASE_PATH}/strategies/${id}`,
+    DELETE: (id: string) => `${API_BASE_PATH}/strategies/${id}`,
 
     // board connect source node to target node endpoint
     CONNECT_NODES: (id: string) => `/strategies/${id}/thread-context/connect`,
