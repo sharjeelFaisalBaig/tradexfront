@@ -1,136 +1,147 @@
 "use client";
 
-import React, {
-  createContext,
-  useCallback,
-  useRef,
-  useState,
-  useContext,
-  ReactNode,
-} from "react";
-import type { Node, Edge } from "@xyflow/react";
+import { Node, Edge, XYPosition } from "@xyflow/react";
+import React, { createContext, ReactNode, useContext, useState } from "react";
+import { useNodeOperations } from "@/app/strategies/[slug]/hooks/useNodeOperations";
+import { Tool } from "@/lib/types";
 
-interface HistoryState {
-  nodes: Node[];
-  edges: Edge[];
-}
+// Define your types and context as before
+export type Action =
+  | { type: "ADD_NODE"; node: Node }
+  | { type: "DELETE_NODE"; node: Node }
+  | { type: "UPLOAD_FILE"; nodeId: string; fileUrl: string }
+  | { type: "REMOVE_FILE"; nodeId: string; fileUrl: string }
+  | { type: "ADD_EDGE"; edge: Edge }
+  | { type: "REMOVE_EDGE"; edge: Edge }
+  | { type: "MOVE_NODE"; nodeId: string; from: XYPosition; to: XYPosition };
 
-interface UndoRedoContextProps {
-  saveToHistory: (nodes: Node[], edges: Edge[]) => void;
-  undo: () => HistoryState | null;
-  redo: () => HistoryState | null;
+type UndoRedoContextType = {
+  addAction: (action: Action) => void;
+  batchUpdate: (actions: Action[]) => Promise<void>;
+  undo: () => Promise<void>;
+  redo: () => Promise<void>;
   canUndo: boolean;
   canRedo: boolean;
-  clearHistory: (nodes: Node[], edges: Edge[]) => void;
-  resetUndoRedoFlag: () => void;
-  currentIndex: number;
-  historySize: number;
-}
+};
 
-const UndoRedoContext = createContext<UndoRedoContextProps | undefined>(
+const UndoRedoContext = createContext<UndoRedoContextType | undefined>(
   undefined
 );
 
-export const UndoRedoProvider = ({
-  children,
-  initialNodes = [],
-  initialEdges = [],
-  maxHistorySize = 50,
-}: {
-  children: ReactNode;
-  initialNodes?: Node[];
-  initialEdges?: Edge[];
-  maxHistorySize?: number;
-}) => {
-  const [history, setHistory] = useState<HistoryState[]>([
-    { nodes: initialNodes, edges: initialEdges },
-  ]);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const isUndoRedoOperation = useRef(false);
+export const UndoRedoProvider = ({ children }: { children: ReactNode }) => {
+  // node operations hook
+  const { addToolNode, deleteNode } = useNodeOperations();
 
-  // Clone nodes (preserve file state & other dynamic data)
-  const cloneNodes = (nodes: Node[]) =>
-    nodes.map((n) => ({
-      ...n,
-      data: { ...n.data },
-    }));
+  // states
+  const [undoStack, setUndoStack] = useState<Action[]>([]);
+  const [redoStack, setRedoStack] = useState<Action[]>([]);
 
-  const saveToHistory = useCallback(
-    (nodes: Node[], edges: Edge[]) => {
-      if (isUndoRedoOperation.current) return;
+  const addAction = (action: Action) => {
+    setUndoStack((prev) => [...prev, action]);
+    setRedoStack([]);
+  };
 
-      setHistory((prev) => {
-        const newHistory = prev.slice(0, currentIndex + 1);
-        newHistory.push({ nodes: cloneNodes(nodes), edges: [...edges] });
+  const undo = async () => {
+    const lastAction = undoStack.at(-1);
+    if (!lastAction) return;
 
-        if (newHistory.length > maxHistorySize) {
-          newHistory.shift();
-          setCurrentIndex((prev) => Math.max(0, prev - 1));
-          return newHistory;
-        }
+    setUndoStack((prev) => prev.slice(0, -1));
+    setRedoStack((prev) => [...prev, lastAction]);
 
-        setCurrentIndex(newHistory.length - 1);
-        return newHistory;
-      });
-    },
-    [currentIndex, maxHistorySize]
-  );
-
-  const undo = useCallback(() => {
-    if (currentIndex > 0) {
-      const current = history[currentIndex];
-      const prev = history[currentIndex - 1];
-
-      // If node exists in both states but only file differs → just clear file
-      const fileChangedNode = current.nodes.find((node) => {
-        const prevNode = prev.nodes.find((p) => p.id === node.id);
-        return prevNode && prevNode.data.file !== node.data.file;
-      });
-
-      if (fileChangedNode) {
-        console.log("Undo: Resetting file for node first");
-        fileChangedNode.data.file = null; // clear file
-        saveToHistory(current.nodes, current.edges);
-        return { nodes: [...current.nodes], edges: [...current.edges] };
+    try {
+      switch (lastAction.type) {
+        case "ADD_NODE":
+          await deleteNode(
+            lastAction?.node?.id,
+            lastAction?.node?.type as string,
+            lastAction?.node?.data?.strategyId as string
+          );
+          break;
+        case "DELETE_NODE":
+          await addToolNode({
+            peerType: lastAction?.node?.data?.tool as Tool,
+            strategyId: lastAction.node.data.strategyId as string,
+            positionXY: lastAction?.node?.position,
+          });
+          break;
+        // Handle other actions similarly
       }
-
-      isUndoRedoOperation.current = true;
-      setCurrentIndex((prev) => prev - 1);
-      return prev;
+    } catch (error) {
+      console.error("Failed to undo action:", error);
+      setUndoStack((prev) => [...prev, lastAction]);
+      setRedoStack((prev) => prev.slice(0, -1));
     }
-    return null;
-  }, [currentIndex, history, saveToHistory]);
+  };
 
-  const redo = useCallback(() => {
-    if (currentIndex < history.length - 1) {
-      isUndoRedoOperation.current = true;
-      setCurrentIndex((prev) => prev + 1);
-      return history[currentIndex + 1];
+  const redo = async () => {
+    const nextAction = redoStack.at(-1);
+    if (!nextAction) return;
+
+    setRedoStack((prev) => prev.slice(0, -1));
+    setUndoStack((prev) => [...prev, nextAction]);
+
+    try {
+      switch (nextAction.type) {
+        case "ADD_NODE":
+          await addToolNode({
+            peerType: nextAction.node.data.tool as Tool,
+            strategyId: nextAction.node.data.strategyId as string,
+            positionXY: nextAction.node.position,
+          });
+          break;
+        case "DELETE_NODE":
+          await deleteNode(
+            nextAction.node.id,
+            nextAction.node.type as string,
+            nextAction.node.data.strategyId as string
+          );
+          break;
+        // Handle other actions similarly
+      }
+    } catch (error) {
+      console.error("Failed to redo action:", error);
+      setRedoStack((prev) => [...prev, nextAction]);
+      setUndoStack((prev) => prev.slice(0, -1));
     }
-    return null;
-  }, [currentIndex, history]);
+  };
 
-  const resetUndoRedoFlag = useCallback(() => {
-    isUndoRedoOperation.current = false;
-  }, []);
-
-  const clearHistory = useCallback((nodes: Node[], edges: Edge[]) => {
-    setHistory([{ nodes: [...nodes], edges: [...edges] }]);
-    setCurrentIndex(0);
-  }, []);
+  const batchUpdate = async (actions: Action[]) => {
+    try {
+      for (const action of actions) {
+        switch (action.type) {
+          case "ADD_NODE":
+            await addToolNode({
+              peerType: action.node.data.tool as Tool,
+              strategyId: action.node.data.strategyId as string,
+              positionXY: action.node.position,
+            });
+            break;
+          case "DELETE_NODE":
+            await deleteNode(
+              action.node.id,
+              action.node.type as string,
+              action.node.data.strategyId as string
+            );
+            break;
+          // Handle other actions similarly
+        }
+      }
+      setUndoStack((prev) => [...prev, ...actions]);
+      setRedoStack([]);
+    } catch (error) {
+      console.error("Failed to batch update actions:", error);
+    }
+  };
 
   return (
     <UndoRedoContext.Provider
       value={{
-        saveToHistory,
+        addAction,
+        batchUpdate,
         undo,
         redo,
-        canUndo: currentIndex > 0,
-        canRedo: currentIndex < history.length - 1,
-        clearHistory,
-        resetUndoRedoFlag,
-        historySize: history.length,
-        currentIndex,
+        canUndo: undoStack.length > 0,
+        canRedo: redoStack.length > 0,
       }}
     >
       {children}
@@ -138,9 +149,10 @@ export const UndoRedoProvider = ({
   );
 };
 
-export const useUndoRedoContext = () => {
-  const ctx = useContext(UndoRedoContext);
-  if (!ctx)
-    throw new Error("useUndoRedoContext must be used within UndoRedoProvider");
-  return ctx;
+export const useUndoRedo = () => {
+  const context = useContext(UndoRedoContext);
+  if (!context) {
+    throw new Error("useUndoRedo must be used within UndoRedoProvider");
+  }
+  return context;
 };

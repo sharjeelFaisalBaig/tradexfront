@@ -22,6 +22,7 @@ import {
   useDeleteAnnotationPeer,
 } from "@/hooks/strategy/useStrategyMutations";
 import { toast } from "@/hooks/use-toast";
+import { Action, useUndoRedo } from "@/context/UndoRedoContext";
 
 const nodeDefaults = {
   sourcePosition: Position.Right,
@@ -99,6 +100,7 @@ const toolToNode = (tool: Tool, position: { x: number; y: number }) => {
 };
 
 export const useNodeOperations = () => {
+  // const { batchUpdate } = useUndoRedo();
   const { setNodes, setEdges } = useReactFlow();
 
   // Hooks for create mutations
@@ -120,6 +122,17 @@ export const useNodeOperations = () => {
   const { mutate: deleteSocialPeer } = useDeleteSocialPeer();
   const { mutate: deleteRemotePeer } = useDeleteRemotePeer();
   const { mutate: deleteThreadPeer } = useDeleteThreadPeer();
+
+  // const batchUpdateNodes = useCallback(
+  //   async (actions: Action[]) => {
+  //     try {
+  //       await batchUpdate(actions);
+  //     } catch (error) {
+  //       console.error("Failed to batch update nodes:", error);
+  //     }
+  //   },
+  //   [batchUpdate]
+  // );
 
   const addToolNode = useCallback(
     ({
@@ -317,5 +330,6 @@ export const useNodeOperations = () => {
     deleteNode,
     updateNodeData,
     updateNodeSize,
+    // batchUpdateNodes, // Add batchUpdateNodes to the returned object
   };
 };

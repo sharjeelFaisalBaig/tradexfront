@@ -32,12 +32,13 @@ import {
   useUpdatePeerPosition,
   useConnectNodes,
 } from "@/hooks/strategy/useStrategyMutations";
-import { getPeerTypeFromNodeType } from "@/lib/utils";
+import { getPeerTypeFromNodeType, preventNodeDeletionKeys } from "@/lib/utils";
 import StrategyHeader from "@/components/StrategyHeader";
 import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 import ChatBoxNode from "./ChatBoxNode";
 import { useNodeOperations } from "../hooks/useNodeOperations";
 import { UndoRedoControls } from "./common/UndoRedoControls";
+import { useUndoRedo } from "@/hooks/useUndoRedo";
 
 const nodeDefaults = {
   sourcePosition: Position.Right,
@@ -80,6 +81,17 @@ const Strategy = (props: StrategyProps) => {
   const [showNewStrategyModal, setShowNewStrategyModal] =
     useState<boolean>(false);
 
+  // Initialize undo/redo functionality
+  const {
+    saveToHistory,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    clearHistory,
+    resetUndoRedoFlag,
+  } = useUndoRedo(initialNodes, initialEdges);
+
   const { mutate: updatePeerPosition } = useUpdatePeerPosition();
   const { mutate: connectNodes } = useConnectNodes();
   const { data, isLoading, isError, error } = useGetStrategyById(strategyId);
@@ -100,14 +112,14 @@ const Strategy = (props: StrategyProps) => {
       const edgesChanged =
         JSON.stringify(edges) !== JSON.stringify(lastSavedState.edges);
       if (nodesChanged || edgesChanged) {
-        // saveToHistory(nodes, edges);
+        saveToHistory(nodes, edges);
         setLastSavedState({ nodes, edges });
       }
       // Reset the undo/redo flag after a delay
-      // resetUndoRedoFlag();
+      resetUndoRedoFlag();
     }, 500); // 500ms debounce
     return () => clearTimeout(timeoutId);
-  }, [nodes, edges, lastSavedState]);
+  }, [nodes, edges, saveToHistory, resetUndoRedoFlag, lastSavedState]);
 
   // Keyboard shortcuts for undo/redo
   useEffect(() => {
@@ -116,7 +128,7 @@ const Strategy = (props: StrategyProps) => {
       // Ctrl/Cmd + Z (Undo)
       if ((event.ctrlKey || event.metaKey) && !event.shiftKey && key === "z") {
         event.preventDefault();
-        // handleUndo();
+        handleUndo();
       }
       // Ctrl/Cmd + Y (Redo) or Ctrl+Shift+Z (Redo)
       else if (
@@ -124,7 +136,7 @@ const Strategy = (props: StrategyProps) => {
         (key === "y" || (event.shiftKey && key === "z"))
       ) {
         event.preventDefault();
-        // handleRedo();
+        handleRedo();
       }
     };
     document.addEventListener("keydown", handleKeyDown);
@@ -157,24 +169,24 @@ const Strategy = (props: StrategyProps) => {
   }, []);
 
   // Handle undo operation
-  // const handleUndo = useCallback(() => {
-  //   const previousState = undo();
-  //   if (previousState) {
-  //     setNodes(previousState.nodes || []);
-  //     setEdges(previousState.edges || []);
-  //     console.log("Undo Changes:", previousState.changes);
-  //   }
-  // }, [undo, setNodes, setEdges]);
+  const handleUndo = useCallback(() => {
+    const previousState = undo();
+    if (previousState) {
+      setNodes(previousState.nodes || []);
+      setEdges(previousState.edges || []);
+      console.log("Undo Changes:", previousState.changes);
+    }
+  }, [undo, setNodes, setEdges]);
 
-  // // Handle redo operation
-  // const handleRedo = useCallback(() => {
-  //   const nextState = redo();
-  //   if (nextState) {
-  //     setNodes(nextState.nodes || []);
-  //     setEdges(nextState.edges || []);
-  //     console.log("Redo Changes:", nextState.changes);
-  //   }
-  // }, [redo, setNodes, setEdges]);
+  // Handle redo operation
+  const handleRedo = useCallback(() => {
+    const nextState = redo();
+    if (nextState) {
+      setNodes(nextState.nodes || []);
+      setEdges(nextState.edges || []);
+      console.log("Redo Changes:", nextState.changes);
+    }
+  }, [redo, setNodes, setEdges]);
 
   // Define the type for pasted/dropped content directly in this component
   type PastedContentType =
@@ -343,7 +355,7 @@ const Strategy = (props: StrategyProps) => {
     if (!flows || flows.length === 0 || isEmptyFlows) {
       console.log("Nodes not exists");
       // Clear history when loading empty strategy
-      // clearHistory([], []);
+      clearHistory([], []);
     } else {
       const flow = flows[0];
       if (!flow) return;
@@ -385,9 +397,10 @@ const Strategy = (props: StrategyProps) => {
         setEdges([]);
       }
       // Initialize history with loaded data
-      // clearHistory(nodesFromFlows, flow.strategyFlowEdges || []);
+      // @ts-ignore
+      clearHistory(nodesFromFlows, flow.strategyFlowEdges || []);
     }
-  }, [strategy, setNodes, setEdges]);
+  }, [strategy, setNodes, setEdges, clearHistory]);
 
   useEffect(() => {
     if (error) {
@@ -795,7 +808,6 @@ const Strategy = (props: StrategyProps) => {
               >
                 <Background />
                 <Controls>
-                  <UndoRedoControls />
                   {/* <UndoRedoControls
                     onUndo={handleUndo}
                     onRedo={handleRedo}
