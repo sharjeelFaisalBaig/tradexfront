@@ -7,6 +7,10 @@ import {
   VerifyOtpPayload,
   verifyOtpRequest,
   resendOtpRequest,
+  updateProfile,
+  cancelSubscription,
+  uploadAvatar,
+  deleteAvatar,
 } from "@/services/auth/auth_API";
 import { SignupData } from "@/services/auth/auth_Mutation";
 import { QUERY_KEYS } from "@/lib/queryKeys";
@@ -17,6 +21,30 @@ export const useGetUser = ({ enabled = true } = {}) => {
     queryKey: [QUERY_KEYS.USER],
     queryFn: getUser,
     enabled: enabled,
+  });
+};
+
+// POST: Upload user profile avatar/ profile picture
+export const useUploadAvatarMutation = () => {
+  return useMutation({
+    mutationFn: (payload: { avatar: File }) => uploadAvatar(payload),
+    // onSuccess: (data, variables, context) => {},
+  });
+};
+
+// DELETE: Delete user profile avatar/ profile picture
+export const useDeleteAvatarMutation = () => {
+  return useMutation({
+    mutationFn: () => deleteAvatar(),
+    // onSuccess: (data, variables, context) => {},
+  });
+};
+
+// PUT: Update user profile data
+export const useUpdateProfileMutation = () => {
+  return useMutation({
+    mutationFn: (payload: any) => updateProfile(payload),
+    // onSuccess: (data, variables, context) => {},
   });
 };
 
@@ -57,5 +85,11 @@ export const useResendOtpMutation = () => {
       email: string;
       type: "reset" | "2fa" | "verification";
     }) => resendOtpRequest(payload),
+  });
+};
+
+export const useCancelSubscriptionMutation = () => {
+  return useMutation({
+    mutationFn: () => cancelSubscription(),
   });
 };
