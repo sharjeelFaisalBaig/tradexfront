@@ -127,6 +127,7 @@ export default function LoginPage() {
 
   // Google OAuth sign-in handler
   const handleGoogleSignIn = async () => {
+    // signIn("google");
     try {
       await signIn("google", { callbackUrl: "/dashboard" });
     } catch (error) {
