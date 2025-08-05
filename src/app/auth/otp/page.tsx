@@ -19,6 +19,7 @@ const OtpVerificationPage = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const successNote = useSuccessNotifier();
+  const redirected = sessionStorage.getItem("otpRedirected");
   const email = searchParams.get("email")?.replace(" ", "+");
   const twoFactorEnabled = searchParams.get("2fa");
   const expiresIn = searchParams.get("expires_in");
@@ -26,6 +27,14 @@ const OtpVerificationPage = () => {
   const [otp, setOtp] = useState(Array(6).fill(""));
   const [timer, setTimer] = useState(expiresIn ? parseInt(expiresIn, 10) : 600);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  useEffect(() => {
+    if (!redirected || !expiresIn || !email) {
+      console.log("access denied");
+      router.replace("/auth/signin");
+      sessionStorage.removeItem("otpRedirected");
+    }
+  }, [redirected, expiresIn, email]);
 
   useEffect(() => {
     if (!email) {
@@ -168,10 +177,30 @@ const OtpVerificationPage = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const enteredOtp = otp.join("");
+
     if (enteredOtp.length === 6) {
-      twoFactorEnabled === "true"
-        ? verify2faMutation.mutate(enteredOtp)
-        : verifyOtpMutation.mutate(enteredOtp);
+      // twoFactorEnabled === "true" ? verify2faMutation.mutate(enteredOtp) : verifyOtpMutation.mutate(enteredOtp);
+      sessionStorage.removeItem("otpRedirected");
+
+      if (twoFactorEnabled) {
+        verify2faMutation.mutate(enteredOtp, {
+          onSuccess: () => {
+            sessionStorage.removeItem("otpRedirected");
+          },
+          onError: (error) => {
+            showAPIErrorToast(error);
+          },
+        });
+      } else {
+        verifyOtpMutation.mutate(enteredOtp, {
+          onSuccess: () => {
+            sessionStorage.removeItem("otpRedirected");
+          },
+          onError: (error) => {
+            showAPIErrorToast(error);
+          },
+        });
+      }
     } else {
       toast({
         title: "Validation Error",

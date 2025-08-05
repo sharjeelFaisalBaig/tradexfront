@@ -75,6 +75,10 @@ const Signup = () => {
         onSuccess: (data) => {
           if (data && data.data) {
             const { user, otp_expires_in } = data.data;
+
+            // Set redirect flag in localStorage
+            sessionStorage.setItem("otpRedirected", "true");
+
             router.replace(
               `/auth/otp?email=${user.email}&expires_in=${otp_expires_in}`
             );

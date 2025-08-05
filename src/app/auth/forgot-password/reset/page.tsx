@@ -1,4 +1,5 @@
 "use client";
+
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { useFormik } from "formik";
@@ -12,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useResetPassword } from "@/hooks/auth/useAuth";
 import { showAPIErrorToast } from "@/lib/utils";
+import { useEffect } from "react";
 
 // Yup validation schema
 const validationSchema = Yup.object().shape({
@@ -32,7 +34,17 @@ const ResetPasswordPage = () => {
   const searchParams = useSearchParams();
   const successNote = useSuccessNotifier();
   const email = searchParams.get("email") || "";
+  const token = sessionStorage.getItem("password_reset_token");
+
   const { mutate, isPending } = useResetPassword();
+
+  useEffect(() => {
+    if (!token || !email) {
+      console.log("access denied");
+      router.replace("/auth/signin");
+      sessionStorage.removeItem("password_reset_token");
+    }
+  }, [token, email]);
 
   const formik = useFormik({
     initialValues: {
@@ -41,7 +53,6 @@ const ResetPasswordPage = () => {
     },
     validationSchema,
     onSubmit: async (values, { setSubmitting }) => {
-      const token = sessionStorage.getItem("password_reset_token");
       if (!token) {
         toast({
           title: "Error",
@@ -66,6 +77,7 @@ const ResetPasswordPage = () => {
             });
             sessionStorage.removeItem("reset_access_token");
             router.replace("/auth/signin");
+            sessionStorage.removeItem("password_reset_token");
           },
           onError: (error: any) => {
             showAPIErrorToast(error);

@@ -53,6 +53,9 @@ export default function LoginPage() {
 
         // Handle different possible login responses
         if (res?.error) {
+          // Set redirect flag in localStorage
+          sessionStorage.setItem("otpRedirected", "true");
+
           if (res.error === "CredentialsSignin") {
             // Email exists, but password incorrect – prompt for OTP
             router.replace(
@@ -91,6 +94,9 @@ export default function LoginPage() {
           //   });
           // }
           else {
+            // Set redirect flag in localStorage
+            sessionStorage.removeItem("otpRedirected");
+
             // Invalid credentials
             toast({
               title: "Login Failed",
