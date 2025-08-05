@@ -18,6 +18,7 @@ import Loader from "@/components/common/Loader";
 import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 import { showAPIErrorToast } from "@/lib/utils";
 import { signIn } from "next-auth/react";
+import PasswordCriteria from "@/components/common/PasswordCriteria";
 
 // Yup validation schema
 const validationSchema = Yup.object().shape({
@@ -27,12 +28,21 @@ const validationSchema = Yup.object().shape({
     .email("Please enter a valid email address")
     .required("Email is required"),
   password: Yup.string()
-    .min(8, "Password must be at least 8 characters")
+    .required("Password is required")
+    .min(8, "Password must be at least 8 characters long")
     .matches(
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]+$/,
-      "Password must include uppercase, lowercase, number, and special character"
+      /[A-Z]/,
+      "Password must contain at least one uppercase letter (A–Z)"
     )
-    .required("Password is required"),
+    .matches(
+      /[a-z]/,
+      "Password must contain at least one lowercase letter (a–z)"
+    )
+    .matches(/\d/, "Password must contain at least one number (0–9)")
+    .matches(
+      /[@$!%*?&]/,
+      "Password must contain at least one special character (@$!%*?&)"
+    ),
   confirmPassword: Yup.string()
     .required("Please confirm your password")
     .oneOf([Yup.ref("password")], "Passwords do not match"),
@@ -301,6 +311,7 @@ const Signup = () => {
                   "Create Account"
                 )}
               </Button>
+              <PasswordCriteria password={formik.values.password} />
             </form>
             {/* Footer */}
             <div className="mt-6 text-center">

@@ -14,16 +14,40 @@ import { Label } from "@/components/ui/label";
 import { useResetPassword } from "@/hooks/auth/useAuth";
 import { showAPIErrorToast } from "@/lib/utils";
 import { useEffect } from "react";
+import PasswordCriteria from "@/components/common/PasswordCriteria";
 
 // Yup validation schema
+// const validationSchema = Yup.object().shape({
+//   password: Yup.string()
+//     .min(8, "Password must be at least 8 characters")
+//     .matches(
+//       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]+$/,
+//       "Password must include uppercase, lowercase, number, and special character"
+//     )
+//     .required("Password is required"),
+//   confirmPassword: Yup.string()
+//     .required("Please confirm your password")
+//     .oneOf([Yup.ref("password")], "Passwords do not match"),
+// });
+
 const validationSchema = Yup.object().shape({
   password: Yup.string()
-    .min(8, "Password must be at least 8 characters")
+    .required("Password is required")
+    .min(8, "Password must be at least 8 characters long")
     .matches(
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]+$/,
-      "Password must include uppercase, lowercase, number, and special character"
+      /[A-Z]/,
+      "Password must contain at least one uppercase letter (A–Z)"
     )
-    .required("Password is required"),
+    .matches(
+      /[a-z]/,
+      "Password must contain at least one lowercase letter (a–z)"
+    )
+    .matches(/\d/, "Password must contain at least one number (0–9)")
+    .matches(
+      /[@$!%*?&]/,
+      "Password must contain at least one special character (@$!%*?&)"
+    ),
+
   confirmPassword: Yup.string()
     .required("Please confirm your password")
     .oneOf([Yup.ref("password")], "Passwords do not match"),
@@ -115,8 +139,8 @@ const ResetPasswordPage = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="px-8 sm:px-12">
-            <form onSubmit={formik.handleSubmit}>
-              <div className="mb-4">
+            <form onSubmit={formik.handleSubmit} className="space-y-4">
+              <div>
                 <Label className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
                   Email Address
                 </Label>
@@ -127,7 +151,7 @@ const ResetPasswordPage = () => {
                   className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 dark:bg-gray-800 dark:text-gray-100 bg-gray-100 cursor-not-allowed"
                 />
               </div>
-              <div className="mb-4">
+              <div>
                 <Label
                   htmlFor="password"
                   className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300"
@@ -147,7 +171,7 @@ const ResetPasswordPage = () => {
                   </p>
                 )}
               </div>
-              <div className="mb-6">
+              <div>
                 <Label
                   htmlFor="confirmPassword"
                   className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300"
@@ -171,7 +195,7 @@ const ResetPasswordPage = () => {
               <Button
                 type="submit"
                 disabled={formik.isSubmitting || isPending}
-                className="w-full py-3 h-12 rounded-full bg-cyan-600 text-white text-lg font-semibold transition-colors hover:bg-cyan-700 disabled:bg-gray-400"
+                className="my-6 w-full py-3 h-12 rounded-full bg-cyan-600 text-white text-lg font-semibold transition-colors hover:bg-cyan-700 disabled:bg-gray-400"
               >
                 {formik.isSubmitting || isPending ? (
                   <Loader direction="row" text="Resetting..." />
@@ -179,6 +203,8 @@ const ResetPasswordPage = () => {
                   "Reset Password"
                 )}
               </Button>
+
+              <PasswordCriteria password={formik.values.password} />
             </form>
           </CardContent>
         </Card>
