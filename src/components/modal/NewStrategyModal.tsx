@@ -9,7 +9,7 @@ import { toast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { IStrategy } from "@/lib/types";
 import { Textarea } from "../ui/textarea";
-import { cn } from "@/lib/utils";
+import { cn, showAPIErrorToast } from "@/lib/utils";
 import {
   useCreateStrategy,
   useUpdateStrategy,
@@ -94,33 +94,22 @@ function NewStrategyForm({
       onClose();
     };
 
-    const onMutationError = (error: any) => {
-      toast({
-        variant: "destructive",
-        title: error?.response?.data?.message || "Error",
-        description:
-          `${error?.response?.data?.errors?.name[0]}\n${error?.response?.data?.errors?.description[0]}` ||
-          "Unexpected error occurred.",
-      });
-    };
-
-    try {
-      if (strategy) {
-        updateMutation.mutate(
-          { id: strategy.id, data: payload },
-          { onSuccess: onMutationSuccess, onError: onMutationError }
-        );
-      } else {
-        createMutation.mutate(payload, {
+    if (strategy) {
+      updateMutation.mutate(
+        { id: strategy.id, data: payload },
+        {
           onSuccess: onMutationSuccess,
-          onError: onMutationError,
-        });
-      }
-    } catch (error: any) {
-      toast({
-        title: "Failed To Update Strategy",
-        description:
-          error?.response?.data?.message ?? "Something went wrong...",
+          onError: (error) => {
+            updateMutation?.isError && showAPIErrorToast(error);
+          },
+        }
+      );
+    } else {
+      createMutation.mutate(payload, {
+        onSuccess: onMutationSuccess,
+        onError: (error) => {
+          createMutation?.isError && showAPIErrorToast(error);
+        },
       });
     }
   };

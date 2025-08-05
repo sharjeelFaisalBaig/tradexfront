@@ -19,7 +19,7 @@ const navigation = [
   // { name: "New Strategy", href: "/strategy", icon: Plus },
   { name: "New Strategy", href: "#new-strategy", icon: Plus },
   { name: "Dashboard", href: "/dashboard", icon: DashboardIcon },
-  { name: "Charts", href: "/charts", icon: Chart },
+  // { name: "Charts", href: "/charts", icon: Chart },
   { name: "My Strategies", href: "/strategies", icon: Strategy },
   { name: "Recent", href: "/recent", icon: Recent },
   { name: "Favorites", href: "/favorites", icon: Favorites },

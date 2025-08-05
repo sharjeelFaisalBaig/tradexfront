@@ -747,7 +747,7 @@ const Strategy = (props: StrategyProps) => {
         <NewStrategyModal
           strategy={strategy}
           isOpen={showNewStrategyModal}
-          onClose={toggleNewStrategyModal}
+          onClose={() => setShowNewStrategyModal(false)}
         />
       )}
       <StrategyHeader
