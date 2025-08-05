@@ -12,7 +12,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { signIn } from "next-auth/react";
 import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 import Loader from "@/components/common/Loader";
-import { resendOtpRequest } from "@/services/auth/auth_API";
+import { resendOtpRequest, verifyOtpRequest } from "@/services/auth/auth_API";
 import { showAPIErrorToast } from "@/lib/utils";
 
 const OtpVerificationPage = () => {
@@ -76,6 +76,7 @@ const OtpVerificationPage = () => {
         redirect: false,
       }).then(() => {
         setTimeout(() => router.replace("/dashboard"), 1200);
+        setTimeout(() => sessionStorage.removeItem("otpRedirected"), 1500);
       });
     },
     onError: (error: any) => {
@@ -85,15 +86,7 @@ const OtpVerificationPage = () => {
 
   const verifyOtpMutation = useMutation({
     mutationFn: (otp: string) =>
-      fetch(endpoints.AUTH.VERIFY_OTP, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, otp, type: "verification" }),
-      }).then(async (res) => {
-        const data = await res.json();
-        if (!res.ok || data.status === "Error") throw data;
-        return data;
-      }),
+      verifyOtpRequest({ email: email ?? "", otp, type: "verification" }),
     onSuccess: () => {
       setVerifying(true);
       successNote({
@@ -101,6 +94,7 @@ const OtpVerificationPage = () => {
         description: "OTP verified successfully. Please log in.",
       });
       setTimeout(() => router.replace("/auth/signin"), 1200);
+      setTimeout(() => sessionStorage.removeItem("otpRedirected"), 1500);
     },
     onError: (error: any) => {
       showAPIErrorToast(error, "Validation failed", "Invalid or expired OTP.");
@@ -179,28 +173,9 @@ const OtpVerificationPage = () => {
     const enteredOtp = otp.join("");
 
     if (enteredOtp.length === 6) {
-      // twoFactorEnabled === "true" ? verify2faMutation.mutate(enteredOtp) : verifyOtpMutation.mutate(enteredOtp);
-      sessionStorage.removeItem("otpRedirected");
-
-      if (twoFactorEnabled) {
-        verify2faMutation.mutate(enteredOtp, {
-          onSuccess: () => {
-            sessionStorage.removeItem("otpRedirected");
-          },
-          onError: (error) => {
-            showAPIErrorToast(error);
-          },
-        });
-      } else {
-        verifyOtpMutation.mutate(enteredOtp, {
-          onSuccess: () => {
-            sessionStorage.removeItem("otpRedirected");
-          },
-          onError: (error) => {
-            showAPIErrorToast(error);
-          },
-        });
-      }
+      twoFactorEnabled === "true"
+        ? verify2faMutation.mutate(enteredOtp)
+        : verifyOtpMutation.mutate(enteredOtp);
     } else {
       toast({
         title: "Validation Error",

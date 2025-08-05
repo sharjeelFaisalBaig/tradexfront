@@ -38,7 +38,7 @@ export const resetPassword = async (userData: {
 export interface VerifyOtpPayload {
   email: string;
   otp: string;
-  type: "reset" | "2fa";
+  type?: string | "reset" | "2fa";
 }
 
 export const verifyOtpRequest = async (payload: VerifyOtpPayload) => {

@@ -110,7 +110,6 @@ export default function ForgotPasswordOtpPage() {
           router.replace(
             `/auth/forgot-password/reset?email=${encodeURIComponent(email)}`
           );
-          sessionStorage.removeItem("otpRedirected");
         },
         onError: (error) => {
           showAPIErrorToast(error);

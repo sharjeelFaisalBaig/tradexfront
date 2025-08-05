@@ -75,9 +75,10 @@ const ResetPasswordPage = () => {
               title: "Password Reset",
               description: "Your password has been reset. Please log in.",
             });
-            sessionStorage.removeItem("reset_access_token");
             router.replace("/auth/signin");
+            sessionStorage.removeItem("reset_access_token");
             sessionStorage.removeItem("password_reset_token");
+            sessionStorage.removeItem("otpRedirected");
           },
           onError: (error: any) => {
             showAPIErrorToast(error);
