@@ -33,7 +33,7 @@ const Dashboard = () => {
   const successNote = useSuccessNotifier();
 
   // mutations
-  const { mutate: copyStrategy } = useCopyStrategy();
+  const { mutate: copyStrategy, isPending: isLoadingCopy } = useCopyStrategy();
   const { mutate: toggleFavouriteStrategy } = useFavouriteStrategy();
 
   // states
@@ -122,13 +122,13 @@ const Dashboard = () => {
   };
 
   const handleCopyStrategy = (strategy: IStrategy) => {
-    //  success note
-    successNote({
-      title: "Strategy Copied",
-      description: `“${strategy?.name}” has been successfully copied.`,
-    });
-
     copyStrategy(strategy?.id, {
+      onSuccess: () => {
+        successNote({
+          title: "Strategy Copied",
+          description: `“${strategy?.name}” has been successfully copied.`,
+        });
+      },
       onError: (error) => {
         showAPIErrorToast(error);
       },
@@ -136,7 +136,7 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="flex flex-col h-screen overflow-hidden bg-gray-50 dark:bg-gray-900">
       {isForEdit && (
         <NewStrategyModal
           isOpen={isForEdit}
@@ -155,7 +155,18 @@ const Dashboard = () => {
       <Header />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />
-        <main className="flex-1 overflow-y-auto p-6">
+
+        <main className="relative flex-1 overflow-y-auto p-6">
+          {/* Loader Overlay */}
+          {isLoadingCopy && (
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="fixed top-0 left-0 w-full h-full flex items-center justify-center bg-[#f6f8fb]/80 dark:bg-gray-900/80 z-50"
+            >
+              <Loader text="Copy strategy..." />
+            </div>
+          )}
+
           {/* Header Controls */}
           <div className="flex items-center justify-between mb-6">
             {/* Search */}
@@ -169,7 +180,6 @@ const Dashboard = () => {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-
             {/* Filters */}
             <div className="flex items-center space-x-4">
               <Select defaultValue="10">
@@ -182,7 +192,6 @@ const Dashboard = () => {
                   <SelectItem value="50">50 per page</SelectItem>
                 </SelectContent>
               </Select>
-
               <Select defaultValue="modified">
                 <SelectTrigger className="w-48">
                   <SelectValue />
@@ -198,6 +207,7 @@ const Dashboard = () => {
             </div>
           </div>
 
+          {/* Content Section */}
           {isLoading ? (
             <div className="h-4/5 flex items-center justify-center bg-[#f6f8fb] dark:bg-gray-900">
               <Loader text="Loading strategies..." />
