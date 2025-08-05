@@ -1,0 +1,100 @@
+import InputField from "@/components/common/InputField";
+import { Button } from "@/components/ui/button";
+import React, { MouseEventHandler } from "react";
+
+interface Props {
+  profileData?: any;
+  firstName: string;
+  setFirstName: (val: string) => void;
+  lastName: string;
+  setLastName: (val: string) => void;
+  email: string;
+  setEmail: (val: string) => void;
+  phoneNumber: string;
+  setPhoneNumber: (val: string) => void;
+  setShowUpdatePaymentMethodModal: (val: boolean) => void;
+  handleAvatarDelete: MouseEventHandler<HTMLButtonElement>;
+}
+
+const PersonalInfoTab = (props: Props) => {
+  const {
+    profileData,
+    email,
+    setEmail,
+    firstName,
+    setFirstName,
+    lastName,
+    setLastName,
+    phoneNumber,
+    setPhoneNumber,
+    setShowUpdatePaymentMethodModal,
+    handleAvatarDelete,
+  } = props;
+  const { user } = profileData;
+
+  return (
+    <>
+      <section className="mb-8">
+        <h2 className="text-xl font-semibold mb-6">Personal Information</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+          <InputField
+            label="First Name"
+            value={firstName}
+            setValue={setFirstName}
+          />
+          <InputField
+            label="Last Name"
+            value={lastName}
+            setValue={setLastName}
+          />
+          <InputField
+            label="Email"
+            value={email}
+            setValue={setEmail}
+            type="email"
+            disabled
+          />
+          <InputField
+            label="Phone Number"
+            value={phoneNumber}
+            setValue={setPhoneNumber}
+          />
+          <InputField
+            label="Status"
+            value={user.status ? "Active" : "Inactive"}
+            setValue={() => {}}
+            disabled
+          />
+          <InputField
+            label="Payment Method"
+            value={`${user.pm_type} ending in ${user.pm_last_four}`}
+            setValue={() => {}}
+            disabled
+          />
+        </div>
+        <Button
+          className="mt-4"
+          onClick={() => setShowUpdatePaymentMethodModal(true)}
+        >
+          Update Payment Method
+        </Button>
+      </section>
+
+      {/* Danger Zone */}
+      <section>
+        <h2 className="text-xl font-semibold mb-6 text-destructive">
+          Danger Zone
+        </h2>
+
+        <div className="flex gap-3">
+          <Button variant="destructive" onClick={handleAvatarDelete}>
+            Delete Avatar
+          </Button>
+          <Button variant="destructive">Delete Account</Button>
+        </div>
+      </section>
+    </>
+  );
+};
+
+export default PersonalInfoTab;
