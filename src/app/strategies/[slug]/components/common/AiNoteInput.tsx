@@ -5,93 +5,77 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { ArrowRight, HelpCircle, Loader2, Save } from "lucide-react";
-import { useRef } from "react";
+import { HelpCircle } from "lucide-react";
+import { useRef, useEffect } from "react";
 import { useSendPeerAiNote } from "@/hooks/strategy/useStrategyMutations";
 import useSuccessNotifier from "@/hooks/useSuccessNotifier";
+import { useDebounce } from "@/hooks/useDebounce";
 import { toast } from "@/hooks/use-toast";
-import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 
-// Predefined color classes for Tailwind to generate at build time
-const colorClasses: Record<string, { input: string; button: string }> = {
+const colorClasses: Record<string, { input: string }> = {
   purple: {
     input: "focus:border-purple-500 focus:ring-purple-500",
-    button: "bg-purple-500 hover:bg-purple-600",
   },
   blue: {
     input: "focus:border-blue-500 focus:ring-blue-500",
-    button: "bg-blue-500 hover:bg-blue-600",
   },
   cyan: {
     input: "focus:border-cyan-500 focus:ring-cyan-500",
-    button: "bg-cyan-500 hover:bg-cyan-600",
   },
   red: {
     input: "focus:border-red-500 focus:ring-red-500",
-    button: "bg-red-500 hover:bg-red-600",
   },
   green: {
     input: "focus:border-green-500 focus:ring-green-500",
-    button: "bg-green-500 hover:bg-green-600",
   },
 };
 
 interface AiNoteInputProps {
-  color?: "purple" | "blue" | "red" | "green" | "cyan"; // restrict to valid colors
+  color?: "purple" | "blue" | "red" | "green" | "cyan";
   note?: string;
   setNote: (value?: string) => void;
-  onButtonClick?: () => void;
   isLoading?: boolean;
   isInputDisabled?: boolean;
-  isButtonDisabled?: boolean;
-  hideButton?: boolean;
   readOnly?: boolean;
-  // send peer ai note data
   strategyId: string;
   peerType: string;
   peerId: string;
+  isDisabled?: boolean;
 }
 
-const AiNoteInput = (props: AiNoteInputProps) => {
-  const {
-    color = "purple",
-    note,
-    setNote,
-    onButtonClick,
-    isLoading,
-    isInputDisabled,
-    hideButton,
-    readOnly,
-    // send peer ai note
-    strategyId,
-    peerType,
-    peerId,
-  } = props;
+const AiNoteInput = ({
+  color = "purple",
+  note,
+  setNote,
+  strategyId,
+  peerType,
+  peerId,
+  isDisabled,
+}: AiNoteInputProps) => {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const successNote = useSuccessNotifier();
-  const { mutate: sendPeerAiNote, isPending: isSendingAiNote } =
-    useSendPeerAiNote();
-
-  const inputRef = useRef<HTMLInputElement | any>(null);
+  const { mutate: sendPeerAiNote, isPending } = useSendPeerAiNote();
   const selectedColor = colorClasses[color] || colorClasses.purple;
 
-  const handleSendPeerAiNote = () => {
-    if (hideButton || readOnly) return;
+  const debouncedNote = useDebounce(note, 1000); // 1s debounce
 
+  const handleSendPeerAiNote = () => {
     sendPeerAiNote(
       {
         peerId,
         peerType,
         strategyId,
-        data: { ai_notes: note },
+        data: { ai_notes: debouncedNote },
       },
       {
         onSuccess: () => {
           successNote({
-            title: "Ai note saved",
-            description: "Ai note saved successfully",
+            title: "AI note saved",
+            description: "AI note saved successfully.",
           });
         },
         onError: (error: any) => {
@@ -106,34 +90,42 @@ const AiNoteInput = (props: AiNoteInputProps) => {
     );
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (hideButton || readOnly || isLoading || isSendingAiNote) return;
-
-    if (e.key === "Enter") {
-      e.preventDefault();
-      onButtonClick?.();
-      handleSendPeerAiNote();
-      inputRef.current?.blur();
+  useEffect(() => {
+    if (isDisabled || isPending || !debouncedNote?.trim()) {
+      return;
     }
-  };
+
+    handleSendPeerAiNote();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedNote]);
+
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+    }
+  }, [note]);
 
   return (
     <div className="relative flex-1 flex items-center gap-2">
       <Textarea
-        ref={inputRef}
-        readOnly={readOnly}
+        rows={1}
+        ref={textareaRef}
+        disabled={isDisabled}
+        readOnly={isDisabled}
         placeholder="Add notes for AI to use..."
         value={note}
         onChange={(e) => {
-          if (readOnly || isInputDisabled || isLoading || isSendingAiNote)
-            return;
-          setNote(e?.target?.value);
+          if (!isDisabled) {
+            setNote(e.target.value);
+          }
         }}
-        className={`pr-8 border-gray-200 ${selectedColor.input} ${
-          readOnly || isLoading || isSendingAiNote ? "cursor-not-allowed" : ""
-        }`}
-        disabled={isInputDisabled}
-        onKeyDown={handleKeyPress}
+        className={cn(
+          "pr-8 border-gray-200 !min-h-10",
+          selectedColor.input,
+          isDisabled && "cursor-not-allowed"
+        )}
+        aria-label="AI notes input"
       />
       <Tooltip>
         <TooltipTrigger asChild>
@@ -141,14 +133,16 @@ const AiNoteInput = (props: AiNoteInputProps) => {
             variant="ghost"
             size="icon"
             className="absolute right-2 top-2 h-6 w-6 text-gray-400 hover:text-gray-600"
+            tabIndex={-1}
+            aria-label="Help tooltip"
           >
             <HelpCircle className="w-4 h-4" />
           </Button>
         </TooltipTrigger>
         <TooltipContent>
-          <p className="text-sm">
+          <p className="text-sm max-w-[240px]">
             Add notes that will be used by AI to provide better context and
-            insights
+            insights.
           </p>
         </TooltipContent>
       </Tooltip>

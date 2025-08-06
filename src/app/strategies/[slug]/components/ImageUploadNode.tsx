@@ -795,15 +795,21 @@ export default function ImageUploadNode({
                   <AiNoteInput
                     color="blue"
                     note={userNotes}
-                    readOnly={!canConnect}
-                    hideButton={!canConnect}
-                    isLoading={isAnalyzing || isStatusPollingLoading}
                     setNote={(val) => setUserNotes(val ?? "")}
-                    isInputDisabled={isProcessingAny}
-                    isButtonDisabled={isProcessingAny}
                     strategyId={strategyId}
                     peerId={data?.id}
                     peerType="image"
+                    isDisabled={
+                      !canConnect ||
+                      isAnalyzing ||
+                      isProcessingAny ||
+                      isStatusPollingLoading
+                    }
+                    // readOnly={!canConnect}
+                    // hideButton={!canConnect}
+                    // isInputDisabled={isProcessingAny}
+                    // isButtonDisabled={isProcessingAny}
+                    // isLoading={isAnalyzing || isStatusPollingLoading}
                   />
                 </div>
               </div>
