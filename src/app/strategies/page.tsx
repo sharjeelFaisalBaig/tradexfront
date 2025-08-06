@@ -42,6 +42,7 @@ const Strategies = () => {
   const [selectedStrategy, setSelectedStrategy] = useState<IStrategy | null>(
     null
   );
+  const [sortOption, setSortOption] = useState<string>("modified"); // State for sort option
 
   const { data, isLoading, isError, error } = useGetStrategies();
   const strategies: IStrategy[] = useMemo(
@@ -69,11 +70,32 @@ const Strategies = () => {
   }, [strategies]);
 
   // Filter based on search
-  const filteredStrategies = useMemo(() => {
-    return strategies.filter((strategy) =>
-      strategy.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [strategies, searchTerm]);
+  const filteredStrategies = strategies
+    .filter((strategy) => {
+      const nameMatches = strategy.name
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
+      const tagsMatch = strategy.tags?.some((tag) =>
+        tag.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      return nameMatches || tagsMatch;
+    })
+    .sort((a, b) => {
+      // Sorting logic based on the selected option
+      switch (sortOption) {
+        case "name":
+          return a.name.localeCompare(b.name);
+        case "created":
+          return (
+            new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+          );
+        case "modified":
+        default:
+          return (
+            new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+          );
+      }
+    });
 
   const handleToggleIsFavourite = (strategy: IStrategy) => {
     const newFavouriteState = !favStrategies?.some(
@@ -167,7 +189,7 @@ const Strategies = () => {
               <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-10" />
               <Input
                 type="text"
-                placeholder="Search strategies"
+                placeholder="Search strategies by name or tag"
                 className="pl-10"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -175,7 +197,7 @@ const Strategies = () => {
             </div>
             {/* Filters */}
             <div className="flex items-center space-x-4">
-              <Select defaultValue="10">
+              {/* <Select defaultValue="10">
                 <SelectTrigger className="w-32">
                   <SelectValue />
                 </SelectTrigger>
@@ -184,8 +206,11 @@ const Strategies = () => {
                   <SelectItem value="25">25 per page</SelectItem>
                   <SelectItem value="50">50 per page</SelectItem>
                 </SelectContent>
-              </Select>
-              <Select defaultValue="modified">
+              </Select> */}
+              <Select
+                defaultValue="modified"
+                onValueChange={(value) => setSortOption(value)}
+              >
                 <SelectTrigger className="w-48">
                   <SelectValue />
                 </SelectTrigger>
