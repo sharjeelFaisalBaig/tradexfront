@@ -19,6 +19,7 @@ import {
   Trash2,
   AlertCircle,
   Loader2,
+  Maximize,
 } from "lucide-react";
 import AIResponseLoader from "@/components/common/ai-response-loader";
 import NodeWrapper from "./common/NodeWrapper";
@@ -35,7 +36,7 @@ import {
   useGetAiModels,
   useGetChatTemplates,
 } from "@/hooks/strategy/useStrategyQueries";
-import { getFilteredAiModels, preventNodeDeletionKeys } from "@/lib/utils";
+import { cn, getFilteredAiModels, preventNodeDeletionKeys } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
 import { toast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -406,130 +407,135 @@ export default function ChatBoxNode({
     setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
   }, []);
 
-  const handleSendMessage = useCallback(async () => {
-    if (!message.trim() || !activeConversationId || isLoading || !selectedModel)
-      return;
+  const handleSendMessage = useCallback(
+    async (prompt?: string) => {
+      if (!activeConversationId || isLoading || !selectedModel) return;
 
-    const userMessageText = message.trim();
-    const timestamp = new Date();
-    const optimisticUserId = generateOptimisticId();
+      const userMessageText = prompt?.trim() || message.trim();
+      if (!userMessageText) return;
 
-    // Clear input and draft
-    setMessage("");
-    saveDraftMessage(activeConversationId, "");
-    setConversationLoading(activeConversationId, true);
+      const timestamp = new Date();
+      const optimisticUserId = generateOptimisticId();
 
-    // Add optimistic user message
-    const optimisticUserMessage: Message = {
-      id: optimisticUserId,
-      content: userMessageText,
-      sender: "user",
-      name: "You",
-      timestamp,
-      isOptimistic: true,
-    };
-    setMessages((prev) => [...prev, optimisticUserMessage]);
+      // Clear input and draft
+      setMessage("");
+      saveDraftMessage(activeConversationId, "");
+      setConversationLoading(activeConversationId, true);
 
-    try {
-      const response = await sendChatMessageMutation({
-        strategyId,
-        data: {
-          message: userMessageText,
-          conversation_id: activeConversationId,
-        },
-      });
+      // Add optimistic user message
+      const optimisticUserMessage: Message = {
+        id: optimisticUserId,
+        content: userMessageText,
+        sender: "user",
+        name: "You",
+        timestamp,
+        isOptimistic: true,
+      };
+      setMessages((prev) => [...prev, optimisticUserMessage]);
 
-      const aiMessageContent = response?.response;
-      if (!aiMessageContent) {
-        throw new Error("No response received from AI");
-      }
-
-      // update credits
-      updateCredits({ usedCredits: response?.credits });
-
-      // Remove optimistic user message and add real messages
-      setMessages((prev) => {
-        const withoutOptimistic = prev.filter(
-          (msg) => msg.id !== optimisticUserId
-        );
-
-        return [
-          ...withoutOptimistic,
-          {
-            id: `user_${Date.now()}`,
-            content: userMessageText,
-            sender: "user",
-            timestamp,
-            name: "You",
-            isOptimistic: false,
+      try {
+        const response = await sendChatMessageMutation({
+          strategyId,
+          data: {
+            message: userMessageText,
+            conversation_id: activeConversationId,
           },
-          {
-            id: `ai_${Date.now()}`,
-            content: aiMessageContent,
-            sender: "ai",
-            timestamp: new Date(),
-            name: response.ai_model,
-            isOptimistic: false,
-          },
-        ];
-      });
+        });
 
-      // Update conversation title if it's the first message && still "New Conversation"
-      if (
-        messages.length === 0 &&
-        activeConversation?.title === "New Conversation"
-      ) {
-        const newTitle =
-          userMessageText.slice(0, 30) +
-          (userMessageText.length > 30 ? "..." : "");
-        updateConversationState(activeConversationId, { title: newTitle });
-        // Update title on server
-        try {
-          await updateConversationMutation({
-            strategyId,
-            conversationId: activeConversationId,
-            data: { title: newTitle },
-          });
-        } catch (titleError) {
-          console.warn("Failed to update conversation title:", titleError);
+        const aiMessageContent = response?.response;
+        if (!aiMessageContent) {
+          throw new Error("No response received from AI");
         }
+
+        // update credits
+        updateCredits({ usedCredits: response?.credits });
+
+        // Remove optimistic user message and add real messages
+        setMessages((prev) => {
+          const withoutOptimistic = prev.filter(
+            (msg) => msg.id !== optimisticUserId
+          );
+
+          return [
+            ...withoutOptimistic,
+            {
+              id: `user_${Date.now()}`,
+              content: userMessageText,
+              sender: "user",
+              timestamp,
+              name: "You",
+              isOptimistic: false,
+            },
+            {
+              id: `ai_${Date.now()}`,
+              content: aiMessageContent,
+              sender: "ai",
+              timestamp: new Date(),
+              name: response.ai_model,
+              isOptimistic: false,
+            },
+          ];
+        });
+
+        // Update conversation title if it's the first message && still "New Conversation"
+        if (
+          messages.length === 0 &&
+          activeConversation?.title === "New Conversation"
+        ) {
+          const newTitle =
+            userMessageText.slice(0, 30) +
+            (userMessageText.length > 30 ? "..." : "");
+          updateConversationState(activeConversationId, { title: newTitle });
+          // Update title on server
+          try {
+            await updateConversationMutation({
+              strategyId,
+              conversationId: activeConversationId,
+              data: { title: newTitle },
+            });
+          } catch (titleError) {
+            console.warn("Failed to update conversation title:", titleError);
+          }
+        }
+      } catch (error: any) {
+        console.error("Send message error:", error);
+        // Remove optimistic user message
+        removeOptimisticMessage(optimisticUserId);
+        // Set conversation error state
+        const errorMessage =
+          error?.response?.data?.message ||
+          error?.message ||
+          "Failed to send message";
+        setConversationError(activeConversationId, errorMessage); // This will trigger the Alert display
+        // Show error toast
+        toast({
+          title: "Message Failed",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      } finally {
+        setConversationLoading(activeConversationId, false);
       }
-    } catch (error: any) {
-      console.error("Send message error:", error);
-      // Remove optimistic user message
-      removeOptimisticMessage(optimisticUserId);
-      // Set conversation error state
-      const errorMessage =
-        error?.response?.data?.message ||
-        error?.message ||
-        "Failed to send message";
-      setConversationError(activeConversationId, errorMessage); // This will trigger the Alert display
-      // Show error toast
-      toast({
-        title: "Message Failed",
-        description: errorMessage,
-        variant: "destructive",
-      });
-    } finally {
-      setConversationLoading(activeConversationId, false);
-    }
-  }, [
-    message,
-    activeConversationId,
-    isLoading,
-    selectedModel,
-    generateOptimisticId,
-    saveDraftMessage,
-    setConversationLoading,
-    messages.length, // Keep this dependency for title update logic
-    sendChatMessageMutation,
-    strategyId,
-    updateConversationState,
-    updateConversationMutation,
-    removeOptimisticMessage,
-    setConversationError,
-    activeConversation?.title,
-  ]);
+    },
+    [
+      message,
+      activeConversationId,
+      isLoading,
+      selectedModel,
+      generateOptimisticId,
+      saveDraftMessage,
+      setConversationLoading,
+      messages.length, // Keep this dependency for title update logic
+      sendChatMessageMutation,
+      strategyId,
+      updateConversationState,
+      updateConversationMutation,
+      removeOptimisticMessage,
+      setConversationError,
+      activeConversation?.title,
+      updateCredits,
+    ]
+  );
 
   const createNewConversation = useCallback(async () => {
     if (isAnyConversationLoading || !availableModels.length) return;
@@ -680,16 +686,23 @@ export default function ChatBoxNode({
   const handlePredefinedPromptClick = useCallback(
     (prompt: PredefinedPrompt) => {
       if (isLoading) return;
-      const newMessage = message
-        ? `${message}\n\n${prompt.prompt}`
-        : prompt.prompt;
+
+      // Set the message to the prompt text
+      const newMessage = prompt.prompt;
       setMessage(newMessage);
+
+      // Save the draft message if there's an active conversation
       if (activeConversationId) {
         saveDraftMessage(activeConversationId, newMessage);
       }
+
+      // Call handleSendMessage with the prompt text
+      handleSendMessage(newMessage);
+
+      // Focus on the textarea after a short delay
       setTimeout(() => textareaRef.current?.focus(), 0);
     },
-    [isLoading, message, activeConversationId, saveDraftMessage]
+    [isLoading, activeConversationId, saveDraftMessage, handleSendMessage]
   );
 
   const handleKeyPress = useCallback(
@@ -808,26 +821,19 @@ export default function ChatBoxNode({
     });
   };
 
-  // if (isLoadingModels || !isInitialized || (activeConversationId && isLoadingConversationMessages)) {
-  //   return (
-  //     <NodeWrapper
-  //       id={id}
-  //       strategyId={strategyId}
-  //       type="chatbox"
-  //       className="bg-white"
-  //     >
-  //       <div
-  //         onKeyDown={preventNodeDeletionKeys}
-  //         className="w-[1100px] h-[700px] bg-white rounded-lg shadow-lg flex items-center justify-center"
-  //       >
-  //         <div className="text-center">
-  //           <Loader2 className="w-8 h-8 mx-auto mb-4 animate-spin text-blue-600" />
-  //           <p className="text-gray-500">Loading chat interface...</p>
-  //         </div>
-  //       </div>
-  //     </NodeWrapper>
-  //   );
-  // }
+  const handleFullscreen = () => {
+    if (nodeControlRef.current) {
+      if (nodeControlRef.current.requestFullscreen) {
+        nodeControlRef.current.requestFullscreen();
+      } else if ((nodeControlRef.current as any).webkitRequestFullscreen) {
+        // Safari fallback
+        (nodeControlRef.current as any).webkitRequestFullscreen();
+      } else if ((nodeControlRef.current as any).msRequestFullscreen) {
+        // IE/Edge fallback
+        (nodeControlRef.current as any).msRequestFullscreen();
+      }
+    }
+  };
 
   return (
     <NodeWrapper
@@ -837,8 +843,8 @@ export default function ChatBoxNode({
       className="bg-white"
     >
       <div
-        className="react-flow__node nowheel"
         onKeyDown={preventNodeDeletionKeys}
+        className="react-flow__node nowheel"
       >
         <div ref={nodeControlRef} className="nodrag" />
         <div className="w-[1100px] h-[700px] bg-white rounded-lg shadow-lg overflow-hidden">
@@ -860,9 +866,17 @@ export default function ChatBoxNode({
                   </span>
                 </>
               )}
+              {/* <Button
+                size="sm"
+                variant="ghost"
+                className={`h-8 w-8 p-0 hover:bg-white/20`}
+                onClick={() => handleFullscreen()}
+              >
+                <Maximize className="text-white" />
+              </Button> */}
             </div>
           </div>
-          <div className="flex h-[calc(100%-64px)]">
+          <div className="flex h-[calc(100%-52px)]">
             {/* Left Sidebar - Conversations */}
             <div className="w-72 bg-gray-50 border-r border-gray-200 p-4 flex-shrink-0">
               <Button
@@ -1089,21 +1103,20 @@ export default function ChatBoxNode({
                       msg.sender === "user" ? (
                         <div
                           key={msg.id}
-                          className={`flex items-start gap-3 mb-4 text-left ${
+                          className={`flex items-start gap-3 mb-4 ${
                             msg.isOptimistic ? "opacity-70" : ""
                           }`}
-                          style={{ justifySelf: "end" }}
                         >
-                          <div className="flex-1 min-w-0">
-                            <div className="text-right text-sm font-semibold text-green-600 mb-1">
+                          <div className="w-7 h-7 bg-green-500 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                            U
+                          </div>
+                          <div className="flex-1 text-left min-w-0">
+                            <div className="text-sm font-semibold text-green-600 mb-1">
                               {msg.name}
                             </div>
                             <div className="text-gray-800 text-sm whitespace-pre-wrap break-words">
                               {msg.content}
                             </div>
-                          </div>
-                          <div className="w-7 h-7 bg-green-500 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
-                            U
                           </div>
                         </div>
                       ) : (
@@ -1181,7 +1194,7 @@ export default function ChatBoxNode({
                       <Button
                         size="sm"
                         className="absolute bottom-2 right-2 bg-blue-600 hover:bg-blue-700 rounded-full w-8 h-8 p-0 flex-shrink-0 z-10"
-                        onClick={handleSendMessage}
+                        onClick={() => handleSendMessage()}
                         disabled={
                           isLoading ||
                           !message.trim() ||
@@ -1206,7 +1219,7 @@ export default function ChatBoxNode({
                             }
                             variant="ghost"
                             size="sm"
-                            className="flex items-center gap-1 text-xs h-7"
+                            className="flex items-center gap-1 text-xs h-7 text-black"
                           >
                             <div
                               className="w-2 h-2 rounded-full"
