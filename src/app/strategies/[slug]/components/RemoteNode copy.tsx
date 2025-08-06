@@ -152,25 +152,11 @@ export default function RemoteNode({
   }, [data]);
 
   // Handle pasted URL data from props (if needed)
-  const lastProcessedDataRef = useRef<string | null>(null);
-
   useEffect(() => {
     if (data?.dataToAutoUpload?.data) {
-      const urlData = data.dataToAutoUpload.data;
-
-      // Check if the data is a string and hasn't been processed yet
-      if (
-        typeof urlData === "string" &&
-        urlData !== lastProcessedDataRef.current
-      ) {
-        setWebsiteUrl(urlData);
-        setTimeout(() => handleUrlSubmit(urlData), 1000);
-
-        // Update the ref to the current data to prevent reprocessing
-        lastProcessedDataRef.current = urlData;
-      }
+      setWebsiteUrl(data?.dataToAutoUpload?.data);
     }
-  }, [data?.dataToAutoUpload?.data]);
+  }, [data]);
 
   // Comprehensive URL validation
   const validateUrl = (url: string): URLValidationResult => {
@@ -310,9 +296,7 @@ export default function RemoteNode({
         },
       },
       {
-        onSuccess: () => {
-          console.log("Analysis successful, restarting polling...");
-
+        onSuccess: (result: any) => {
           // start polling
           restartPolling();
           // You may need to adjust result structure based on API
@@ -399,9 +383,6 @@ export default function RemoteNode({
     if (status?.is_ready_to_interact) {
       status.is_ready_to_interact = false;
       status.ai_title = "";
-    }
-    if (lastProcessedDataRef.current) {
-      lastProcessedDataRef.current = null;
     }
 
     successNote({
@@ -563,20 +544,6 @@ export default function RemoteNode({
               <div className="space-y-0">
                 {/* Header */}
                 <div className="bg-gradient-to-r from-cyan-500 to-cyan-600 px-4 py-3 flex items-center justify-between text-white">
-                  {/* {isProcessingAny ? (
-                    <div className="flex items-center gap-2">
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span className="text-sm font-medium">
-                        AI is analyzing website...
-                      </span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <Globe className="w-5 h-5" />
-                      <span className="text-sm font-medium">Website</span>
-                    </div>
-                  )} */}
-
                   <div className="flex items-center gap-2">
                     <Globe className="w-5 h-5" />
                     <span className="text-sm font-medium">Website</span>
