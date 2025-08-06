@@ -69,6 +69,21 @@ interface StrategyProps {
   slug: string;
 }
 
+// Define the type for pasted/dropped content directly in this component
+type PastedContentType =
+  | { type: "image-file"; data: File }
+  | { type: "image-url"; data: string }
+  | { type: "audio-file"; data: File }
+  | { type: "video-file"; data: File }
+  | { type: "document-file"; data: File }
+  | { type: "youtube"; data: string }
+  | { type: "tiktok"; data: string }
+  | { type: "instagram"; data: string }
+  | { type: "facebook"; data: string }
+  | { type: "website url"; data: string }
+  | { type: "plain text"; data: string }
+  | { type: "unknown"; data: null };
+
 const Strategy = (props: StrategyProps) => {
   const { slug: strategyId } = props;
   const store = useStoreApi();
@@ -76,7 +91,7 @@ const Strategy = (props: StrategyProps) => {
   const { addToolNode } = useNodeOperations();
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
-  const { getInternalNode, screenToFlowPosition } = useReactFlow();
+  const { fitView, getInternalNode, screenToFlowPosition } = useReactFlow();
   const [showNewStrategyModal, setShowNewStrategyModal] =
     useState<boolean>(false);
 
@@ -90,6 +105,16 @@ const Strategy = (props: StrategyProps) => {
     nodes: initialNodes,
     edges: initialEdges,
   });
+
+  useEffect(() => {
+    if (nodes.length > 0) {
+      fitView({
+        padding: 0.5,
+        includeHiddenNodes: false,
+        duration: 300,
+      });
+    }
+  }, [nodes, fitView]);
 
   // Save to history when nodes or edges change (debounced)
   useEffect(() => {
@@ -155,41 +180,6 @@ const Strategy = (props: StrategyProps) => {
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, []);
-
-  // Handle undo operation
-  // const handleUndo = useCallback(() => {
-  //   const previousState = undo();
-  //   if (previousState) {
-  //     setNodes(previousState.nodes || []);
-  //     setEdges(previousState.edges || []);
-  //     console.log("Undo Changes:", previousState.changes);
-  //   }
-  // }, [undo, setNodes, setEdges]);
-
-  // // Handle redo operation
-  // const handleRedo = useCallback(() => {
-  //   const nextState = redo();
-  //   if (nextState) {
-  //     setNodes(nextState.nodes || []);
-  //     setEdges(nextState.edges || []);
-  //     console.log("Redo Changes:", nextState.changes);
-  //   }
-  // }, [redo, setNodes, setEdges]);
-
-  // Define the type for pasted/dropped content directly in this component
-  type PastedContentType =
-    | { type: "image-file"; data: File }
-    | { type: "image-url"; data: string }
-    | { type: "audio-file"; data: File }
-    | { type: "video-file"; data: File }
-    | { type: "document-file"; data: File }
-    | { type: "youtube"; data: string }
-    | { type: "tiktok"; data: string }
-    | { type: "instagram"; data: string }
-    | { type: "facebook"; data: string }
-    | { type: "website url"; data: string }
-    | { type: "plain text"; data: string }
-    | { type: "unknown"; data: null };
 
   // Utility function to process DataTransfer items (for both paste and drop)
   const processDataTransferItems = useCallback(
@@ -774,7 +764,6 @@ const Strategy = (props: StrategyProps) => {
                 onNodeDrag={onNodeDrag}
                 onNodeDragStop={onNodeDragStop}
                 onConnect={onConnect}
-                defaultViewport={{ x: 500, y: 500, zoom: 0.7578582832551992 }}
                 zoomOnScroll={true}
                 zoomOnPinch={true}
                 zoomOnDoubleClick={false}
@@ -782,6 +771,7 @@ const Strategy = (props: StrategyProps) => {
                 panOnScrollSpeed={0.5}
                 defaultEdgeOptions={defaultEdgeOptions}
                 elementsSelectable={true}
+                // defaultViewport={{ x: 500, y: 500, zoom: 0.7578582832551992 }}
                 fitView
                 fitViewOptions={{
                   padding: 0.5,
@@ -794,15 +784,7 @@ const Strategy = (props: StrategyProps) => {
                 onDrop={onDrop}
               >
                 <Background />
-                <Controls>
-                  <UndoRedoControls />
-                  {/* <UndoRedoControls
-                    onUndo={handleUndo}
-                    onRedo={handleRedo}
-                    canUndo={canUndo}
-                    canRedo={canRedo}
-                  /> */}
-                </Controls>
+                <Controls>{/* <UndoRedoControls /> */}</Controls>
               </ReactFlow>
             </>
           )}
