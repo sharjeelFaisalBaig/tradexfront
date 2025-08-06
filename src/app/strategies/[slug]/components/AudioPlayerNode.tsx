@@ -33,7 +33,7 @@ import {
   RotateCcw,
   RefreshCw,
 } from "lucide-react";
-import { cn, preventNodeDeletionKeys } from "@/lib/utils";
+import { cn, getFullUrl, preventNodeDeletionKeys } from "@/lib/utils";
 import NodeWrapper from "./common/NodeWrapper";
 import { useParams } from "next/navigation";
 import {
@@ -718,11 +718,7 @@ export default function AudioUploadNode({
 
     // Handle existing audio data
     if (data?.audio) {
-      let apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
-      if (apiUrl.endsWith("/api")) apiUrl = apiUrl.replace(/\/api$/, "");
-      const audioUrl = data.audio.startsWith("http")
-        ? data.audio
-        : apiUrl + data.audio;
+      const audioUrl = getFullUrl(data?.audio);
       setUploadedAudio(audioUrl);
       const parts = data.audio.split("/");
       setFileName(parts[parts.length - 1] || data.title || "audio");

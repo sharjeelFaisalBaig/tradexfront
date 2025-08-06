@@ -30,7 +30,12 @@ import {
   Eye,
   RefreshCw,
 } from "lucide-react";
-import { cn, getFileSize, preventNodeDeletionKeys } from "@/lib/utils";
+import {
+  cn,
+  getFileSize,
+  getFullUrl,
+  preventNodeDeletionKeys,
+} from "@/lib/utils";
 import NodeWrapper from "./common/NodeWrapper";
 import { useParams } from "next/navigation";
 import {
@@ -609,14 +614,7 @@ export default function DocumentUploadNode({
         // Note: object URLs created with createObjectURL should be revoked when no longer needed
         // However, for a new window/tab, the browser manages its lifecycle.
       } else if (uploadedDocument.startsWith("/storage")) {
-        let baseUrl = process.env.NEXT_PUBLIC_API_URL!;
-        // Ensure /api is removed if present
-        if (baseUrl.endsWith("/api")) {
-          baseUrl = baseUrl.replace(/\/api$/, "");
-        }
-
-        // Now safely append the path
-        const docUrl = `${baseUrl}${uploadedDocument}`;
+        const docUrl = getFullUrl(uploadedDocument);
         window.open(docUrl, "_blank");
       } else {
         window.open(uploadedDocument, "_blank");
@@ -627,16 +625,7 @@ export default function DocumentUploadNode({
   const handleDownload = async () => {
     if (!uploadedDocument || !documentInfo) return;
 
-    let fileUrl = uploadedDocument;
-
-    // For /storage URLs, prepend base API URL
-    if (uploadedDocument.startsWith("/storage")) {
-      let baseUrl = process.env.NEXT_PUBLIC_API_URL || "";
-      if (baseUrl.endsWith("/api")) {
-        baseUrl = baseUrl.replace(/\/api$/, "");
-      }
-      fileUrl = `${baseUrl}${uploadedDocument}`;
-    }
+    const fileUrl = getFullUrl(uploadedDocument);
 
     try {
       const response = await fetch(fileUrl);

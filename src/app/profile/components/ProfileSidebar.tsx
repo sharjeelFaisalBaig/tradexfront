@@ -1,7 +1,7 @@
 import React, { ChangeEventHandler } from "react";
-import { CameraIcon } from "lucide-react";
-import { DOMAIN_ROOT } from "@/lib/endpoints";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { CameraIcon } from "lucide-react";
+import { getFullUrl } from "@/lib/utils";
 
 interface Props {
   profileData?: any;
@@ -16,9 +16,7 @@ const ProfileSidebar = (props: Props) => {
       <div className="relative z-20 flex flex-col items-center">
         <div className="relative mb-4">
           <Avatar className="w-28 h-28">
-            <AvatarImage
-              src={user.avatar ? `${DOMAIN_ROOT}${user.avatar}` : ""}
-            />
+            <AvatarImage src={user.avatar ? getFullUrl(user.avatar) : ""} />
             <AvatarFallback>
               {user.first_name?.[0] || ""}
               {user.last_name?.[0] || ""}
