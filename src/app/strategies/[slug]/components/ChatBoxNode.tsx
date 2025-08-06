@@ -20,6 +20,7 @@ import {
   AlertCircle,
   Loader2,
   Maximize,
+  Minimize,
 } from "lucide-react";
 import AIResponseLoader from "@/components/common/ai-response-loader";
 import NodeWrapper from "./common/NodeWrapper";
@@ -823,7 +824,7 @@ export default function ChatBoxNode({
     });
   };
 
-  const handleFullscreen = () => {
+  const toggleFullscreen = () => {
     const element = fullscreenElementRef.current;
     const chatBox = chatBoxRef.current;
 
@@ -832,52 +833,65 @@ export default function ChatBoxNode({
       return;
     }
 
-    if (element.requestFullscreen) {
-      element
-        .requestFullscreen()
-        .then(() => {
-          if (chatBox) {
-            chatBox.style.width = "100vw";
-            chatBox.style.height = "100vh";
-            chatBox.style.borderRadius = "0";
-            chatBox.style.boxShadow = "none";
-          }
-        })
-        .catch((err) => {
-          console.error("Error attempting to enable fullscreen mode:", err);
-        });
-    } else if ((element as any).webkitRequestFullscreen) {
-      (element as any)
-        .webkitRequestFullscreen()
-        .then(() => {
-          if (chatBox) {
-            chatBox.style.width = "100vw";
-            chatBox.style.height = "100vh";
-            chatBox.style.borderRadius = "0";
-            chatBox.style.boxShadow = "none";
-          }
-        })
-        .catch((err: any) => {
-          console.error("Error attempting to enable fullscreen mode:", err);
-        });
-    } else if ((element as any).msRequestFullscreen) {
-      (element as any)
-        .msRequestFullscreen()
-        .then(() => {
-          if (chatBox) {
-            chatBox.style.width = "100vw";
-            chatBox.style.height = "100vh";
-            chatBox.style.borderRadius = "0";
-            chatBox.style.boxShadow = "none";
-          }
-        })
-        .catch((err: any) => {
-          console.error("Error attempting to enable fullscreen mode:", err);
-        });
+    if (document.fullscreenElement) {
+      // Exit fullscreen
+      if (document.exitFullscreen) {
+        document
+          .exitFullscreen()
+          .then(() => {
+            if (chatBox) {
+              chatBox.style.width = "1100px";
+              chatBox.style.height = "700px";
+              chatBox.style.borderRadius = "0.5rem";
+              chatBox.style.boxShadow =
+                "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)";
+            }
+          })
+          .catch((err) => {
+            console.error("Error attempting to exit fullscreen mode:", err);
+          });
+      }
     } else {
-      console.error("Fullscreen API is not supported by this browser.");
+      // Enter fullscreen
+      if (element.requestFullscreen) {
+        element
+          .requestFullscreen()
+          .then(() => {
+            if (chatBox) {
+              chatBox.style.width = "100vw";
+              chatBox.style.height = "100vh";
+              chatBox.style.borderRadius = "0";
+              chatBox.style.boxShadow = "none";
+            }
+          })
+          .catch((err) => {
+            console.error("Error attempting to enable fullscreen mode:", err);
+          });
+      }
     }
   };
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      if (!document.fullscreenElement) {
+        // Reset styles when exiting fullscreen mode
+        const chatBox = chatBoxRef.current;
+        if (chatBox) {
+          chatBox.style.width = "1100px";
+          chatBox.style.height = "700px";
+          chatBox.style.borderRadius = "0.5rem";
+          chatBox.style.boxShadow =
+            "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)";
+        }
+      }
+    };
+
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+    };
+  }, []);
 
   return (
     <NodeWrapper
@@ -921,13 +935,18 @@ export default function ChatBoxNode({
                   </span>
                 </>
               )}
+
               <Button
                 size="sm"
                 variant="ghost"
-                className={`h-8 w-8 p-0 hover:bg-white/20`}
-                onClick={handleFullscreen}
+                className="h-8 w-8 p-0 hover:bg-white/20"
+                onClick={toggleFullscreen}
               >
-                <Maximize className="text-white" />
+                {document.fullscreenElement ? (
+                  <Minimize className="text-white" />
+                ) : (
+                  <Maximize className="text-white" />
+                )}
               </Button>
             </div>
           </div>
