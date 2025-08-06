@@ -112,10 +112,12 @@ export default function ChatBoxNode({
   const [isInitialized, setIsInitialized] = useState(false);
 
   // Refs
+  const chatBoxRef = useRef<HTMLDivElement>(null);
   const nodeControlRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null); // New ref for the scrollable messages area
+  const fullscreenElementRef = useRef<HTMLDivElement>(null);
 
   // Mutations
   const { mutateAsync: sendChatMessageMutation } = useSendChatMessage();
@@ -822,16 +824,58 @@ export default function ChatBoxNode({
   };
 
   const handleFullscreen = () => {
-    if (nodeControlRef.current) {
-      if (nodeControlRef.current.requestFullscreen) {
-        nodeControlRef.current.requestFullscreen();
-      } else if ((nodeControlRef.current as any).webkitRequestFullscreen) {
-        // Safari fallback
-        (nodeControlRef.current as any).webkitRequestFullscreen();
-      } else if ((nodeControlRef.current as any).msRequestFullscreen) {
-        // IE/Edge fallback
-        (nodeControlRef.current as any).msRequestFullscreen();
-      }
+    const element = fullscreenElementRef.current;
+    const chatBox = chatBoxRef.current;
+
+    if (!element) {
+      console.error("Fullscreen element not found");
+      return;
+    }
+
+    if (element.requestFullscreen) {
+      element
+        .requestFullscreen()
+        .then(() => {
+          if (chatBox) {
+            chatBox.style.width = "100vw";
+            chatBox.style.height = "100vh";
+            chatBox.style.borderRadius = "0";
+            chatBox.style.boxShadow = "none";
+          }
+        })
+        .catch((err) => {
+          console.error("Error attempting to enable fullscreen mode:", err);
+        });
+    } else if ((element as any).webkitRequestFullscreen) {
+      (element as any)
+        .webkitRequestFullscreen()
+        .then(() => {
+          if (chatBox) {
+            chatBox.style.width = "100vw";
+            chatBox.style.height = "100vh";
+            chatBox.style.borderRadius = "0";
+            chatBox.style.boxShadow = "none";
+          }
+        })
+        .catch((err: any) => {
+          console.error("Error attempting to enable fullscreen mode:", err);
+        });
+    } else if ((element as any).msRequestFullscreen) {
+      (element as any)
+        .msRequestFullscreen()
+        .then(() => {
+          if (chatBox) {
+            chatBox.style.width = "100vw";
+            chatBox.style.height = "100vh";
+            chatBox.style.borderRadius = "0";
+            chatBox.style.boxShadow = "none";
+          }
+        })
+        .catch((err: any) => {
+          console.error("Error attempting to enable fullscreen mode:", err);
+        });
+    } else {
+      console.error("Fullscreen API is not supported by this browser.");
     }
   };
 
@@ -843,6 +887,7 @@ export default function ChatBoxNode({
       className="bg-white"
     >
       <div
+        ref={fullscreenElementRef}
         onKeyDown={preventNodeDeletionKeys}
         className="react-flow__node nowheel"
       >
@@ -854,8 +899,10 @@ export default function ChatBoxNode({
             e.stopPropagation();
           }}
         />
-
-        <div className="w-[1100px] h-[700px] bg-white rounded-lg shadow-lg overflow-hidden">
+        <div
+          ref={chatBoxRef}
+          className="w-[1100px] h-[700px] bg-white rounded-lg shadow-lg overflow-hidden"
+        >
           {/* Header - This is the only draggable part */}
           <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -874,19 +921,19 @@ export default function ChatBoxNode({
                   </span>
                 </>
               )}
-              {/* <Button
+              <Button
                 size="sm"
                 variant="ghost"
                 className={`h-8 w-8 p-0 hover:bg-white/20`}
-                onClick={() => handleFullscreen()}
+                onClick={handleFullscreen}
               >
                 <Maximize className="text-white" />
-              </Button> */}
+              </Button>
             </div>
           </div>
 
           {/* Main Content Area - This part should not trigger a drag */}
-          <div className="flex h-[calc(100%-52px)] nodrag">
+          <div className="flex h-[calc(100%-64px)] nodrag">
             {/* Left Sidebar - Conversations */}
             <div className="w-72 bg-gray-50 border-r border-gray-200 p-4 flex-shrink-0 nodrag">
               <Button
@@ -980,7 +1027,8 @@ export default function ChatBoxNode({
                                 conversation.draftMessage.trim() && (
                                   <span className="text-xs text-gray-500 italic truncate">
                                     Draft:{" "}
-                                    {conversation.draftMessage.slice(0, 20)}...
+                                    {conversation.draftMessage.slice(0, 20)}
+                                    ...
                                   </span>
                                 )}
                               {/* Show error indicator */}
@@ -1127,7 +1175,7 @@ export default function ChatBoxNode({
                             <div className="text-sm font-semibold text-green-600 mb-1">
                               {msg.name}
                             </div>
-                            <div className="text-gray-800 text-sm whitespace-pre-wrap break-words">
+                            <div className="text-gray-800 text-sm whitespace-pre-wrap break-words select-text">
                               {msg.content}
                             </div>
                           </div>
