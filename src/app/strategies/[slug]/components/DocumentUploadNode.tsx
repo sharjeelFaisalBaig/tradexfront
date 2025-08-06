@@ -1090,16 +1090,17 @@ export default function DocumentUploadNode({
                     <AiNoteInput
                       color="blue"
                       note={userNotes}
-                      readOnly={!canConnect}
-                      hideButton={!canConnect}
-                      isLoading={isProcessingAny}
-                      isInputDisabled={isProcessingAny}
-                      isButtonDisabled={isProcessingAny}
                       setNote={(val) => setUserNotes(val ?? "")}
                       // send peer ai note
                       strategyId={strategyId}
                       peerType="docs"
                       peerId={data?.id}
+                      isDisabled={
+                        !canConnect ||
+                        isAnalyzing ||
+                        isProcessingAny ||
+                        isStatusPollingLoading
+                      }
                     />
                   </div>
                 </div>

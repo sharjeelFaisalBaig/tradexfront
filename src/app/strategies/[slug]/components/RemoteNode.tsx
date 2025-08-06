@@ -812,14 +812,16 @@ export default function RemoteNode({
                   <AiNoteInput
                     color="cyan"
                     note={userNotes}
-                    readOnly={!canConnect}
-                    hideButton={!canConnect}
                     setNote={(val) => setUserNotes(val ?? "")}
-                    isInputDisabled={isProcessingAny}
-                    isLoading={isProcessingAny || isStatusPollingLoading}
                     strategyId={strategyId}
                     peerType="remote"
                     peerId={data?.id}
+                    isDisabled={
+                      !canConnect ||
+                      isAnalyzing ||
+                      isProcessingAny ||
+                      isStatusPollingLoading
+                    }
                   />
                 </div>
               </div>

@@ -805,11 +805,6 @@ export default function ImageUploadNode({
                       isProcessingAny ||
                       isStatusPollingLoading
                     }
-                    // readOnly={!canConnect}
-                    // hideButton={!canConnect}
-                    // isInputDisabled={isProcessingAny}
-                    // isButtonDisabled={isProcessingAny}
-                    // isLoading={isAnalyzing || isStatusPollingLoading}
                   />
                 </div>
               </div>
