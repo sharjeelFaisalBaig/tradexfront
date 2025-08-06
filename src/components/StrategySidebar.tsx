@@ -46,11 +46,11 @@ const StrategySidebar = ({ strategyId }: StrategySidebarProps) => {
 
   return (
     <div
-      onMouseEnter={() => setCollapsed(false)}
-      onMouseLeave={() => setCollapsed(true)}
+      // onMouseEnter={() => setCollapsed(false)}
+      // onMouseLeave={() => setCollapsed(true)}
       className={cn(
-        collapsed ? "w-16" : "w-40",
-        "bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 transition-all duration-300 ease-linear strategy-sidebar"
+        // collapsed ? "w-16" : "w-40",
+        "w-16 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 transition-all duration-300 ease-linear strategy-sidebar"
       )}
     >
       <div className="flex h-full flex-col items-center p-2 space-y-2">

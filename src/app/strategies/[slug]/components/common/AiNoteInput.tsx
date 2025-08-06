@@ -86,7 +86,7 @@ const AiNoteInput = ({
   }, [note]);
 
   return (
-    <div className="relative flex-1 flex items-center gap-2">
+    <div className="relative flex-1 flex items-center gap-2 nodrag">
       <Textarea
         rows={1}
         ref={textareaRef}
@@ -101,7 +101,7 @@ const AiNoteInput = ({
           }
         }}
         className={cn(
-          "pr-8 border-gray-200 !min-h-10",
+          "pr-8 border-gray-200 !min-h-10 nodrag",
           selectedColor.input,
           isDisabled && "cursor-not-allowed"
         )}

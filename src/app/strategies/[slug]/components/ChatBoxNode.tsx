@@ -846,9 +846,17 @@ export default function ChatBoxNode({
         onKeyDown={preventNodeDeletionKeys}
         className="react-flow__node nowheel"
       >
-        <div ref={nodeControlRef} className="nodrag" />
+        <div
+          ref={nodeControlRef}
+          className="nodrag"
+          onMouseDown={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+          }}
+        />
+
         <div className="w-[1100px] h-[700px] bg-white rounded-lg shadow-lg overflow-hidden">
-          {/* Header */}
+          {/* Header - This is the only draggable part */}
           <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <MessageSquare className="w-5 h-5 text-white" />
@@ -876,9 +884,11 @@ export default function ChatBoxNode({
               </Button> */}
             </div>
           </div>
-          <div className="flex h-[calc(100%-52px)]">
+
+          {/* Main Content Area - This part should not trigger a drag */}
+          <div className="flex h-[calc(100%-52px)] nodrag">
             {/* Left Sidebar - Conversations */}
-            <div className="w-72 bg-gray-50 border-r border-gray-200 p-4 flex-shrink-0">
+            <div className="w-72 bg-gray-50 border-r border-gray-200 p-4 flex-shrink-0 nodrag">
               <Button
                 onClick={createNewConversation}
                 disabled={createConversationLoading || isAnyConversationLoading}
@@ -1024,10 +1034,11 @@ export default function ChatBoxNode({
                 )}
               </div>
             </div>
+
             {/* Main Content Area */}
-            <div className="flex-1 flex flex-col">
+            <div className="flex-1 flex flex-col nodrag">
               {/* Content Header */}
-              <div className="p-6 border-b border-gray-200 text-left">
+              <div className="p-6 border-b border-gray-200 text-left nodrag">
                 <h1 className="text-xl font-semibold text-gray-800">
                   {activeConversation?.title || "Select a conversation"}
                   {isLoading && (
@@ -1048,9 +1059,10 @@ export default function ChatBoxNode({
                   </div>
                 )}
               </div>
+
               {/* Error Alert */}
               {activeConversation?.hasError && (
-                <div className="p-4 border-b border-gray-200">
+                <div className="p-4 border-b border-gray-200 nodrag">
                   <Alert variant="destructive">
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>
@@ -1059,11 +1071,12 @@ export default function ChatBoxNode({
                   </Alert>
                 </div>
               )}
+
               {/* Messages Area */}
               <div
-                ref={messagesContainerRef} // Assign the new ref here
-                className="flex-1 overflow-y-auto p-4 space-y-6"
-                onScroll={handleMessagesScroll} // Add scroll handler
+                ref={messagesContainerRef}
+                className="flex-1 overflow-y-auto p-4 space-y-6 nodrag"
+                onScroll={handleMessagesScroll}
               >
                 {!activeConversationId ? (
                   <div className="flex items-center justify-center h-full text-gray-400">
@@ -1167,9 +1180,10 @@ export default function ChatBoxNode({
                 )}
                 <div ref={messagesEndRef} />
               </div>
+
               {/* Bottom Input Area */}
               {activeConversationId && (
-                <div className="border-t border-gray-200 p-4">
+                <div className="border-t border-gray-200 p-4 nodrag">
                   {/* Input Field */}
                   <div className="relative mb-3">
                     <div className="relative bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
