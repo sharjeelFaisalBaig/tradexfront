@@ -39,6 +39,10 @@ export default function ForgotPasswordPage() {
             title: "OTP Sent",
             description: "Please check your email for the OTP.",
           });
+
+          // Set redirect flag in sessionStorage
+          sessionStorage.setItem("otpRedirected", "true");
+
           router.replace(
             `/auth/forgot-password/otp?email=${encodeURIComponent(
               values.email

@@ -43,6 +43,7 @@ import {
   updateAnnotationContent,
   deleteAnnotationPeer,
   sendPeerAiNote,
+  deleteStrategy,
 } from "@/services/strategy/strategy_Mutation";
 import { IStrategy } from "@/lib/types";
 import { QUERY_KEYS } from "@/lib/queryKeys";
@@ -51,8 +52,25 @@ export const useCreateStrategy = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: Partial<IStrategy>) => createStrategy(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.STRATEGIES] });
+    onSuccess: (newStrategy) => {
+      queryClient.setQueryData(
+        [QUERY_KEYS.STRATEGIES],
+        (oldData: { data: { strategies: IStrategy[] } } | undefined) => {
+          if (!oldData) {
+            return { data: { strategies: [newStrategy.data] } };
+          }
+
+          const updatedStrategies = [
+            newStrategy.data,
+            ...oldData.data.strategies,
+          ];
+
+          return {
+            ...oldData,
+            data: { ...oldData.data, strategies: updatedStrategies },
+          };
+        }
+      );
     },
   });
 };
@@ -62,10 +80,58 @@ export const useUpdateStrategy = () => {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<IStrategy> }) =>
       updateStrategy(id, data),
-    onSuccess: (_data, { id }) => {
-      queryClient.invalidateQueries({
-        queryKey: [QUERY_KEYS.STRATEGY, id],
-      });
+    onSuccess: (updatedData, { id }) => {
+      // Manually update the cache for the specific strategy
+      queryClient.setQueryData(
+        [QUERY_KEYS.STRATEGY, id],
+        (oldData: IStrategy | undefined) => {
+          if (!oldData) return { ...updatedData.data };
+          return { ...oldData, data: { ...updatedData.data } };
+        }
+      );
+
+      // Update the list of strategies
+      queryClient.setQueryData(
+        [QUERY_KEYS.STRATEGIES],
+        (oldData: { data: { strategies: IStrategy[] } } | undefined) => {
+          if (!oldData)
+            return { data: { strategies: [{ ...updatedData.data }] } };
+
+          const updatedStrategies = oldData.data.strategies.map((strategy) =>
+            strategy.id === id ? { ...strategy, ...updatedData.data } : strategy
+          );
+
+          return {
+            ...oldData,
+            data: { ...oldData.data, strategies: updatedStrategies },
+          };
+        }
+      );
+    },
+  });
+};
+
+export const useDeleteStrategy = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteStrategy(id),
+    onSuccess: (_updatedData, id) => {
+      // Update the list of strategies to remove the deleted one
+      queryClient.setQueryData(
+        [QUERY_KEYS.STRATEGIES],
+        (oldData: { data: { strategies: IStrategy[] } } | undefined) => {
+          if (!oldData) return { data: { strategies: [] } };
+
+          const updatedStrategies = oldData.data.strategies.filter(
+            (strategy) => strategy.id !== id
+          );
+
+          return {
+            ...oldData,
+            data: { ...oldData.data, strategies: updatedStrategies },
+          };
+        }
+      );
     },
   });
 };
@@ -74,6 +140,34 @@ export const useCopyStrategy = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => copyStrategy(id),
+    onSuccess: (newStrategy) => {
+      queryClient.setQueryData(
+        [QUERY_KEYS.STRATEGIES],
+        (oldData: { data: { strategies: IStrategy[] } } | undefined) => {
+          if (!oldData) {
+            return { data: { strategies: [newStrategy.data] } };
+          }
+
+          const updatedStrategies = [
+            newStrategy.data,
+            ...oldData.data.strategies,
+          ];
+
+          return {
+            ...oldData,
+            data: { ...oldData.data, strategies: updatedStrategies },
+          };
+        }
+      );
+    },
+  });
+};
+
+export const useFavouriteStrategy = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, is_favourite }: { id: string; is_favourite: boolean }) =>
+      favouriteStrategy(id, is_favourite),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.STRATEGIES] });
     },
@@ -85,17 +179,6 @@ export const useToggleStrategy = () => {
   return useMutation({
     mutationFn: ({ id, is_active }: { id: string; is_active: boolean }) =>
       toggleStrategy(id, is_active),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.STRATEGIES] });
-    },
-  });
-};
-
-export const useFavouriteStrategy = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, is_favourite }: { id: string; is_favourite: boolean }) =>
-      favouriteStrategy(id, is_favourite),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.STRATEGIES] });
     },

@@ -1374,15 +1374,16 @@ export default function AudioUploadNode({
                   <AiNoteInput
                     color="purple"
                     note={userNotes}
-                    readOnly={!canConnect}
-                    hideButton={!canConnect}
                     setNote={(val) => setUserNotes(val ?? "")}
-                    isLoading={isAnalyzing || isStatusPollingLoading}
-                    isInputDisabled={isProcessingAny}
-                    isButtonDisabled={isProcessingAny}
                     strategyId={strategyId}
                     peerId={data?.id}
                     peerType="audio"
+                    isDisabled={
+                      !canConnect ||
+                      isAnalyzing ||
+                      isProcessingAny ||
+                      isStatusPollingLoading
+                    }
                   />
                   {/* AI Analysis Summary */}
                   {aiResponse && aiResponse.summary && (

@@ -755,14 +755,17 @@ export default function SocialMediaNode({
 
                       <AiNoteInput
                         color="blue"
-                        readOnly={!canConnect}
-                        hideButton={!canConnect}
                         note={userNotes}
                         setNote={(val) => setUserNotes(val ?? "")}
-                        isLoading={isProcessingAny || isStatusPollingLoading}
                         strategyId={strategyId}
                         peerId={data?.id}
                         peerType="social_media"
+                        isDisabled={
+                          !canConnect ||
+                          isAnalyzing ||
+                          isProcessingAny ||
+                          isStatusPollingLoading
+                        }
                       />
                     </div>
                   </div>

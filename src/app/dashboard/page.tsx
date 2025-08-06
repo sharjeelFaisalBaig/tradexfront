@@ -1,5 +1,4 @@
 "use client";
-
 import { useEffect, useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import {
@@ -21,23 +20,71 @@ import Loader from "@/components/common/Loader";
 import { Pagination } from "@/components/common/Pagination";
 import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 import NewStrategyModal from "@/components/modal/NewStrategyModal";
+import DeleteStrategyModal from "@/components/modal/DeleteStrategyModal";
+import {
+  useCopyStrategy,
+  useFavouriteStrategy,
+} from "@/hooks/strategy/useStrategyMutations";
+import { showAPIErrorToast } from "@/lib/utils";
 
 const Dashboard = () => {
   const router = useRouter();
+  const successNote = useSuccessNotifier();
 
+  // mutations
+  const { mutate: copyStrategy, isPending: isLoadingCopy } = useCopyStrategy();
+  const { mutate: toggleFavouriteStrategy } = useFavouriteStrategy();
+  // states
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [isForEdit, setIsForEdit] = useState<boolean>(false);
   const [isForDelete, setIsForDelete] = useState<boolean>(false);
+  const [favStrategies, setFavStrategies] = useState<IStrategy[]>([]);
   const [selectedStrategy, setSelectedStrategy] = useState<IStrategy | null>(
     null
   );
+  const [sortOption, setSortOption] = useState<string>("modified"); // State for sort option
 
   const { data, isLoading, isError, error } = useGetStrategies();
   const strategies: IStrategy[] = useMemo(
     () => data?.data?.strategies || [],
     [data]
   );
+
+  const filteredStrategies = strategies
+    .filter((strategy) => {
+      const nameMatches = strategy.name
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
+      const tagsMatch = strategy.tags?.some((tag) =>
+        tag.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      return nameMatches || tagsMatch;
+    })
+    .sort((a, b) => {
+      // Sorting logic based on the selected option
+      switch (sortOption) {
+        case "name":
+          return a.name.localeCompare(b.name);
+        case "created":
+          return (
+            new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+          );
+        case "modified":
+        default:
+          return (
+            new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+          );
+      }
+    });
+
+  useEffect(() => {
+    strategies?.map((s) => {
+      if (s?.collaborators?.[0]?.is_favourite) {
+        setFavStrategies((prev) => [...prev, s]);
+      }
+    });
+  }, [strategies]);
 
   useEffect(() => {
     if (error) {
@@ -50,48 +97,91 @@ const Dashboard = () => {
     }
   }, [error]);
 
-  const toggleStar = (id: string) => {
-    // const updated = [...starredItems];
-    // updated[index] = !updated[index];
-    // setStarredItems(updated);
+  const handleToggleIsFavourite = (strategy: IStrategy) => {
+    const newFavouriteState = !favStrategies?.some(
+      (fav) => fav?.id === strategy?.id
+    );
+    // Optimistically update local favourite strategies
+    setFavStrategies((prevFavs) => {
+      if (newFavouriteState) {
+        return [...prevFavs, strategy];
+      } else {
+        return prevFavs.filter((s) => s.id !== strategy.id);
+      }
+    });
+    // Show success toast immediately
+    successNote({
+      title: newFavouriteState
+        ? "Added to Favourite"
+        : "Removed from Favourite",
+      description: `“${strategy?.name}” has been ${
+        newFavouriteState ? "added to" : "removed from"
+      } favourites.`,
+    });
+    // API call
+    toggleFavouriteStrategy(
+      { id: strategy?.id ?? "", is_favourite: newFavouriteState },
+      {
+        onError: (error) => {
+          showAPIErrorToast(error);
+          // Revert local change on failure
+          setFavStrategies((prevFavs) => {
+            if (newFavouriteState) {
+              // Revert add → remove again
+              return prevFavs.filter((s) => s.id !== strategy.id);
+            } else {
+              // Revert remove → add again
+              return [...prevFavs, strategy];
+            }
+          });
+        },
+      }
+    );
   };
 
-  const filteredStrategies = strategies.filter((strategy) =>
-    strategy.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  // if (isLoading) {
-  //   return (
-  //     <div className="flex min-h-screen items-center justify-center bg-[#f6f8fb] dark:bg-gray-900">
-  //       <Loader text="Loading strategies..." />
-  //     </div>
-  //   );
-  // }
-
-  // if (isError) {
-  //   return (
-  //     <div className="flex min-h-screen items-center justify-center">
-  //       <span className="text-red-600 text-lg font-semibold">
-  //         Failed to load strategies.
-  //       </span>
-  //     </div>
-  //   );
-  // }
+  const handleCopyStrategy = (strategy: IStrategy) => {
+    copyStrategy(strategy?.id, {
+      onSuccess: () => {
+        successNote({
+          title: "Strategy Copied",
+          description: `“${strategy?.name}” has been successfully copied.`,
+        });
+      },
+      onError: (error) => {
+        showAPIErrorToast(error);
+      },
+    });
+  };
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="flex flex-col h-screen overflow-hidden bg-gray-50 dark:bg-gray-900">
       {isForEdit && (
         <NewStrategyModal
-          strategy={selectedStrategy}
           isOpen={isForEdit}
+          strategy={selectedStrategy}
           onClose={() => setIsForEdit(false)}
         />
       )}
-
+      {isForDelete && (
+        <DeleteStrategyModal
+          isOpen={isForDelete}
+          strategy={selectedStrategy}
+          onClose={() => setIsForDelete(false)}
+        />
+      )}
       <Header />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className="relative flex-1 overflow-y-auto p-6">
+          {/* Loader Overlay */}
+          {isLoadingCopy && (
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="fixed top-0 left-0 w-full h-full flex items-center justify-center bg-[#f6f8fb]/80 dark:bg-gray-900/80 z-50"
+            >
+              <Loader text="Copy strategy..." />
+            </div>
+          )}
           {/* Header Controls */}
           <div className="flex items-center justify-between mb-6">
             {/* Search */}
@@ -99,16 +189,15 @@ const Dashboard = () => {
               <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-10" />
               <Input
                 type="text"
-                placeholder="Search strategies"
+                placeholder="Search strategies by name or tag"
                 className="pl-10"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-
             {/* Filters */}
             <div className="flex items-center space-x-4">
-              <Select defaultValue="10">
+              {/* <Select defaultValue="10">
                 <SelectTrigger className="w-32">
                   <SelectValue />
                 </SelectTrigger>
@@ -117,9 +206,11 @@ const Dashboard = () => {
                   <SelectItem value="25">25 per page</SelectItem>
                   <SelectItem value="50">50 per page</SelectItem>
                 </SelectContent>
-              </Select>
-
-              <Select defaultValue="modified">
+              </Select> */}
+              <Select
+                defaultValue="modified"
+                onValueChange={(value) => setSortOption(value)}
+              >
                 <SelectTrigger className="w-48">
                   <SelectValue />
                 </SelectTrigger>
@@ -133,7 +224,7 @@ const Dashboard = () => {
               </Select>
             </div>
           </div>
-
+          {/* Content Section */}
           {isLoading ? (
             <div className="h-4/5 flex items-center justify-center bg-[#f6f8fb] dark:bg-gray-900">
               <Loader text="Loading strategies..." />
@@ -148,32 +239,36 @@ const Dashboard = () => {
             <>
               {/* Strategy Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                {filteredStrategies.map((strategy, index) => (
-                  <StrategyCard
-                    key={strategy.id}
-                    strategy={strategy}
-                    isFavorite={index === 1}
-                    //  isFavorite={starredItems[index]}
-                    onClick={() => router.push(`/strategies/${strategy.id}`)}
-                    toggleStar={() => toggleStar(strategy.id)}
-                    onEdit={() => {
-                      setIsForEdit(true);
-                      setSelectedStrategy(strategy);
-                    }}
-                    onDelete={() => {
-                      setIsForDelete(true);
-                      setSelectedStrategy(strategy);
-                    }}
-                  />
-                ))}
+                {filteredStrategies.map((strategy) => {
+                  const isFavourite = favStrategies?.some(
+                    (fav) => fav?.id === strategy?.id
+                  );
+                  return (
+                    <StrategyCard
+                      key={strategy.id}
+                      strategy={strategy}
+                      isFavorite={isFavourite}
+                      onClick={() => router.push(`/strategies/${strategy.id}`)}
+                      onEdit={() => {
+                        setIsForEdit(true);
+                        setSelectedStrategy(strategy);
+                      }}
+                      onDelete={() => {
+                        setIsForDelete(true);
+                        setSelectedStrategy(strategy);
+                      }}
+                      toggleStar={() => handleToggleIsFavourite(strategy)}
+                      onCopy={handleCopyStrategy}
+                    />
+                  );
+                })}
               </div>
-
               {/* Pagination */}
               {/* <Pagination
-            totalPages={10}
-            currentPage={currentPage}
-            onPageChange={(page) => setCurrentPage(page)}
-          /> */}
+                totalPages={10}
+                currentPage={currentPage}
+                onPageChange={(page) => setCurrentPage(page)}
+              /> */}
             </>
           )}
         </main>

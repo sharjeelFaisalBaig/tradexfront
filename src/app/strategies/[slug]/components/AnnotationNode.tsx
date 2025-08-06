@@ -26,7 +26,6 @@ import { useParams } from "next/navigation";
 import { useUpdateAnnotationContent } from "@/hooks/strategy/useStrategyMutations";
 import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 import { toast } from "@/hooks/use-toast";
-import { useOutsideClick } from "@/hooks/useOutsideClick";
 
 interface AnnotationNodeData {
   id?: string;

@@ -6,12 +6,15 @@ import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useTheme } from "@/context/ThemeProvider";
 
-interface HeaderProps {
+interface ProfileHeaderProps {
   onBackClick?: () => void;
   onSave?: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ onBackClick, onSave }) => {
+const ProfileHeader: React.FC<ProfileHeaderProps> = ({
+  onBackClick,
+  onSave,
+}) => {
   const router = useRouter();
   const { theme } = useTheme();
 
@@ -59,4 +62,4 @@ const Header: React.FC<HeaderProps> = ({ onBackClick, onSave }) => {
   );
 };
 
-export default Header;
+export default ProfileHeader;

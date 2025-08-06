@@ -44,6 +44,24 @@ export interface IStrategyFlow {
   strategyFlowEdges?: StrategyFlowEdge[];
 }
 
+export interface IStrategyCollaborator {
+  id: string;
+  type?: "owner";
+  is_favourite?: true;
+  is_active?: true;
+  is_online?: true;
+  folder_id?: string;
+  folder?: {
+    id?: string;
+    name?: string;
+  };
+  user?: {
+    id?: string | number;
+    name?: string;
+    email?: string;
+  };
+}
+
 export interface IStrategy {
   id: string;
   name: string;
@@ -56,6 +74,7 @@ export interface IStrategy {
   is_active: boolean;
   is_favourite?: boolean;
   flows?: IStrategyFlow[];
+  collaborators?: IStrategyCollaborator[];
 }
 
 export type Tool = "image" | "video" | "document" | "AI Assistant" | string;

@@ -1365,15 +1365,16 @@ export default function VideoUploadNode({
                     <AiNoteInput
                       color="blue"
                       note={userNotes}
-                      readOnly={!canConnect}
-                      hideButton={!canConnect}
-                      isLoading={isProcessingAny}
-                      isInputDisabled={isProcessingAny}
-                      isButtonDisabled={isProcessingAny}
                       setNote={(val) => setUserNotes(val ?? "")}
                       strategyId={strategyId}
                       peerId={data?.id}
                       peerType="video"
+                      isDisabled={
+                        !canConnect ||
+                        isAnalyzing ||
+                        isProcessingAny ||
+                        isStatusPollingLoading
+                      }
                     />
                   </div>
                 </div>

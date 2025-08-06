@@ -12,13 +12,14 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { signIn } from "next-auth/react";
 import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 import Loader from "@/components/common/Loader";
-import { resendOtpRequest } from "@/services/auth/auth_API";
+import { resendOtpRequest, verifyOtpRequest } from "@/services/auth/auth_API";
 import { showAPIErrorToast } from "@/lib/utils";
 
 const OtpVerificationPage = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const successNote = useSuccessNotifier();
+  const redirected = sessionStorage.getItem("otpRedirected");
   const email = searchParams.get("email")?.replace(" ", "+");
   const twoFactorEnabled = searchParams.get("2fa");
   const expiresIn = searchParams.get("expires_in");
@@ -26,6 +27,14 @@ const OtpVerificationPage = () => {
   const [otp, setOtp] = useState(Array(6).fill(""));
   const [timer, setTimer] = useState(expiresIn ? parseInt(expiresIn, 10) : 600);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  useEffect(() => {
+    if (!redirected || !expiresIn || !email) {
+      console.log("access denied");
+      router.replace("/auth/signin");
+      sessionStorage.removeItem("otpRedirected");
+    }
+  }, [redirected, expiresIn, email]);
 
   useEffect(() => {
     if (!email) {
@@ -67,6 +76,7 @@ const OtpVerificationPage = () => {
         redirect: false,
       }).then(() => {
         setTimeout(() => router.replace("/dashboard"), 1200);
+        setTimeout(() => sessionStorage.removeItem("otpRedirected"), 1500);
       });
     },
     onError: (error: any) => {
@@ -76,15 +86,7 @@ const OtpVerificationPage = () => {
 
   const verifyOtpMutation = useMutation({
     mutationFn: (otp: string) =>
-      fetch(endpoints.AUTH.VERIFY_OTP, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, otp, type: "verification" }),
-      }).then(async (res) => {
-        const data = await res.json();
-        if (!res.ok || data.status === "Error") throw data;
-        return data;
-      }),
+      verifyOtpRequest({ email: email ?? "", otp, type: "verification" }),
     onSuccess: () => {
       setVerifying(true);
       successNote({
@@ -92,6 +94,7 @@ const OtpVerificationPage = () => {
         description: "OTP verified successfully. Please log in.",
       });
       setTimeout(() => router.replace("/auth/signin"), 1200);
+      setTimeout(() => sessionStorage.removeItem("otpRedirected"), 1500);
     },
     onError: (error: any) => {
       showAPIErrorToast(error, "Validation failed", "Invalid or expired OTP.");
@@ -168,6 +171,7 @@ const OtpVerificationPage = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const enteredOtp = otp.join("");
+
     if (enteredOtp.length === 6) {
       twoFactorEnabled === "true"
         ? verify2faMutation.mutate(enteredOtp)

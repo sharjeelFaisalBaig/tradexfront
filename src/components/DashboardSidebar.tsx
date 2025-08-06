@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { cn, showAPIErrorToast } from "@/lib/utils";
 import { Plus } from "lucide-react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import DashboardIcon from "../icons/dashboardicon.svg";
 import Chart from "../icons/chart.svg";
@@ -12,14 +12,15 @@ import Templates from "../icons/templates.svg";
 import Folder from "../icons/folder.svg";
 import ShareBlue from "../icons/shareblue.svg";
 import { useSidebar } from "@/context/SidebarContext";
-import { useState } from "react";
-import NewStrategyModal from "./modal/NewStrategyModal";
+import { useCreateStrategy } from "@/hooks/strategy/useStrategyMutations";
+import useSuccessNotifier from "@/hooks/useSuccessNotifier";
+import Loader from "./common/Loader";
 
 const navigation = [
   // { name: "New Strategy", href: "/strategy", icon: Plus },
   { name: "New Strategy", href: "#new-strategy", icon: Plus },
   { name: "Dashboard", href: "/dashboard", icon: DashboardIcon },
-  { name: "Charts", href: "/charts", icon: Chart },
+  // { name: "Charts", href: "/charts", icon: Chart },
   { name: "My Strategies", href: "/strategies", icon: Strategy },
   { name: "Recent", href: "/recent", icon: Recent },
   { name: "Favorites", href: "/favorites", icon: Favorites },
@@ -27,22 +28,43 @@ const navigation = [
   { name: "Shared with Me", href: "/shared", icon: ShareBlue },
 ];
 const DashboardSidebar = () => {
+  const router = useRouter();
   const pathname = usePathname();
+  const successNote = useSuccessNotifier();
   const { collapsed, setCollapsed } = useSidebar();
-  const [showNewStrategyModal, setShowNewStrategyModal] =
-    useState<boolean>(false);
 
-  const toggleNewStrategyModal = () => {
-    setShowNewStrategyModal((prev) => !prev);
+  // mutations
+  const { mutate: createStrategy, isPending: isCreatingStrategy } =
+    useCreateStrategy();
+
+  const handleCreateStrategy = async () => {
+    createStrategy(
+      {}, // payload
+      {
+        onSuccess: (data: any) => {
+          successNote({
+            title: "Strategy Created",
+            description: `Strategy "${data?.data?.name}" created successfully.`,
+          });
+          router.push(`/strategies/${data?.data?.id}`);
+        },
+        onError: (error) => {
+          showAPIErrorToast(error);
+        },
+      }
+    );
   };
 
   return (
     <>
-      {showNewStrategyModal && (
-        <NewStrategyModal
-          isOpen={showNewStrategyModal}
-          onClose={toggleNewStrategyModal}
-        />
+      {/* Loader Overlay */}
+      {isCreatingStrategy && (
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className="fixed top-0 left-0 w-full h-full flex items-center justify-center bg-[#f6f8fb]/80 dark:bg-gray-900/80 z-50"
+        >
+          <Loader text="Please wait, creating strategy..." />
+        </div>
       )}
 
       <div
@@ -77,7 +99,7 @@ const DashboardSidebar = () => {
                   <Link
                     href={item.href || "#"}
                     onClick={() => {
-                      item.href === "#new-strategy" && toggleNewStrategyModal();
+                      item.href === "#new-strategy" && handleCreateStrategy();
                     }}
                     className={cn(
                       "group flex px-[8px] py-[15px] text-sm font-medium rounded-[10px] transition-colors",

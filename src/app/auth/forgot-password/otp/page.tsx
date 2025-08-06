@@ -2,7 +2,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "@/hooks/use-toast";
-import { endpoints } from "@/lib/endpoints";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Image from "next/image";
@@ -20,12 +19,28 @@ export default function ForgotPasswordOtpPage() {
   const searchParams = useSearchParams();
   const email = searchParams.get("email") || "";
   const expiresIn = searchParams.get("expires_in");
+  const redirected = sessionStorage.getItem("otpRedirected");
   const [otp, setOtp] = useState(Array(6).fill(""));
   const [timer, setTimer] = useState(expiresIn ? parseInt(expiresIn, 10) : 60);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const verifyOtpMutation = useVerifyOtpMutation();
   const resendOtpMutation = useResendOtpMutation();
+
+  useEffect(() => {
+    if (!redirected || !expiresIn || !email) {
+      console.log("access denied");
+      router.replace("/auth/signin");
+      sessionStorage.removeItem("otpRedirected");
+    }
+  }, [redirected, expiresIn, email]);
+
+  useEffect(() => {
+    if (timer > 0) {
+      const interval = setInterval(() => setTimer((t) => t - 1), 1000);
+      return () => clearInterval(interval);
+    }
+  }, [timer]);
 
   const handleChange = (index: number, value: string) => {
     if (!/^\d*$/.test(value)) return;
@@ -102,13 +117,6 @@ export default function ForgotPasswordOtpPage() {
       }
     );
   };
-
-  useEffect(() => {
-    if (timer > 0) {
-      const interval = setInterval(() => setTimer((t) => t - 1), 1000);
-      return () => clearInterval(interval);
-    }
-  }, [timer]);
 
   const handleResend = () => {
     if (timer > 0 || resendOtpMutation.isPending) return;

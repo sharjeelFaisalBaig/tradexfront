@@ -32,12 +32,13 @@ import {
   useUpdatePeerPosition,
   useConnectNodes,
 } from "@/hooks/strategy/useStrategyMutations";
-import { getPeerTypeFromNodeType } from "@/lib/utils";
+import { getPeerTypeFromNodeType, preventNodeDeletionKeys } from "@/lib/utils";
 import StrategyHeader from "@/components/StrategyHeader";
 import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 import ChatBoxNode from "./ChatBoxNode";
 import { useNodeOperations } from "../hooks/useNodeOperations";
 import { UndoRedoControls } from "./common/UndoRedoControls";
+import { useUndoRedo } from "@/hooks/useUndoRedo";
 
 const nodeDefaults = {
   sourcePosition: Position.Right,
@@ -69,21 +70,6 @@ interface StrategyProps {
   slug: string;
 }
 
-// Define the type for pasted/dropped content directly in this component
-type PastedContentType =
-  | { type: "image-file"; data: File }
-  | { type: "image-url"; data: string }
-  | { type: "audio-file"; data: File }
-  | { type: "video-file"; data: File }
-  | { type: "document-file"; data: File }
-  | { type: "youtube"; data: string }
-  | { type: "tiktok"; data: string }
-  | { type: "instagram"; data: string }
-  | { type: "facebook"; data: string }
-  | { type: "website url"; data: string }
-  | { type: "plain text"; data: string }
-  | { type: "unknown"; data: null };
-
 const Strategy = (props: StrategyProps) => {
   const { slug: strategyId } = props;
   const store = useStoreApi();
@@ -91,9 +77,20 @@ const Strategy = (props: StrategyProps) => {
   const { addToolNode } = useNodeOperations();
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
-  const { fitView, getInternalNode, screenToFlowPosition } = useReactFlow();
+  const { getInternalNode, screenToFlowPosition } = useReactFlow();
   const [showNewStrategyModal, setShowNewStrategyModal] =
     useState<boolean>(false);
+
+  // Initialize undo/redo functionality
+  const {
+    saveToHistory,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    clearHistory,
+    resetUndoRedoFlag,
+  } = useUndoRedo(initialNodes, initialEdges);
 
   const { mutate: updatePeerPosition } = useUpdatePeerPosition();
   const { mutate: connectNodes } = useConnectNodes();
@@ -106,16 +103,6 @@ const Strategy = (props: StrategyProps) => {
     edges: initialEdges,
   });
 
-  useEffect(() => {
-    if (nodes.length > 0) {
-      fitView({
-        padding: 0.5,
-        includeHiddenNodes: false,
-        duration: 300,
-      });
-    }
-  }, [nodes, fitView]);
-
   // Save to history when nodes or edges change (debounced)
   useEffect(() => {
     const timeoutId = setTimeout(() => {
@@ -125,14 +112,14 @@ const Strategy = (props: StrategyProps) => {
       const edgesChanged =
         JSON.stringify(edges) !== JSON.stringify(lastSavedState.edges);
       if (nodesChanged || edgesChanged) {
-        // saveToHistory(nodes, edges);
+        saveToHistory(nodes, edges);
         setLastSavedState({ nodes, edges });
       }
       // Reset the undo/redo flag after a delay
-      // resetUndoRedoFlag();
+      resetUndoRedoFlag();
     }, 500); // 500ms debounce
     return () => clearTimeout(timeoutId);
-  }, [nodes, edges, lastSavedState]);
+  }, [nodes, edges, saveToHistory, resetUndoRedoFlag, lastSavedState]);
 
   // Keyboard shortcuts for undo/redo
   useEffect(() => {
@@ -141,7 +128,7 @@ const Strategy = (props: StrategyProps) => {
       // Ctrl/Cmd + Z (Undo)
       if ((event.ctrlKey || event.metaKey) && !event.shiftKey && key === "z") {
         event.preventDefault();
-        // handleUndo();
+        handleUndo();
       }
       // Ctrl/Cmd + Y (Redo) or Ctrl+Shift+Z (Redo)
       else if (
@@ -149,7 +136,7 @@ const Strategy = (props: StrategyProps) => {
         (key === "y" || (event.shiftKey && key === "z"))
       ) {
         event.preventDefault();
-        // handleRedo();
+        handleRedo();
       }
     };
     document.addEventListener("keydown", handleKeyDown);
@@ -180,6 +167,41 @@ const Strategy = (props: StrategyProps) => {
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, []);
+
+  // Handle undo operation
+  const handleUndo = useCallback(() => {
+    const previousState = undo();
+    if (previousState) {
+      setNodes(previousState.nodes || []);
+      setEdges(previousState.edges || []);
+      console.log("Undo Changes:", previousState.changes);
+    }
+  }, [undo, setNodes, setEdges]);
+
+  // Handle redo operation
+  const handleRedo = useCallback(() => {
+    const nextState = redo();
+    if (nextState) {
+      setNodes(nextState.nodes || []);
+      setEdges(nextState.edges || []);
+      console.log("Redo Changes:", nextState.changes);
+    }
+  }, [redo, setNodes, setEdges]);
+
+  // Define the type for pasted/dropped content directly in this component
+  type PastedContentType =
+    | { type: "image-file"; data: File }
+    | { type: "image-url"; data: string }
+    | { type: "audio-file"; data: File }
+    | { type: "video-file"; data: File }
+    | { type: "document-file"; data: File }
+    | { type: "youtube"; data: string }
+    | { type: "tiktok"; data: string }
+    | { type: "instagram"; data: string }
+    | { type: "facebook"; data: string }
+    | { type: "website url"; data: string }
+    | { type: "plain text"; data: string }
+    | { type: "unknown"; data: null };
 
   // Utility function to process DataTransfer items (for both paste and drop)
   const processDataTransferItems = useCallback(
@@ -333,7 +355,7 @@ const Strategy = (props: StrategyProps) => {
     if (!flows || flows.length === 0 || isEmptyFlows) {
       console.log("Nodes not exists");
       // Clear history when loading empty strategy
-      // clearHistory([], []);
+      clearHistory([], []);
     } else {
       const flow = flows[0];
       if (!flow) return;
@@ -375,9 +397,10 @@ const Strategy = (props: StrategyProps) => {
         setEdges([]);
       }
       // Initialize history with loaded data
-      // clearHistory(nodesFromFlows, flow.strategyFlowEdges || []);
+      // @ts-ignore
+      clearHistory(nodesFromFlows, flow.strategyFlowEdges || []);
     }
-  }, [strategy, setNodes, setEdges]);
+  }, [strategy, setNodes, setEdges, clearHistory]);
 
   useEffect(() => {
     if (error) {
@@ -737,7 +760,7 @@ const Strategy = (props: StrategyProps) => {
         <NewStrategyModal
           strategy={strategy}
           isOpen={showNewStrategyModal}
-          onClose={() => setShowNewStrategyModal(false)}
+          onClose={toggleNewStrategyModal}
         />
       )}
       <StrategyHeader
@@ -764,6 +787,7 @@ const Strategy = (props: StrategyProps) => {
                 onNodeDrag={onNodeDrag}
                 onNodeDragStop={onNodeDragStop}
                 onConnect={onConnect}
+                defaultViewport={{ x: 500, y: 500, zoom: 0.7578582832551992 }}
                 zoomOnScroll={true}
                 zoomOnPinch={true}
                 zoomOnDoubleClick={false}
@@ -771,7 +795,6 @@ const Strategy = (props: StrategyProps) => {
                 panOnScrollSpeed={0.5}
                 defaultEdgeOptions={defaultEdgeOptions}
                 elementsSelectable={true}
-                // defaultViewport={{ x: 500, y: 500, zoom: 0.7578582832551992 }}
                 fitView
                 fitViewOptions={{
                   padding: 0.5,
@@ -784,7 +807,14 @@ const Strategy = (props: StrategyProps) => {
                 onDrop={onDrop}
               >
                 <Background />
-                <Controls>{/* <UndoRedoControls /> */}</Controls>
+                <Controls>
+                  {/* <UndoRedoControls
+                    onUndo={handleUndo}
+                    onRedo={handleRedo}
+                    canUndo={canUndo}
+                    canRedo={canRedo}
+                  /> */}
+                </Controls>
               </ReactFlow>
             </>
           )}

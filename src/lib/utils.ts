@@ -8,6 +8,26 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+export const encodeBase64 = (input: string): string => {
+  if (typeof window === "undefined") {
+    // Server-side (Next.js 15)
+    return Buffer.from(input).toString("base64");
+  } else {
+    // Client-side (React)
+    return btoa(unescape(encodeURIComponent(input)));
+  }
+};
+
+export const decodeBase64 = (encoded: string): string => {
+  if (typeof window === "undefined") {
+    // Server-side (Next.js 15)
+    return Buffer.from(encoded, "base64").toString("utf-8");
+  } else {
+    // Client-side (React)
+    return decodeURIComponent(escape(atob(encoded)));
+  }
+};
+
 export const preventNodeDeletionKeys = (e: KeyboardEvent | any) => {
   // if (["Backspace", "Delete", "Escape"].includes(e.key)) {
   //   e.stopPropagation();

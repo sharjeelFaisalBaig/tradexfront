@@ -12,21 +12,26 @@ export const updateStrategy = async (id: string, data: Partial<IStrategy>) => {
   return res.data;
 };
 
+export const deleteStrategy = async (id: string) => {
+  const res = await axiosInstance.delete(endpoints.STRATEGY.DELETE(id));
+  return res.data;
+};
+
 export const copyStrategy = async (id: string) => {
   const res = await axiosInstance.post(endpoints.STRATEGY.COPY(id));
+  return res.data;
+};
+
+export const favouriteStrategy = async (id: string, is_favourite: boolean) => {
+  const res = await axiosInstance.patch(endpoints.STRATEGY.FAVOURITE(id), {
+    is_favourite,
+  });
   return res.data;
 };
 
 export const toggleStrategy = async (id: string, is_active: boolean) => {
   const res = await axiosInstance.put(endpoints.STRATEGY.TOGGLE(id), {
     is_active,
-  });
-  return res.data;
-};
-
-export const favouriteStrategy = async (id: string, is_favourite: boolean) => {
-  const res = await axiosInstance.put(endpoints.STRATEGY.FAVOURITE(id), {
-    is_favourite,
   });
   return res.data;
 };
