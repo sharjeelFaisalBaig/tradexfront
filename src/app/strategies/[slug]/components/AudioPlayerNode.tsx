@@ -128,6 +128,7 @@ export default function AudioUploadNode({
     isPending: isUploading,
     isError: isUploadError,
     error: uploadError,
+    isSuccess: isUploadSuccess,
   } = useUploadAudioContent();
   const {
     mutate: analyzeAudioContent,
@@ -902,6 +903,8 @@ export default function AudioUploadNode({
     () => !uploadedAudio && !showRecordingInterface,
     [uploadedAudio, showRecordingInterface]
   );
+
+  console.log({ isUploading, isUploadSuccess });
 
   return (
     <NodeWrapper
