@@ -20,7 +20,7 @@ import {
   Palette,
   Loader2,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, showAPIErrorToast } from "@/lib/utils";
 import { useNodeOperations } from "../hooks/useNodeOperations";
 import { useParams } from "next/navigation";
 import { useUpdateAnnotationContent } from "@/hooks/strategy/useStrategyMutations";
@@ -121,21 +121,12 @@ export default function AnnotationNode({
   );
 
   // Refs
+  const isAutoUploadProcessedRef = useRef(false);
   const nodeRef = useRef<HTMLDivElement | any>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Get current theme config
   const theme = themes[currentTheme];
-
-  useEffect(() => {
-    setNodeData(data);
-
-    if (data?.dataToAutoUpload?.data) {
-      setContent(data?.dataToAutoUpload?.data);
-      // setIsEditing(true);
-      // handleUpdateAnnotationNode({ newContent: data?.dataToAutoUpload?.data });
-    }
-  }, [data]);
 
   // Auto-resize textarea
   useEffect(() => {
@@ -222,11 +213,8 @@ export default function AnnotationNode({
     };
 
     setIsEditing(false);
-
-    setNodeData(data);
     updateNodeData(id, { ...annotationData });
-    setContent(annotationData?.annotation_message ?? "");
-    setCurrentTheme(annotationData?.data?.color);
+
     updateAnnotation(
       {
         peerId: nodeData?.id ?? "",
@@ -236,17 +224,25 @@ export default function AnnotationNode({
       {
         onSuccess: (data) => {
           setNodeData(data?.data);
+          setContent(annotationData.annotation_message ?? "");
+          setCurrentTheme(annotationData.data.color);
         },
         onError: (error: any) => {
-          toast({
-            title: error?.message || "Failed To Update Node",
-            description:
-              error?.response?.data?.message || "Something went wrong",
-          });
+          showAPIErrorToast(error);
+          // Reset any loading states here if necessary
         },
       }
     );
   };
+
+  useEffect(() => {
+    if (data?.dataToAutoUpload?.data && !isAutoUploadProcessedRef.current) {
+      setNodeData(data);
+      setContent(data.dataToAutoUpload.data);
+      // handleUpdateAnnotationNode({newContent: data?.dataToAutoUpload?.data,});
+      isAutoUploadProcessedRef.current = true;
+    }
+  }, [data]);
 
   return (
     <div

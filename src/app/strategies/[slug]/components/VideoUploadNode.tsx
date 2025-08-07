@@ -134,6 +134,7 @@ export default function VideoUploadNode({
     reset: resetAnalyzeVideoContentMutation,
   } = useAnalyzeVideoPeer();
 
+  const isAutoUploadProcessedRef = useRef(false);
   const nodeControlRef = useRef(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -183,8 +184,9 @@ export default function VideoUploadNode({
   // Sync state with incoming data props (like ImageUploadNode)
   useEffect(() => {
     // handle Droped & Pasted video
-    if (data?.dataToAutoUpload?.data) {
+    if (data?.dataToAutoUpload?.data && !isAutoUploadProcessedRef.current) {
       handleFileSelect(data?.dataToAutoUpload?.data);
+      isAutoUploadProcessedRef.current = true;
     }
 
     // Handle video from data.video (relative or absolute path)

@@ -499,18 +499,19 @@ export default function ImageUploadNode({
     [handleFileSelect]
   );
 
-  // Effects
+  const isAutoUploadProcessedRef = useRef(false);
+
   useEffect(() => {
     // Handle auto-upload from data
-    if (data?.dataToAutoUpload?.data) {
+    if (data?.dataToAutoUpload?.data && !isAutoUploadProcessedRef.current) {
       handleFileSelect(data.dataToAutoUpload.data);
+      isAutoUploadProcessedRef.current = true; // Mark auto-upload as processed using a ref
     }
 
     // Handle existing image data
     if (data?.image) {
       const imageUrl = getFullUrl(data.image);
       setUploadedImage(imageUrl);
-
       const parts = data.image.split("/");
       setFileName(parts[parts.length - 1] || data.title || "image");
     }

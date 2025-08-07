@@ -174,6 +174,7 @@ export default function DocumentUploadNode({
     error: null,
   });
 
+  const isAutoUploadProcessedRef = useRef(false);
   const nodeControlRef = useRef(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { setEdges, updateNodeData } = useReactFlow();
@@ -267,8 +268,12 @@ export default function DocumentUploadNode({
         if (data?.ai_notes) {
           setUserNotes(data.ai_notes);
         }
-      } else if (data?.dataToAutoUpload?.data) {
+      } else if (
+        data?.dataToAutoUpload?.data &&
+        !isAutoUploadProcessedRef.current
+      ) {
         handleFileSelect(data?.dataToAutoUpload?.data);
+        isAutoUploadProcessedRef.current = true;
       }
     }
     setDocumentWithSize();

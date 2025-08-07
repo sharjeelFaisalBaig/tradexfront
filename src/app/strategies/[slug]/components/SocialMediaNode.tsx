@@ -79,6 +79,8 @@ export default function SocialMediaNode({
 }: any) {
   const strategyId = useParams()?.slug as string;
   const nodeControlRef = useRef(null);
+  const isAutoUploadProcessedRef = useRef(false);
+
   const { setEdges, updateNodeData } = useReactFlow();
   const successNote = useSuccessNotifier();
   const [socialUrl, setSocialUrl] = useState<string>("");
@@ -189,7 +191,7 @@ export default function SocialMediaNode({
   }, [data]);
 
   useEffect(() => {
-    if (data?.dataToAutoUpload?.data) {
+    if (data?.dataToAutoUpload?.data && !isAutoUploadProcessedRef.current) {
       const validation = validateSocialMediaUrl(data?.dataToAutoUpload?.data);
       setSocialUrl(data?.dataToAutoUpload?.data);
       setUrlValidation(validation);
@@ -199,6 +201,7 @@ export default function SocialMediaNode({
       } else {
         console.error("Invalid URL:", data?.dataToAutoUpload?.data);
       }
+      isAutoUploadProcessedRef.current = true;
     }
   }, [data]);
 

@@ -110,6 +110,7 @@ export default function AudioUploadNode({
   const { setEdges, updateNodeData } = useReactFlow();
 
   // Refs
+  const isAutoUploadProcessedRef = useRef(false);
   const nodeControlRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -712,13 +713,11 @@ export default function AudioUploadNode({
       .padStart(2, "0")}`;
   };
 
-  const [fileProcessed, setFileProcessed] = useState(false);
-
   // Effects
   useEffect(() => {
-    if (data?.dataToAutoUpload?.data && !fileProcessed) {
+    if (data?.dataToAutoUpload?.data && !isAutoUploadProcessedRef.current) {
       handleFileSelect(data.dataToAutoUpload.data);
-      setFileProcessed(true);
+      isAutoUploadProcessedRef.current = true;
     }
 
     if (data?.audio) {
@@ -757,7 +756,7 @@ export default function AudioUploadNode({
         error: null,
       }));
     }
-  }, [data, fileProcessed, handleFileSelect]);
+  }, [data, handleFileSelect]);
 
   // Audio level monitoring for recording
   useEffect(() => {

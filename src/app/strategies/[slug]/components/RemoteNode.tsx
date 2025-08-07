@@ -116,6 +116,7 @@ export default function RemoteNode({
   });
 
   // Website states
+  const isAutoUploadProcessedRef = useRef(false);
   const nodeControlRef = useRef(null);
   const { setEdges, updateNodeData } = useReactFlow();
   const [websiteUrl, setWebsiteUrl] = useState<string>("");
@@ -151,23 +152,17 @@ export default function RemoteNode({
     }
   }, [data]);
 
-  // Handle pasted URL data from props (if needed)
-  const lastProcessedDataRef = useRef<string | null>(null);
-
   useEffect(() => {
-    if (data?.dataToAutoUpload?.data) {
+    if (data?.dataToAutoUpload?.data && !isAutoUploadProcessedRef.current) {
       const urlData = data.dataToAutoUpload.data;
 
       // Check if the data is a string and hasn't been processed yet
-      if (
-        typeof urlData === "string" &&
-        urlData !== lastProcessedDataRef.current
-      ) {
+      if (typeof urlData === "string") {
         setWebsiteUrl(urlData);
         setTimeout(() => handleUrlSubmit(urlData), 1000);
 
         // Update the ref to the current data to prevent reprocessing
-        lastProcessedDataRef.current = urlData;
+        isAutoUploadProcessedRef.current = true;
       }
     }
   }, [data?.dataToAutoUpload?.data]);
@@ -399,9 +394,6 @@ export default function RemoteNode({
     if (status?.is_ready_to_interact) {
       status.is_ready_to_interact = false;
       status.ai_title = "";
-    }
-    if (lastProcessedDataRef.current) {
-      lastProcessedDataRef.current = null;
     }
 
     successNote({
