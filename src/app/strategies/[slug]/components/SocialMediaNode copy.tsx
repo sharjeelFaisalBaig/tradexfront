@@ -122,6 +122,7 @@ export default function SocialMediaNode({
     isPending: isAnalyzing,
     isSuccess: isAnalyzeSuccess,
     isError: isAnalyzeError,
+    reset: resetAnalyzeSocialPeerMutation,
   } = useAnalyzeSocialPeer();
 
   // Only poll for status if analysis is successful
@@ -251,14 +252,7 @@ export default function SocialMediaNode({
 
   // Process the provided URL
   const handleProcessUrl = async (socialUrlParameter?: string) => {
-    const urlToUse = socialUrlParameter ?? socialUrl;
-    const validation = validateSocialMediaUrl(urlToUse);
-
-    if (!validation.isValid || !validation.platform) {
-      console.error("URL is not valid or platform is not supported");
-      return;
-    }
-
+    if (!urlValidation.isValid || !urlValidation.platform) return;
     setIsLoading(true);
     setProcessingState({
       isProcessing: true,
@@ -270,16 +264,14 @@ export default function SocialMediaNode({
     setSocialMediaData(null); // Reset socialMediaData before processing
     resetAnalyze();
     try {
-      const videoData = extractSocialVideoDetails(urlToUse); // Use the new helper
-
-      console.log({ videoData, urlToUse });
-
+      const videoData = extractSocialVideoDetails(
+        socialUrlParameter ?? socialUrl
+      ); // Use the new helper
       if (videoData) {
         setSocialMediaData(videoData);
       } else {
         throw new Error("Could not extract video details.");
       }
-
       // Initial analyze request (no polling, just one request)
       analyzeSocialPeer({
         strategyId,
@@ -303,7 +295,7 @@ export default function SocialMediaNode({
 
   // Reset all states
   const handleReset = () => {
-    resetAnalyze();
+    resetAnalyzeSocialPeerMutation();
     setSocialUrl("");
     setSocialMediaData(null);
     setUrlValidation({ isValid: false });
@@ -493,7 +485,7 @@ export default function SocialMediaNode({
               onWheel={(e) => e.stopPropagation()}
               onMouseDown={(e) => e.stopPropagation()}
             >
-              {!socialMediaData?.url ? (
+              {!socialMediaData ? (
                 // URL Input Interface
                 <div className="p-6 space-y-4 py-4">
                   <div className="text-center mb-6">
