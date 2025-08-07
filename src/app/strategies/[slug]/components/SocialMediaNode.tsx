@@ -27,13 +27,18 @@ import {
   validateSocialMediaUrl,
   SUPPORTED_PLATFORMS,
   preventNodeDeletionKeys,
-} from "@/lib/utils"; // Import updated helpers
+} from "@/lib/utils";
 import NodeWrapper from "./common/NodeWrapper";
 import { useParams } from "next/navigation";
 import { useGetPeerAnalysisStatus } from "@/hooks/strategy/useGetPeerAnalysisStatus";
 import { toast } from "@/hooks/use-toast";
+import type { SocialMediaData, URLValidationResult } from "@/lib/utils";
+import { getEmbedVideoByLink } from "@/hooks/useGetEmbedVideoByLink";
+import useSuccessNotifier from "@/hooks/useSuccessNotifier";
+import NodeHandle from "./common/NodeHandle";
+import AiNoteInput from "./common/AiNoteInput";
+import IsReadyToInteract from "./common/IsReadyToInteract";
 
-// Types for AI integration
 interface AIProcessingResponse {
   title: string;
   peerId: string;
@@ -66,53 +71,35 @@ interface ProcessingState {
   lastFailedOperation: "analyze" | null;
 }
 
-// Re-import SocialMediaData and URLValidationResult types if they are exported from utils.ts
-import type { SocialMediaData, URLValidationResult } from "@/lib/utils";
-import { getEmbedVideoByLink } from "@/hooks/useGetEmbedVideoByLink";
-import useSuccessNotifier from "@/hooks/useSuccessNotifier";
-import NodeHandle from "./common/NodeHandle";
-import AiNoteInput from "./common/AiNoteInput";
-import IsReadyToInteract from "./common/IsReadyToInteract";
-
 export default function SocialMediaNode({
   id,
   sourcePosition = Position.Left,
   targetPosition = Position.Right,
   data,
 }: any) {
-  // console.log("SocialMediaNode data:", { data });
-
   const strategyId = useParams()?.slug as string;
   const nodeControlRef = useRef(null);
   const { setEdges, updateNodeData } = useReactFlow();
   const successNote = useSuccessNotifier();
-
-  // URL and validation states
   const [socialUrl, setSocialUrl] = useState<string>("");
   const [urlValidation, setUrlValidation] = useState<URLValidationResult>({
     isValid: false,
   });
   const [isLoading, setIsLoading] = useState<boolean>(false);
-
-  // Video data states
   const [socialMediaData, setSocialMediaData] =
     useState<SocialMediaData | null>(null);
-
-  // Processing states
   const [processingState, setProcessingState] = useState<ProcessingState>({
     isProcessing: false,
     isComplete: false,
     error: null,
     lastFailedOperation: null,
   });
-
-  // AI Response states
   const [aiResponse, setAiResponse] = useState<AIProcessingResponse | null>(
     null
   );
   const [userNotes, setUserNotes] = useState<string>("");
+  const processUrlCalledRef = useRef(false);
 
-  // --- Mutation Integration & Polling ---
   const { mutate: resetPeer, isPending: isReseting } = useResetPeer();
   const {
     mutate: analyzeSocialPeer,
@@ -124,7 +111,6 @@ export default function SocialMediaNode({
     isError: isAnalyzeError,
   } = useAnalyzeSocialPeer();
 
-  // Only poll for status if analysis is successful
   const {
     data: status,
     restartPolling,
@@ -138,20 +124,17 @@ export default function SocialMediaNode({
     enabled: isAnalyzeSuccess,
   });
 
-  // Sync state with incoming data props (like VideoUploadNode)
   useEffect(() => {
-    if (data && data?.video) {
+    if (data?.video) {
       const validation = validateSocialMediaUrl(data.video);
       setSocialUrl(data.video);
       setUrlValidation(validation);
       if (validation.isValid) {
-        // Use the new helper to extract details including initial thumbnail
         const extractedData = extractSocialVideoDetails(data.video);
         setSocialMediaData(extractedData);
       } else {
         setSocialMediaData(null);
       }
-      // Set AI response if present
       if (data.ai_title || data.ai_summary) {
         setAiResponse({
           title: data.ai_title || data.title || "",
@@ -162,16 +145,14 @@ export default function SocialMediaNode({
           sentiment: data.sentiment || "neutral",
           engagement: data.engagement || {},
           metadata: data.metadata || {},
-          confidence: 0.95, // fallback
-          tags: [], // fallback
+          confidence: 0.95,
+          tags: [],
           insights: data.insights || [],
         });
       } else {
         setAiResponse(null);
       }
-      // Set user notes if present
       setUserNotes(data.ai_notes || "");
-      // If video is present and ready, mark processing as complete (for connectability)
       if (data.is_ready_to_interact) {
         setProcessingState((prev) => ({
           ...prev,
@@ -184,36 +165,43 @@ export default function SocialMediaNode({
           isComplete: false,
         }));
       }
-    } else {
-      // If no data or no video, reset to pre-upload state
-      if (data?.dataToAutoUpload?.data) {
-        const validation = validateSocialMediaUrl(data?.dataToAutoUpload?.data);
-        setSocialUrl(data?.dataToAutoUpload?.data);
-        setUrlValidation(validation);
-        handleProcessUrl(data?.dataToAutoUpload?.data);
-      } else {
-        // setSocialUrl("");
-        // setUrlValidation({ isValid: false });
-        setSocialUrl((prev) => {
-          const val = prev ?? "";
-          setUrlValidation({ isValid: !!val });
-          return val;
-        });
-      }
-
-      setSocialMediaData(null);
-      setAiResponse(null);
-      setProcessingState({
-        isProcessing: false,
-        isComplete: false,
-        error: null,
-        lastFailedOperation: null,
-      });
-      setUserNotes("");
+      // } else if (data?.dataToAutoUpload?.data && !processUrlCalledRef.current) {
+      //   const validation = validateSocialMediaUrl(data?.dataToAutoUpload?.data);
+      //   setSocialUrl(data?.dataToAutoUpload?.data);
+      //   setUrlValidation(validation);
+      //   if (validation.isValid) {
+      //     console.log("Valid URL:", data?.dataToAutoUpload?.data);
+      //     handleProcessUrl(data?.dataToAutoUpload?.data);
+      //     processUrlCalledRef.current = true;
+      //   } else {
+      //     console.error("Invalid URL:", data?.dataToAutoUpload?.data);
+      //   }
+      //   setSocialMediaData(null);
+      //   setAiResponse(null);
+      //   setProcessingState({
+      //     isProcessing: false,
+      //     isComplete: false,
+      //     error: null,
+      //     lastFailedOperation: null,
+      //   });
+      //   setUserNotes("");
     }
   }, [data]);
 
-  // Set processing state and AI response on successful analysis
+  useEffect(() => {
+    if (data?.dataToAutoUpload?.data) {
+      const validation = validateSocialMediaUrl(data?.dataToAutoUpload?.data);
+      setSocialUrl(data?.dataToAutoUpload?.data);
+      setUrlValidation(validation);
+      if (validation.isValid) {
+        console.log("Valid URL:", data?.dataToAutoUpload?.data);
+        handleProcessUrl(data?.dataToAutoUpload?.data);
+      } else {
+        console.error("Invalid URL:", data?.dataToAutoUpload?.data);
+      }
+    }
+  }, [data]);
+
   useEffect(() => {
     if (isAnalyzeSuccess && analyzeData) {
       setProcessingState({
@@ -237,19 +225,27 @@ export default function SocialMediaNode({
     }
   }, [analyzeError]);
 
-  // Validate URL and update state
+  useEffect(() => {
+    if (status?.is_ready_to_interact) {
+      setProcessingState({
+        isProcessing: false,
+        isComplete: true,
+        error: null,
+        lastFailedOperation: null,
+      });
+    }
+  }, [status]);
+
   const handleUrlValidation = (url: string) => {
     setUrlValidation(validateSocialMediaUrl(url));
   };
 
-  // Handle URL input change [^1]
   const handleUrlChange = (e: ChangeEvent<HTMLInputElement>) => {
     const url = e.target.value;
     setSocialUrl(url);
     handleUrlValidation(url);
   };
 
-  // Process the provided URL
   const handleProcessUrl = async (socialUrlParameter?: string) => {
     const urlToUse = socialUrlParameter ?? socialUrl;
     const validation = validateSocialMediaUrl(urlToUse);
@@ -267,29 +263,31 @@ export default function SocialMediaNode({
       lastFailedOperation: null,
     });
     setAiResponse(null);
-    setSocialMediaData(null); // Reset socialMediaData before processing
+    setSocialMediaData(null);
     resetAnalyze();
-    try {
-      const videoData = extractSocialVideoDetails(urlToUse); // Use the new helper
 
-      console.log({ videoData, urlToUse });
+    try {
+      console.log("Processing URL:", urlToUse);
+      const videoData = extractSocialVideoDetails(urlToUse);
+      console.log("Extracted video data:", videoData);
 
       if (videoData) {
+        console.log("Setting social media data:", videoData);
         setSocialMediaData(videoData);
       } else {
         throw new Error("Could not extract video details.");
       }
 
-      // Initial analyze request (no polling, just one request)
       analyzeSocialPeer({
         strategyId,
         peerId: id,
         data: {
-          source_url: socialUrl,
+          source_url: urlToUse,
           ai_notes: userNotes,
         },
       });
     } catch (error: any) {
+      console.error("Error processing URL:", error);
       setProcessingState({
         isProcessing: false,
         isComplete: false,
@@ -301,7 +299,6 @@ export default function SocialMediaNode({
     }
   };
 
-  // Reset all states
   const handleReset = () => {
     resetAnalyze();
     setSocialUrl("");
@@ -316,16 +313,14 @@ export default function SocialMediaNode({
     });
     setUserNotes("");
     setIsLoading(false);
-
     updateNodeData(id, {
       video: "",
       title: "",
       ai_notes: "",
       ai_title: "",
       ai_summar: "",
-      is_ready_to_interact: false, // Set to false immediately
+      is_ready_to_interact: false,
     });
-
     if (data?.is_ready_to_interact) {
       data.is_ready_to_interact = false;
       data.ai_title = "";
@@ -334,17 +329,14 @@ export default function SocialMediaNode({
       data.video = "";
       data.ai_summar = "";
     }
-
     if (status?.is_ready_to_interact) {
       status.is_ready_to_interact = false;
       status.ai_title = "";
     }
-
     successNote({
       title: "Social media link removed",
       description: "Social media link removed successfully",
     });
-
     resetPeer(
       { peerId: data?.id, strategyId, peerType: "social_media" },
       {
@@ -360,19 +352,16 @@ export default function SocialMediaNode({
     );
   };
 
-  // Retry processing
   const handleReprocess = () => {
     if (socialMediaData) handleProcessUrl();
   };
 
-  // Open original video in new tab
   const handleOpenOriginal = () => {
     if (socialMediaData) {
       window.open(socialMediaData.url, "_blank", "noopener,noreferrer");
     }
   };
 
-  // Format numbers for display
   const formatNumber = (num: number): string => {
     if (num >= 1000000) {
       return (num / 1000000).toFixed(1) + "M";
@@ -381,22 +370,6 @@ export default function SocialMediaNode({
     }
     return num.toString();
   };
-
-  // Update processing state if backend status is ready
-  useEffect(() => {
-    if (status?.is_ready_to_interact) {
-      // updateNodeData(data?.id, {
-      //   is_ready_to_interact: true,
-      //   ai_title: status?.ai_title ?? "",
-      // });
-      setProcessingState({
-        isProcessing: false,
-        isComplete: true,
-        error: null,
-        lastFailedOperation: null,
-      });
-    }
-  }, [status]);
 
   const isProcessingAny = useMemo(
     () => isAnalyzing || processingState.isProcessing || isStatusPollingLoading,
@@ -439,17 +412,13 @@ export default function SocialMediaNode({
     processingState.lastFailedOperation,
   ]);
 
-  // Retry functionality
   const handleRetry = useCallback(() => {
     if (!currentError) return;
-
     if (currentError.type === "analyze") {
-      // Retry upload
       handleReprocess();
     }
-  }, [currentError, handleReprocess, analyzeSocialPeer, strategyId, data?.id]);
+  }, [currentError, handleReprocess]);
 
-  // Memoize current platform config
   const currentPlatform = useMemo(
     () =>
       socialMediaData
@@ -460,7 +429,6 @@ export default function SocialMediaNode({
     [socialMediaData]
   );
 
-  // Modified canConnect to immediately reflect isReseting state
   const canConnect = useMemo(
     () =>
       !isReseting &&
@@ -468,7 +436,6 @@ export default function SocialMediaNode({
     [data?.is_ready_to_interact, status?.is_ready_to_interact, isReseting]
   );
 
-  // Remove connections when node becomes not connectable
   useEffect(() => {
     if (!canConnect) {
       setEdges((edges) =>
@@ -476,6 +443,8 @@ export default function SocialMediaNode({
       );
     }
   }, [canConnect, id, setEdges, data]);
+
+  console.log({ socialMediaData });
 
   return (
     <>
@@ -493,8 +462,7 @@ export default function SocialMediaNode({
               onWheel={(e) => e.stopPropagation()}
               onMouseDown={(e) => e.stopPropagation()}
             >
-              {!socialMediaData?.url ? (
-                // URL Input Interface
+              {!socialMediaData ? (
                 <div className="p-6 space-y-4 py-4">
                   <div className="text-center mb-6">
                     <div className="flex justify-center space-x-2 mb-4">
@@ -510,7 +478,6 @@ export default function SocialMediaNode({
                       {"Add Social Media Video"}
                     </h3>
                     <p className="text-sm text-gray-600">
-                      {/*{"Enter a URL from Instagram, YouTube, TikTok, or Facebook"}*/}
                       {"Enter a URL from YouTube or TikTok"}
                     </p>
                   </div>
@@ -596,9 +563,7 @@ export default function SocialMediaNode({
                   </div>
                 </div>
               ) : (
-                // Video Preview Interface
                 <div className="space-y-4">
-                  {/* Header with AI Title or Processing State */}
                   <div
                     className={cn(
                       "w-full px-4 py-3 flex items-center justify-between",
@@ -671,16 +636,8 @@ export default function SocialMediaNode({
                       )}
                     </div>
                   </div>
-                  {/* Video Preview */}
                   <div className="px-4">
                     <div className="relative bg-gray-900 rounded-lg overflow-hidden aspect-video">
-                      {/*
-                        WARNING: Directly using <video> tag with social media URLs (like YouTube, Instagram, TikTok, Facebook)
-                        will likely NOT work as these are typically page URLs, not direct video file links.
-                        Social media platforms require their own embed players (usually iframes) for proper embedding.
-                        If you need to embed the actual video, consider using platform-specific iframe embeds.
-                      */}
-
                       <div className="relative w-full h-full aspect-video overflow-hidden">
                         {socialMediaData &&
                           getEmbedVideoByLink(
@@ -688,7 +645,6 @@ export default function SocialMediaNode({
                             socialMediaData.url
                           )}
                       </div>
-
                       {isProcessingAny && (
                         <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
                           <div className="bg-white p-4 rounded-lg shadow-lg flex flex-col items-center">
@@ -700,9 +656,7 @@ export default function SocialMediaNode({
                         </div>
                       )}
                     </div>
-                    {/* Video metadata */}
                     <div className="my-4 flex flex-col gap-y-3">
-                      {/* Action buttons */}
                       <div className="flex items-center gap-2">
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -737,8 +691,6 @@ export default function SocialMediaNode({
                           )}
                         </Button>
                       </div>
-
-                      {/* retry status polling */}
                       {!currentError?.message &&
                         !isStatusPollingLoading &&
                         !isProcessingAny &&
@@ -760,7 +712,6 @@ export default function SocialMediaNode({
                             </Button>
                           </div>
                         )}
-
                       <AiNoteInput
                         color="blue"
                         note={userNotes}
@@ -777,7 +728,6 @@ export default function SocialMediaNode({
                       />
                     </div>
                   </div>
-                  {/* Error State */}
                   {!isProcessingAny && currentError && (
                     <div className="px-4 pb-4">
                       <div className="bg-red-50 p-3 rounded-lg">
