@@ -1,7 +1,12 @@
 "use client";
 import type React from "react";
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
-import { Position } from "@xyflow/react";
+import {
+  NodeResizeControl,
+  NodeResizer,
+  Position,
+  useReactFlow,
+} from "@xyflow/react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -55,13 +60,13 @@ interface Conversation {
   id: string;
   title: string;
   ai_model_id: string;
-  isLoading?: boolean; // For chat message sending
+  isLoading?: boolean;
   draftMessage?: string;
   selectedModel?: AIModel;
   hasError?: boolean;
   errorMessage?: string;
-  isDeleting?: boolean; // New: for delete operation
-  isUpdatingTitle?: boolean; // New: for title update operation
+  isDeleting?: boolean;
+  isUpdatingTitle?: boolean;
 }
 
 interface PredefinedPrompt {
@@ -98,8 +103,6 @@ export default function ChatBoxNode({
 }: ChatBoxNodeProps) {
   const strategyId = useParams()?.slug as string;
   const { updateCredits } = useCredits();
-
-  // State
   const [activeConversationId, setActiveConversationId] = useState<
     string | null
   >(null);
@@ -111,16 +114,17 @@ export default function ChatBoxNode({
   >(null);
   const [editingTitle, setEditingTitle] = useState("");
   const [isInitialized, setIsInitialized] = useState(false);
+  const [dimensions, setDimensions] = useState({ width: 1100, height: 700 });
 
-  // Refs
   const chatBoxRef = useRef<HTMLDivElement>(null);
   const nodeControlRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const messagesContainerRef = useRef<HTMLDivElement>(null); // New ref for the scrollable messages area
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const fullscreenElementRef = useRef<HTMLDivElement>(null);
 
-  // Mutations
+  const { setNodes } = useReactFlow();
+
   const { mutateAsync: sendChatMessageMutation } = useSendChatMessage();
   const {
     mutateAsync: createConversationMutation,
@@ -133,28 +137,26 @@ export default function ChatBoxNode({
     isPending: updateModelLoading,
   } = useUpdateConversationAiModel();
 
-  // Queries
   const { data: aiModelsData, isLoading: isLoadingModels } = useGetAiModels();
   const { data: aiTemplatesData, isLoading: isLoadingTemplates } =
     useGetChatTemplates();
 
-  // NEW: use useConversationMessages for fetching messages
   const {
     data: conversationMessagesData,
     fetchNextPage,
     hasNextPage,
-    isFetchingNextPage: isLoadingMoreMessages, // Renamed for clarity
-    isLoading: isLoadingConversationMessages, // Renamed for clarity
+    isFetchingNextPage: isLoadingMoreMessages,
+    isLoading: isLoadingConversationMessages,
   } = useConversationMessages({
     strategyId,
     conversationId: activeConversationId ?? "",
   });
 
-  // Memoized values
   const availableModels: AIModel[] = useMemo(
     () => getFilteredAiModels(aiModelsData?.models) || [],
     [aiModelsData]
   );
+
   const predefinedPrompts: PredefinedPrompt[] = useMemo(
     () =>
       aiTemplatesData?.templates?.map(
@@ -167,26 +169,25 @@ export default function ChatBoxNode({
     [aiTemplatesData]
   );
 
-  // NEW: Flatten all messages from the infinite query data
-  const allFetchedMessages = useMemo(() => {
-    return (
+  const allFetchedMessages = useMemo(
+    () =>
       conversationMessagesData?.pages
         ?.reverse()
-        ?.flatMap((page) => page.aiChats) ?? []
-    );
-  }, [conversationMessagesData]);
+        ?.flatMap((page) => page.aiChats) ?? [],
+    [conversationMessagesData]
+  );
 
   const activeConversation = useMemo(
     () =>
       conversations.find((conv) => conv.id === activeConversationId) || null,
     [conversations, activeConversationId]
   );
+
   const selectedModel = useMemo(
     () => activeConversation?.selectedModel || availableModels[0] || null,
     [activeConversation, availableModels]
   );
 
-  // MODIFIED: isAnyConversationLoading now checks per-item loading states
   const isAnyConversationLoading = useMemo(
     () =>
       conversations.some(
@@ -197,27 +198,22 @@ export default function ChatBoxNode({
     [conversations, createConversationLoading, updateModelLoading]
   );
 
-  const isLoading = activeConversation?.isLoading || false; // This specifically refers to sending/receiving the current message
-  const canConnect = !isLoading; // This controls if new connections can be made to the handle
+  const isLoading = activeConversation?.isLoading || false;
+  const canConnect = !isLoading;
 
-  // Helper functions
   const parseTimestamp = useCallback((val: string | undefined): Date => {
     if (!val) return new Date();
     const d = new Date(val);
     return isNaN(d.getTime()) ? new Date() : d;
   }, []);
 
-  const generateOptimisticId = useCallback(() => {
-    return `temp_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
-  }, []);
+  const generateOptimisticId = useCallback(
+    () => `temp_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+    []
+  );
 
-  // Initialization useEffect: Populates conversations from props or starts empty
   useEffect(() => {
-    // Only run if hydrated, models are loaded, and not yet initialized
-    if (isLoadingModels || isInitialized) {
-      return;
-    }
-
+    if (isLoadingModels || isInitialized) return;
     const rawConversations = data?.conversations;
     const initialConversationsFromProps = Array.isArray(rawConversations)
       ? rawConversations.filter(
@@ -226,45 +222,38 @@ export default function ChatBoxNode({
       : [rawConversations];
 
     if (initialConversationsFromProps.length > 0) {
-      // If conversations are provided via props, use them
-      const mappedConversations = initialConversationsFromProps.map((conv) => ({
-        ...conv,
-        selectedModel:
-          // @ts-ignore
-          availableModels.find((m) => m.id === conv.ai_model_id) ||
-          availableModels[0],
-        isLoading: false,
-        hasError: false,
-        isDeleting: false, // Initialize new state
-        isUpdatingTitle: false, // Initialize new state
-      }));
-      // @ts-ignore
+      const mappedConversations = initialConversationsFromProps.map(
+        (conv: any) => ({
+          ...conv,
+          selectedModel:
+            availableModels.find((m) => m.id === conv.ai_model_id) ||
+            availableModels[0],
+          isLoading: false,
+          hasError: false,
+          isDeleting: false,
+          isUpdatingTitle: false,
+        })
+      );
       setConversations(mappedConversations);
       setActiveConversationId(mappedConversations[0]?.id || null);
     } else {
-      // If no conversations from props, the list starts empty.
-      // A new conversation will be created when the user clicks "New Conversation".
       setConversations([]);
       setActiveConversationId(null);
     }
-    setIsInitialized(true); // Mark as initialized
+    setIsInitialized(true);
   }, [isLoadingModels, availableModels, data, isInitialized]);
 
-  // When active conversation changes, reset messages to trigger a fresh load from useConversationMessages
   useEffect(() => {
     if (activeConversationId) {
-      setMessages([]); // Clear messages to load new conversation from scratch
-      // The useConversationMessages hook will automatically refetch for the new conversationId
+      setMessages([]);
     }
   }, [activeConversationId]);
 
-  // NEW: Load messages when allFetchedMessages changes (including pagination)
   useEffect(() => {
     if (!activeConversationId) {
-      setMessages([]); // Clear messages if no active conversation
+      setMessages([]);
       return;
     }
-
     const mappedFetchedMessages: Message[] = allFetchedMessages.flatMap(
       (chat: any) => [
         {
@@ -287,22 +276,17 @@ export default function ChatBoxNode({
     );
 
     setMessages((prevMessages) => {
-      // Filter out optimistic messages that have been replaced by fetched messages
       const existingFetchedIds = new Set(
         mappedFetchedMessages.map((msg) => msg.id)
       );
-
       const currentOptimisticMessages = prevMessages
         ?.reverse()
-        .filter((msg) => msg.isOptimistic && !existingFetchedIds.has(msg.id));
-
-      // Combine fetched messages with remaining optimistic messages and sort by timestamp
+        ?.filter((msg) => msg.isOptimistic && !existingFetchedIds.has(msg.id));
       const combined = [
         ...mappedFetchedMessages,
         ...currentOptimisticMessages,
       ].sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
 
-      // Adjust scroll position if loading older messages (scrolled to top)
       if (isLoadingMoreMessages && messagesContainerRef.current) {
         const oldScrollHeight = messagesContainerRef.current.scrollHeight;
         requestAnimationFrame(() => {
@@ -322,29 +306,25 @@ export default function ChatBoxNode({
     isLoadingMoreMessages,
   ]);
 
-  // Auto-scroll to bottom when new messages are added (not during pagination)
   useEffect(() => {
-    // Only scroll if not currently fetching older messages AND the last message is not an optimistic one
     const timer = setTimeout(() => {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, 100); // Small delay to ensure render
+    }, 100);
     return () => clearTimeout(timer);
-  }, [activeConversationId]); // Depend on messages array and pagination state
+  }, [activeConversationId]);
 
   useEffect(() => {
-    // Only scroll if not currently fetching older messages AND the last message is not an optimistic one
     if (!isLoadingMoreMessages) {
       const lastMessage = messages[messages.length - 1];
       if (lastMessage && lastMessage.isOptimistic) {
         const timer = setTimeout(() => {
           messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-        }, 100); // Small delay to ensure render
+        }, 100);
         return () => clearTimeout(timer);
       }
     }
-  }, [messages, isLoadingMoreMessages]); // Depend on messages array and pagination state
+  }, [messages, isLoadingMoreMessages]);
 
-  // Auto-resize textarea
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
@@ -355,7 +335,6 @@ export default function ChatBoxNode({
     }
   }, [message]);
 
-  // Conversation management functions
   const updateConversationState = useCallback(
     (conversationId: string, updates: Partial<Conversation>) => {
       setConversations((prev) =>
@@ -378,7 +357,7 @@ export default function ChatBoxNode({
     (conversationId: string, loading: boolean) => {
       updateConversationState(conversationId, {
         isLoading: loading,
-        hasError: loading ? false : undefined, // Clear error when starting new request
+        hasError: loading ? false : undefined,
       });
     },
     [updateConversationState]
@@ -389,13 +368,12 @@ export default function ChatBoxNode({
       updateConversationState(conversationId, {
         hasError: true,
         errorMessage: error,
-        isLoading: false, // Ensure loading is false on error
+        isLoading: false,
       });
     },
     [updateConversationState]
   );
 
-  // Message handling
   const handleMessageChange = useCallback(
     (newMessage: string) => {
       setMessage(newMessage);
@@ -413,19 +391,14 @@ export default function ChatBoxNode({
   const handleSendMessage = useCallback(
     async (prompt?: string) => {
       if (!activeConversationId || isLoading || !selectedModel) return;
-
       const userMessageText = prompt?.trim() || message.trim();
       if (!userMessageText) return;
-
       const timestamp = new Date();
       const optimisticUserId = generateOptimisticId();
-
-      // Clear input and draft
       setMessage("");
       saveDraftMessage(activeConversationId, "");
       setConversationLoading(activeConversationId, true);
 
-      // Add optimistic user message
       const optimisticUserMessage: Message = {
         id: optimisticUserId,
         content: userMessageText,
@@ -444,21 +417,16 @@ export default function ChatBoxNode({
             conversation_id: activeConversationId,
           },
         });
-
         const aiMessageContent = response?.response;
         if (!aiMessageContent) {
           throw new Error("No response received from AI");
         }
-
-        // update credits
         updateCredits({ usedCredits: response?.credits });
 
-        // Remove optimistic user message and add real messages
         setMessages((prev) => {
           const withoutOptimistic = prev.filter(
             (msg) => msg.id !== optimisticUserId
           );
-
           return [
             ...withoutOptimistic,
             {
@@ -480,7 +448,6 @@ export default function ChatBoxNode({
           ];
         });
 
-        // Update conversation title if it's the first message && still "New Conversation"
         if (
           messages.length === 0 &&
           activeConversation?.title === "New Conversation"
@@ -489,7 +456,6 @@ export default function ChatBoxNode({
             userMessageText.slice(0, 30) +
             (userMessageText.length > 30 ? "..." : "");
           updateConversationState(activeConversationId, { title: newTitle });
-          // Update title on server
           try {
             await updateConversationMutation({
               strategyId,
@@ -502,15 +468,12 @@ export default function ChatBoxNode({
         }
       } catch (error: any) {
         console.error("Send message error:", error);
-        // Remove optimistic user message
         removeOptimisticMessage(optimisticUserId);
-        // Set conversation error state
         const errorMessage =
           error?.response?.data?.message ||
           error?.message ||
           "Failed to send message";
-        setConversationError(activeConversationId, errorMessage); // This will trigger the Alert display
-        // Show error toast
+        setConversationError(activeConversationId, errorMessage);
         toast({
           title: "Message Failed",
           description: errorMessage,
@@ -528,7 +491,7 @@ export default function ChatBoxNode({
       generateOptimisticId,
       saveDraftMessage,
       setConversationLoading,
-      messages.length, // Keep this dependency for title update logic
+      messages.length,
       sendChatMessageMutation,
       strategyId,
       updateConversationState,
@@ -542,7 +505,6 @@ export default function ChatBoxNode({
 
   const createNewConversation = useCallback(async () => {
     if (isAnyConversationLoading || !availableModels.length) return;
-
     try {
       const response = await createConversationMutation({
         strategyId,
@@ -551,14 +513,11 @@ export default function ChatBoxNode({
           ai_thread_peer_id: data?.id ?? "",
         },
       });
-
       const conv = response?.conversation;
       if (!conv) throw new Error("No conversation returned from API");
-
       const model =
         availableModels.find((m) => m.id === conv.ai_model_id) ||
         availableModels[0];
-
       const newConversation: Conversation = {
         id: conv.id,
         title: conv.title,
@@ -567,10 +526,9 @@ export default function ChatBoxNode({
         draftMessage: "",
         selectedModel: model,
         hasError: false,
-        isDeleting: false, // Initialize new state
-        isUpdatingTitle: false, // Initialize new state
+        isDeleting: false,
+        isUpdatingTitle: false,
       };
-
       setConversations((prev) => {
         const exists = prev.some((c) => c.id === newConversation.id);
         return exists ? prev : [newConversation, ...prev];
@@ -594,14 +552,10 @@ export default function ChatBoxNode({
     data?.id,
   ]);
 
-  // MODIFIED: deleteConversation to use per-item loading
   const deleteConversation = useCallback(
     async (conversationId: string) => {
-      if (isAnyConversationLoading) return; // Still prevent if other global operations are pending
-
-      // Set optimistic loading state for the specific conversation
+      if (isAnyConversationLoading) return;
       updateConversationState(conversationId, { isDeleting: true });
-
       try {
         await deleteConversationMutation({ strategyId, conversationId });
         setConversations((prev) =>
@@ -623,12 +577,11 @@ export default function ChatBoxNode({
           variant: "destructive",
         });
       } finally {
-        // Ensure loading state is reset even on error
         updateConversationState(conversationId, { isDeleting: false });
       }
     },
     [
-      isAnyConversationLoading, // Keep this to prevent deletion if other global operations are pending
+      isAnyConversationLoading,
       conversations,
       deleteConversationMutation,
       strategyId,
@@ -648,10 +601,7 @@ export default function ChatBoxNode({
   const handleModelSelect = useCallback(
     async (model: AIModel) => {
       if (!activeConversationId) return;
-
-      // Optimistically update UI
       updateConversationState(activeConversationId, { selectedModel: model });
-
       try {
         await updateConversationAiModelMutation({
           strategyId,
@@ -659,7 +609,6 @@ export default function ChatBoxNode({
           data: { ai_model_id: model.id },
         });
       } catch (error: any) {
-        // Revert optimistic update
         updateConversationState(activeConversationId, {
           selectedModel:
             availableModels.find(
@@ -689,20 +638,12 @@ export default function ChatBoxNode({
   const handlePredefinedPromptClick = useCallback(
     (prompt: PredefinedPrompt) => {
       if (isLoading) return;
-
-      // Set the message to the prompt text
       const newMessage = prompt.prompt;
       setMessage(newMessage);
-
-      // Save the draft message if there's an active conversation
       if (activeConversationId) {
         saveDraftMessage(activeConversationId, newMessage);
       }
-
-      // Call handleSendMessage with the prompt text
       handleSendMessage(newMessage);
-
-      // Focus on the textarea after a short delay
       setTimeout(() => textareaRef.current?.focus(), 0);
     },
     [isLoading, activeConversationId, saveDraftMessage, handleSendMessage]
@@ -718,7 +659,6 @@ export default function ChatBoxNode({
     [handleSendMessage]
   );
 
-  // Title editing functions
   const handleConversationTitleDoubleClick = useCallback(
     (conversation: Conversation) => {
       if (isAnyConversationLoading) return;
@@ -728,21 +668,17 @@ export default function ChatBoxNode({
     [isAnyConversationLoading]
   );
 
-  // MODIFIED: saveConversationTitle to use per-item loading
   const saveConversationTitle = useCallback(
     async (conversation: Conversation, newTitle: string) => {
       if (conversation.title === newTitle) {
         setEditingConversationId(null);
         return;
       }
-
-      // Optimistically update UI and set loading state for the specific conversation
       updateConversationState(conversation.id, {
         title: newTitle,
         isUpdatingTitle: true,
       });
-      setEditingConversationId(null); // Hide the input immediately
-
+      setEditingConversationId(null);
       try {
         await updateConversationMutation({
           strategyId,
@@ -750,7 +686,6 @@ export default function ChatBoxNode({
           data: { title: newTitle },
         });
       } catch (error: any) {
-        // Revert optimistic update and show error
         updateConversationState(conversation.id, {
           title: conversation.title,
           hasError: true,
@@ -799,18 +734,16 @@ export default function ChatBoxNode({
     [editingTitle, saveConversationTitle]
   );
 
-  // New scroll handler for pagination
   const handleMessagesScroll = useCallback(
     (event: React.UIEvent<HTMLDivElement>) => {
       const { scrollTop } = event.currentTarget;
-      // Check if scrolled to the very top and not already fetching
       if (
         scrollTop === 0 &&
         hasNextPage &&
         !isLoadingMoreMessages &&
         activeConversationId
       ) {
-        fetchNextPage(); // Load older messages
+        fetchNextPage();
       }
     },
     [hasNextPage, isLoadingMoreMessages, activeConversationId, fetchNextPage]
@@ -827,14 +760,11 @@ export default function ChatBoxNode({
   const toggleFullscreen = () => {
     const element = fullscreenElementRef.current;
     const chatBox = chatBoxRef.current;
-
     if (!element) {
       console.error("Fullscreen element not found");
       return;
     }
-
     if (document.fullscreenElement) {
-      // Exit fullscreen
       if (document.exitFullscreen) {
         document
           .exitFullscreen()
@@ -852,7 +782,6 @@ export default function ChatBoxNode({
           });
       }
     } else {
-      // Enter fullscreen
       if (element.requestFullscreen) {
         element
           .requestFullscreen()
@@ -874,9 +803,9 @@ export default function ChatBoxNode({
   useEffect(() => {
     const handleFullscreenChange = () => {
       if (!document.fullscreenElement) {
-        // Reset styles when exiting fullscreen mode
         const chatBox = chatBoxRef.current;
         if (chatBox) {
+          setDimensions({ width: 1100, height: 700 });
           chatBox.style.width = "1100px";
           chatBox.style.height = "700px";
           chatBox.style.borderRadius = "0.5rem";
@@ -885,13 +814,26 @@ export default function ChatBoxNode({
         }
       }
     };
-
     document.addEventListener("fullscreenchange", handleFullscreenChange);
-
     return () => {
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
     };
   }, []);
+
+  const onResize = (
+    event: any,
+    { width, height }: { width: any; height: any }
+  ) => {
+    setDimensions({ width, height });
+    setNodes((nodes) =>
+      nodes.map((node) => {
+        if (node.id === id) {
+          node.style = { ...node.style, width, height };
+        }
+        return node;
+      })
+    );
+  };
 
   return (
     <NodeWrapper
@@ -901,10 +843,18 @@ export default function ChatBoxNode({
       className="bg-white"
     >
       <div
+        className="nowheel"
         ref={fullscreenElementRef}
         onKeyDown={preventNodeDeletionKeys}
-        className="react-flow__node nowheel"
+        // className="react-flow__node nowheel"
       >
+        <NodeResizer
+          nodeId={data?.id}
+          color="#2563eb"
+          minWidth={1100}
+          minHeight={700}
+          onResize={onResize}
+        />
         <div
           ref={nodeControlRef}
           className="nodrag"
@@ -915,9 +865,13 @@ export default function ChatBoxNode({
         />
         <div
           ref={chatBoxRef}
-          className="w-[1100px] h-[700px] bg-white rounded-lg shadow-lg overflow-hidden"
+          className="w-full h-full bg-white rounded-lg shadow-lg overflow-hidden"
+          style={{
+            width: `${dimensions.width}px`,
+            height: `${dimensions.height}px`,
+          }}
         >
-          {/* Header - This is the only draggable part */}
+          {/* Header */}
           <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <MessageSquare className="w-5 h-5 text-white" />
@@ -935,7 +889,6 @@ export default function ChatBoxNode({
                   </span>
                 </>
               )}
-
               <Button
                 size="sm"
                 variant="ghost"
@@ -950,8 +903,7 @@ export default function ChatBoxNode({
               </Button>
             </div>
           </div>
-
-          {/* Main Content Area - This part should not trigger a drag */}
+          {/* Main Content Area */}
           <div className="flex h-[calc(100%-64px)] nodrag">
             {/* Left Sidebar - Conversations */}
             <div className="w-72 bg-gray-50 border-r border-gray-200 p-4 flex-shrink-0 nodrag">
@@ -977,7 +929,7 @@ export default function ChatBoxNode({
                   </div>
                 ) : (
                   conversations
-                    .filter((conversation) => conversation && conversation.id) // Add safety filter
+                    .filter((conversation) => conversation && conversation.id)
                     .map((conversation) => {
                       const model =
                         conversation.selectedModel ||
@@ -995,7 +947,7 @@ export default function ChatBoxNode({
                               ? "bg-blue-100 text-blue-700"
                               : "hover:bg-gray-100 text-gray-700"
                           } ${
-                            isAnyConversationLoading // This now correctly includes per-item loading
+                            isAnyConversationLoading
                               ? "cursor-not-allowed opacity-50"
                               : "cursor-pointer"
                           }`}
@@ -1020,7 +972,7 @@ export default function ChatBoxNode({
                                   }
                                   onClick={(e) => e.stopPropagation()}
                                   maxLength={60}
-                                  disabled={conversation.isUpdatingTitle} // Disable input while saving
+                                  disabled={conversation.isUpdatingTitle}
                                 />
                               ) : (
                                 <span
@@ -1031,26 +983,22 @@ export default function ChatBoxNode({
                                     );
                                   }}
                                   title="Double click to edit"
-                                  className="truncate cursor-pointer text-left flex items-center gap-2" // Added flex for loader
+                                  className="truncate cursor-pointer text-left flex items-center gap-2"
                                 >
                                   {conversation.title ||
                                     "Untitled Conversation"}
-                                  {/* MODIFIED: Show loader for title update */}
                                   {conversation.isUpdatingTitle && (
                                     <Loader2 className="w-3 h-3 animate-spin text-blue-500" />
                                   )}
                                 </span>
                               )}
-                              {/* Show draft indicator */}
                               {conversation.draftMessage &&
                                 conversation.draftMessage.trim() && (
                                   <span className="text-xs text-gray-500 italic truncate">
                                     Draft:{" "}
-                                    {conversation.draftMessage.slice(0, 20)}
-                                    ...
+                                    {conversation.draftMessage.slice(0, 20)}...
                                   </span>
                                 )}
-                              {/* Show error indicator */}
                               {conversation.hasError && (
                                 <span className="text-xs text-red-500 italic truncate">
                                   Error:{" "}
@@ -1063,30 +1011,27 @@ export default function ChatBoxNode({
                             )}
                           </div>
                           <div className="flex items-center gap-1 flex-shrink-0">
-                            {/* Model indicator */}
                             {model && (
                               <div
                                 className="w-2 h-2 rounded-full"
                                 style={{ backgroundColor: model.color }}
                               />
                             )}
-                            {/* Delete button */}
                             {conversations.length > 0 && (
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                disabled={isAnyConversationLoading} // Disabled if any global operation is pending
+                                disabled={isAnyConversationLoading}
                                 className={`h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 ${
                                   conversation.isDeleting
-                                    ? "opacity-100" // Always show loader when deleting
-                                    : "opacity-0 group-hover:opacity-100" // Hide normally, show on hover
-                                } disabled:opacity-50`} // General disabled opacity
+                                    ? "opacity-100"
+                                    : "opacity-0 group-hover:opacity-100"
+                                } disabled:opacity-50`}
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   deleteConversation(conversation.id);
                                 }}
                               >
-                                {/* MODIFIED: Show loader for delete operation */}
                                 {conversation.isDeleting ? (
                                   <Loader2 className="w-3 h-3 animate-spin" />
                                 ) : (
@@ -1101,7 +1046,6 @@ export default function ChatBoxNode({
                 )}
               </div>
             </div>
-
             {/* Main Content Area */}
             <div className="flex-1 flex flex-col nodrag">
               {/* Content Header */}
@@ -1126,7 +1070,6 @@ export default function ChatBoxNode({
                   </div>
                 )}
               </div>
-
               {/* Error Alert */}
               {activeConversation?.hasError && (
                 <div className="p-4 border-b border-gray-200 nodrag">
@@ -1138,7 +1081,6 @@ export default function ChatBoxNode({
                   </Alert>
                 </div>
               )}
-
               {/* Messages Area */}
               <div
                 ref={messagesContainerRef}
@@ -1155,7 +1097,6 @@ export default function ChatBoxNode({
                 ) : messages.length === 0 &&
                   isLoadingConversationMessages &&
                   !isLoadingMoreMessages ? (
-                  // New: Loader for initial conversation history load
                   <div className="flex items-center justify-center h-full text-gray-400">
                     <div className="text-center">
                       <Loader2 className="w-8 h-8 mx-auto mb-4 animate-spin text-blue-600" />
@@ -1173,7 +1114,6 @@ export default function ChatBoxNode({
                   </div>
                 ) : (
                   <>
-                    {/* Loader for pagination at the top of messages */}
                     {isLoadingMoreMessages && (
                       <div className="flex justify-center py-2">
                         <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
@@ -1231,7 +1171,6 @@ export default function ChatBoxNode({
                     )}
                   </>
                 )}
-                {/* AI thinking loader (only if not fetching older messages) */}
                 {isLoading && !isLoadingMoreMessages && (
                   <div className="flex items-start gap-3 mb-6">
                     <div className="w-7 h-7 bg-gradient-to-r from-blue-500 to-pink-500 rounded-full flex items-center justify-center text-white text-xs flex-shrink-0">
@@ -1247,7 +1186,6 @@ export default function ChatBoxNode({
                 )}
                 <div ref={messagesEndRef} />
               </div>
-
               {/* Bottom Input Area */}
               {activeConversationId && (
                 <div className="border-t border-gray-200 p-4 nodrag">
@@ -1358,7 +1296,6 @@ export default function ChatBoxNode({
             </div>
           </div>
         </div>
-
         <NodeHandle
           type="target"
           canConnect={canConnect}
