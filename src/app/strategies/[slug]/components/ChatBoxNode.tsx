@@ -1199,7 +1199,7 @@ export default function ChatBoxNode({
                           onChange={(e) => handleMessageChange(e.target.value)}
                           onKeyDown={handleKeyPress}
                           placeholder="Ask anything..."
-                          className="w-full border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 text-sm resize-none min-h-[20px] max-h-[120px] scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100 hover:scrollbar-thumb-gray-500"
+                          className="text-gray-800 w-full border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 text-sm resize-none min-h-[20px] max-h-[120px] scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100 hover:scrollbar-thumb-gray-500"
                           disabled={
                             isLoadingConversationMessages ||
                             isAnyConversationLoading ||
@@ -1212,7 +1212,7 @@ export default function ChatBoxNode({
                       </div>
                       <Button
                         size="sm"
-                        className="absolute bottom-2 right-2 bg-blue-600 hover:bg-blue-700 rounded-full w-8 h-8 p-0 flex-shrink-0 z-10"
+                        className="absolute bottom-2 right-2 text-white bg-blue-600 hover:bg-blue-700 rounded-full w-8 h-8 p-0 flex-shrink-0 z-10"
                         onClick={() => handleSendMessage()}
                         disabled={
                           isLoading ||
@@ -1278,7 +1278,7 @@ export default function ChatBoxNode({
                           key={prompt.id}
                           variant="outline"
                           size="sm"
-                          className="text-xs h-7 bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100"
+                          className="text-xs h-7 bg-blue-50 !text-blue-600 border-blue-200 hover:bg-blue-100"
                           onClick={() => handlePredefinedPromptClick(prompt)}
                           disabled={
                             isLoading ||

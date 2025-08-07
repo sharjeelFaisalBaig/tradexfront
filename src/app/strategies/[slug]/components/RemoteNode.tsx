@@ -599,7 +599,7 @@ export default function RemoteNode({
                       onChange={handleUrlChange}
                       onKeyDown={handleKeyPress}
                       className={cn(
-                        "pr-12 text-base border-gray-200 focus:border-cyan-500 focus:ring-cyan-500",
+                        "bg-transparent text-gray-800 pr-12 text-base border-gray-200 focus:border-cyan-500 focus:ring-cyan-500",
                         urlValidation.isValid &&
                           "border-green-400 focus:border-green-500 focus:ring-green-500",
                         websiteUrl &&

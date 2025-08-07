@@ -203,8 +203,8 @@ function ProfilePage() {
                 onClick={() => setActiveTab(tab.value)}
                 className={`px-4 py-2 font-medium text-sm transition-all border-b-2 ${
                   activeTab === tab.value
-                    ? "border-black text-black"
-                    : "border-transparent text-gray-500 hover:text-black"
+                    ? "border-black dark:border-white text-gray-800 dark:text-white"
+                    : "border-transparent text-gray-500 hover:text-gray-800 dark:hover:text-white"
                 }`}
               >
                 {tab.name}

@@ -101,7 +101,7 @@ const AiNoteInput = ({
           }
         }}
         className={cn(
-          "pr-8 border-gray-200 !min-h-10 nodrag",
+          "text-gray-800 bg-white border-gray-200 pr-8 !min-h-10 nodrag",
           selectedColor.input,
           isDisabled && "cursor-not-allowed"
         )}

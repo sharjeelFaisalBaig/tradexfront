@@ -225,7 +225,7 @@ export default function BuyCreditsModal({
     <Dialog open={isOpen} onClose={handleClose} className="fixed inset-0 z-50">
       <div className="fixed inset-0 bg-black/40" aria-hidden="true" />
       <div className="fixed inset-0 flex items-center justify-center p-4">
-        <Dialog.Panel className="relative bg-white dark:bg-background rounded-lg shadow-lg p-8 w-full max-w-md">
+        <Dialog.Panel className="relative dark:border dark:border-gray-800 bg-white dark:bg-background rounded-lg shadow-lg p-8 w-full max-w-md">
           <button
             onClick={handleClose}
             className="absolute top-4 right-4 text-muted-foreground hover:text-foreground"

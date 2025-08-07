@@ -963,7 +963,7 @@ export default function AudioUploadNode({
                         setShowRecordingInterface(true);
                       }}
                       variant="outline"
-                      className="border-purple-600 text-purple-600 hover:bg-purple-50 px-6 py-3 rounded-full text-base font-medium w-full"
+                      className="bg-transparent border-purple-600 !text-purple-600 hover:bg-purple-50 px-6 py-3 rounded-full text-base font-medium w-full"
                     >
                       <Mic className="w-5 h-5 mr-2" />
                       Record audio

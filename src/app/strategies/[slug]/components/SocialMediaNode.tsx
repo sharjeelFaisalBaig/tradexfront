@@ -492,7 +492,7 @@ export default function SocialMediaNode({
                         value={socialUrl}
                         onChange={handleUrlChange}
                         className={cn(
-                          "pr-12",
+                          "pr-12 bg-transparent text-gray-800",
                           urlValidation.isValid
                             ? "border-green-300 focus:border-green-500 focus:ring-green-500"
                             : urlValidation.error
@@ -667,7 +667,7 @@ export default function SocialMediaNode({
                               onClick={handleOpenOriginal}
                               size="sm"
                               variant="outline"
-                              className="flex-1 bg-transparent"
+                              className="flex-1 bg-transparent text-gray-800"
                             >
                               <ExternalLink className="w-4 h-4 mr-2" />
                               {"Open Original"}
