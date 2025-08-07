@@ -450,7 +450,6 @@ export default function AudioUploadNode({
     setUploadedAudio(null);
     setFileName("");
     setAiResponse(null);
-    lastUploadedFileRef.current = null;
     setProcessingState({
       isProcessing: false,
       isComplete: false,
@@ -479,6 +478,10 @@ export default function AudioUploadNode({
       ai_title: "",
       is_ready_to_interact: false,
     });
+
+    if (lastUploadedFileRef.current) {
+      lastUploadedFileRef.current = null;
+    }
 
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -709,14 +712,15 @@ export default function AudioUploadNode({
       .padStart(2, "0")}`;
   };
 
+  const [fileProcessed, setFileProcessed] = useState(false);
+
   // Effects
   useEffect(() => {
-    // Handle auto-upload from data
-    if (data?.dataToAutoUpload?.data) {
+    if (data?.dataToAutoUpload?.data && !fileProcessed) {
       handleFileSelect(data.dataToAutoUpload.data);
+      setFileProcessed(true);
     }
 
-    // Handle existing audio data
     if (data?.audio) {
       const audioUrl = getFullUrl(data?.audio);
       setUploadedAudio(audioUrl);
@@ -724,17 +728,9 @@ export default function AudioUploadNode({
       setFileName(parts[parts.length - 1] || data.title || "audio");
     }
 
-    // Handle AI response data
     if (data?.ai_title || data?.ai_summary) {
       try {
-        // const parsedTitle = data?.ai_title ? JSON.parse(data?.ai_title) : {};
-        // const parsedSummary = data.ai_summary? JSON.parse(data.ai_summary): {};
-
         setAiResponse({
-          // title: parsedTitle.title || data?.ai_title || data.title || "",
-          // transcription: parsedSummary.important_quotes?.join(" ") || "",
-          // summary: parsedSummary.summary || "",
-          // tags: parsedSummary.key_topics || [],
           title: data?.ai_title || data?.title || "",
           transcription: "",
           summary: "",
@@ -745,17 +741,14 @@ export default function AudioUploadNode({
           language: data.language || "en",
         });
       } catch (e) {
-        console.log({ e });
         console.error("Error parsing AI metadata:", e);
       }
     }
 
-    // Handle user notes
     if (data?.ai_notes) {
       setUserNotes(data.ai_notes);
     }
 
-    // Handle completion state
     if (data?.audio && data?.is_ready_to_interact) {
       setProcessingState((prev) => ({
         ...prev,
@@ -764,7 +757,7 @@ export default function AudioUploadNode({
         error: null,
       }));
     }
-  }, [data, handleFileSelect]);
+  }, [data, fileProcessed, handleFileSelect]);
 
   // Audio level monitoring for recording
   useEffect(() => {
