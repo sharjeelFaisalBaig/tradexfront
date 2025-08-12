@@ -84,8 +84,56 @@ export const resendOtpRequest = async (payload: {
   return response?.data;
 };
 
+// SUBSCRIPTION MUTATION FUNCTIONS
+export interface SubPlansResponse {
+  message?: string;
+  status: string;
+  data?: any;
+}
+
+// get subscription plans
+export const getSubscriptionPlans = async () => {
+  const response = await axiosInstance.get(endpoints.PLANS.GET_ALL_PLANS);
+  return response?.data;
+};
+
+// can change subscription plan
+export const canChangePlan = async (payload: {
+  new_membership_plan_id: string;
+}) => {
+  const response = await axiosInstance.post(
+    endpoints.PLANS.CAN_CHANGE_PLAN,
+    payload
+  );
+  return response?.data;
+};
+
+// create subscription
+export const createSubscription = async (payload: {
+  membership_plan_id: string;
+  billing_cycle: "annual" | "monthly";
+}) => {
+  const response = await axiosInstance.post(
+    endpoints.SUBSCRIPTION.CREATE_PAYMENT_INTENT,
+    payload
+  );
+  return response?.data;
+};
+
+// create subscription
+export const updateSubscription = async (payload: {
+  new_membership_plan_id: string;
+  new_billing_cycle: "annual" | "monthly";
+}) => {
+  const response = await axiosInstance.post(
+    endpoints.SUBSCRIPTION.UPDATE_SUBSCRIPTION,
+    payload
+  );
+  return response?.data;
+};
+
 // cancel subscription
-export const cancelSubscription = async (): Promise<ResendOtpResponse> => {
+export const cancelSubscription = async () => {
   const response = await axiosInstance.post(
     endpoints.SUBSCRIPTION.CANCEL_SUBSCRIPTION
   );
