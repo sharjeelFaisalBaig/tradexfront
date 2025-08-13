@@ -27,7 +27,6 @@ import {
 import { getApiErrorMessage, showAPIErrorToast } from "@/lib/utils";
 import EmptyStrategiesPlaceholder from "@/components/common/EmptyStrategiesPlaceholder";
 import _ from "lodash";
-import DashboardCardsContainer from "@/components/dashboard/DashboardCardsContainer";
 
 const Dashboard = () => {
   const router = useRouter();
@@ -226,10 +225,6 @@ const Dashboard = () => {
               </Select>
             </div>
           </div>
-
-          {/* for tiles of dastboard current credits, Credits Earned This Month, Credits Spent This Month, Membership Plan Details */}
-          <DashboardCardsContainer />
-
           {/* Content Section */}
           {isLoading ? (
             <div className="h-4/5 flex items-center justify-center bg-[#f6f8fb] dark:bg-gray-900">
