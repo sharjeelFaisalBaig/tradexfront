@@ -17,6 +17,7 @@ import {
   updateSubscription,
   getBillingHistory,
   getFilterOptions,
+  deleteUserAccount,
 } from "@/services/auth/auth_API";
 import { SignupData } from "@/services/auth/auth_Mutation";
 import { QUERY_KEYS } from "@/lib/queryKeys";
@@ -68,6 +69,22 @@ export const useDeleteAvatarMutation = () => {
         console.log({ updateProfile_deleteAvatar: oldData, profileNewData });
         return { ...oldData, data: { ...profileNewData?.data } };
       });
+    },
+  });
+};
+
+// Delete user account
+export const useDeleteUserAccountMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => deleteUserAccount(),
+    onSuccess: (data) => {
+      console.log("Account deleted successfully", data);
+      // queryClient.setQueryData([QUERY_KEYS.USER], (oldData: any) => {
+      //   console.log({ updateProfile_deleteAvatar: oldData, profileNewData });
+      //   return { ...oldData, data: { ...profileNewData?.data } };
+      // });
     },
   });
 };

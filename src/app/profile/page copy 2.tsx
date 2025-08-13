@@ -324,8 +324,8 @@ function ProfilePage() {
             {activeTab === "subscription" && (
               <SubscriptionDetailsTab
                 profileData={profile}
-                setShowPlanModal={setShowPlanModal}
-                setShowBillingModal={setShowBillingModal}
+                // setShowPlanModal={setShowPlanModal}
+                // setShowBillingModal={setShowBillingModal}
                 handleCancelSubscription={handleCancelSubscription}
               />
             )}

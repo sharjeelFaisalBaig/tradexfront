@@ -47,6 +47,12 @@ export default function CheckoutForm({
     },
   };
 
+  const handleClose = () => {
+    if (loading) return; // Prevent closing while processing
+    setError(null); // Reset error state when closing the modal
+    onClose(); // Call the onClose function passed as a prop
+  };
+
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setLoading(true);
@@ -157,11 +163,11 @@ export default function CheckoutForm({
       <div
         className="fixed inset-0 bg-black/40"
         aria-hidden="true"
-        onClick={onClose}
+        onClick={handleClose}
       />
       <div className="relative bg-white dark:bg-gray-900 rounded-lg shadow-lg p-8 w-full max-w-md">
         <button
-          onClick={onClose}
+          onClick={handleClose}
           className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition-colors"
           aria-label="Close"
         >

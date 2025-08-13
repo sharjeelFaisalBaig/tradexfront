@@ -11,7 +11,11 @@ import { useGetBillingHistory } from "@/hooks/auth/useAuth";
 import { format } from "date-fns";
 import Loader from "@/components/common/Loader";
 
-const BillingDetailsTab = () => {
+interface Props {
+  profileData?: any;
+}
+
+const BillingDetailsTab = (props: Props) => {
   const [filters, setFilters] = useState({
     page: 1,
     perPage: 10,

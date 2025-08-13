@@ -1,4 +1,5 @@
 import InputField from "@/components/common/InputField";
+import DeleteAccountModal from "@/components/modal/DeleteAccountModal";
 import { Button } from "@/components/ui/button";
 import React, { MouseEventHandler } from "react";
 
@@ -31,6 +32,9 @@ const PersonalInfoTab = (props: Props) => {
     handleAvatarDelete,
   } = props;
   const { user } = profileData;
+
+  const [showDeleteAccountModal, setShowDeleteAccountModal] =
+    React.useState(false);
 
   return (
     <>
@@ -90,9 +94,21 @@ const PersonalInfoTab = (props: Props) => {
           <Button variant="destructive" onClick={handleAvatarDelete}>
             Delete Avatar
           </Button>
-          <Button variant="destructive">Delete Account</Button>
+          <Button
+            variant="destructive"
+            onClick={() => setShowDeleteAccountModal(true)}
+          >
+            Delete Account
+          </Button>
         </div>
       </section>
+
+      {showDeleteAccountModal && (
+        <DeleteAccountModal
+          isOpen={showDeleteAccountModal}
+          onClose={() => setShowDeleteAccountModal(false)}
+        />
+      )}
     </>
   );
 };

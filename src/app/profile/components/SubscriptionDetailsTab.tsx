@@ -11,7 +11,6 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import SwitchCard from "./SwitchCard";
 import { useGetSubscriptionPlans } from "@/hooks/auth/useAuth";
 import clsx from "clsx";
 import Loader from "@/components/common/Loader";
@@ -25,8 +24,7 @@ import PaymentSuccessModal from "@/components/modal/PaymentSuccessModal";
 type BillingType = "monthly" | "annual";
 interface Props {
   profileData?: any;
-  setShowPlanModal: Function;
-  setShowBillingModal: Function;
+  refetchProfile?: Function;
   handleCancelSubscription: Function | any;
 }
 
@@ -35,13 +33,8 @@ const stripePromise = loadStripe(
 );
 
 const SubscriptionDetailsTab = (props: Props) => {
-  const {
-    profileData,
-    setShowPlanModal,
-    setShowBillingModal,
-    handleCancelSubscription,
-  } = props;
-  const { subscription, permissions } = profileData;
+  const { profileData, refetchProfile, handleCancelSubscription } = props;
+  const { subscription } = profileData;
 
   // states
   const [billingType, setBillingType] = useState<BillingType>("monthly");
@@ -98,6 +91,7 @@ const SubscriptionDetailsTab = (props: Props) => {
   const handleSuccess = (data: any) => {
     setSuccessData(data);
     setShowCheckout(false);
+    refetchProfile?.();
   };
 
   const handleClose = () => {

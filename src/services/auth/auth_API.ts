@@ -30,6 +30,12 @@ export const updateProfile = async (payload: any) => {
   return response?.data;
 };
 
+// delete user account
+export const deleteUserAccount = async () => {
+  const response = await axiosInstance.delete(endpoints.USER.DELETE_ACCOUNT);
+  return response?.data;
+};
+
 // Register a new user
 export const createUser = async (userData: SignupData) => {
   const response = await axiosInstance.post(endpoints.AUTH.SIGNUP, userData);

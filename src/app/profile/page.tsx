@@ -34,14 +34,23 @@ const tabs = [
 function ProfilePage() {
   const successNote = useSuccessNotifier();
 
-  // quries & mutations
+  // mutations
   const { mutate: uploadAvatar } = useUploadAvatarMutation();
   const { mutate: deleteAvatar } = useDeleteAvatarMutation();
-  const { mutate: updateProfile } = useUpdateProfileMutation();
   const { mutate: cancelSubscription } = useCancelSubscriptionMutation();
-  const { data: userData, isLoading, isError, error } = useGetUser();
+  const { mutate: updateProfile, isPending: isUpdating } =
+    useUpdateProfileMutation();
 
-  const [profile, setProfile] = useState<any>(null);
+  // queries
+  const {
+    refetch: refetchProfile,
+    data: userData,
+    isLoading,
+    isError,
+    error,
+  } = useGetUser();
+
+  // states
   const [activeTab, setActiveTab] = useState("personal");
 
   // modals states
@@ -67,7 +76,6 @@ function ProfilePage() {
 
   useEffect(() => {
     if (userData?.status && userData?.data?.user) {
-      setProfile(userData?.data);
       setFirstName(userData?.data.user.first_name || "");
       setLastName(userData?.data.user.last_name || "");
       setEmail(userData?.data.user.email || "");
@@ -178,7 +186,13 @@ function ProfilePage() {
   }
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-background text-foreground">
+    <div className="relative flex flex-col h-screen overflow-hidden bg-background text-foreground">
+      {isUpdating && (
+        <div className="z-50 absolute top-0 left-0 w-full h-full flex items-center justify-center bg-[#f6f8fb]/50 dark:bg-gray-900/50">
+          <Loader text="Updating Profile..." />
+        </div>
+      )}
+
       <ProfileHeader onSave={handleSaveChanges} />
 
       <div className="flex flex-1 overflow-hidden">
@@ -248,8 +262,7 @@ function ProfilePage() {
             {activeTab === "subscription" && (
               <SubscriptionDetailsTab
                 profileData={userData?.data}
-                setShowPlanModal={setShowPlanModal}
-                setShowBillingModal={setShowBillingModal}
+                refetchProfile={refetchProfile}
                 handleCancelSubscription={handleCancelSubscription}
               />
             )}
@@ -270,7 +283,7 @@ function ProfilePage() {
               onClose={(shouldRefresh) => {
                 setShowPlanModal(false);
                 if (shouldRefresh) {
-                  // fetchProfile();
+                  refetchProfile();
                 }
               }}
               subscription={subscription}
@@ -288,7 +301,7 @@ function ProfilePage() {
               onClose={(shouldRefresh) => {
                 setShowBuyCreditsModal(false);
                 if (shouldRefresh) {
-                  // fetchProfile();
+                  refetchProfile();
                 }
               }}
             />
@@ -299,7 +312,7 @@ function ProfilePage() {
               onClose={(shouldRefresh) => {
                 setShowUpdatePaymentMethodModal(false);
                 if (shouldRefresh) {
-                  // fetchProfile();
+                  refetchProfile();
                 }
               }}
             />
@@ -310,7 +323,7 @@ function ProfilePage() {
               onClose={(shouldRefresh) => {
                 setShowUpdatePaymentMethodModal(false);
                 if (shouldRefresh) {
-                  // fetchProfile();
+                  refetchProfile();
                 }
               }}
             />
