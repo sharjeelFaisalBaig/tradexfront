@@ -195,7 +195,10 @@ export default function CheckoutForm({
               Card Information
             </label>
             <div className="p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700">
-              <CardElement key={theme} options={cardElementOptions} />
+              <CardElement
+                key={theme}
+                options={{ ...cardElementOptions, disabled: loading }}
+              />
             </div>
           </div>
           {error && (

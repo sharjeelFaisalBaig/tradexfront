@@ -121,7 +121,7 @@ function UpdatePaymentMethodForm({
           New Card Information
         </label>
         <div className="p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700">
-          <CardElement options={cardElementOptions} />
+          <CardElement options={{ ...cardElementOptions, disabled: loading }} />
         </div>
       </div>
       {error && (
