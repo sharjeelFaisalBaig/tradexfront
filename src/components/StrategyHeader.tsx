@@ -18,6 +18,7 @@ import { signOut } from "next-auth/react";
 import { getFullUrl } from "@/lib/utils";
 import { IStrategy } from "@/lib/types";
 import Image from "next/image";
+import ZeroCreditsWarn from "./common/ZeroCreditsWarn";
 
 interface HeaderInterface {
   strategy?: IStrategy | null;
@@ -49,7 +50,8 @@ const StrategyHeader = ({
   }, [data?.data?.credits]);
 
   return (
-    <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-6 py-2">
+    <header className="relative bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-6 py-2">
+      {(!credits.usedCredits || credits.usedCredits < 1) && <ZeroCreditsWarn />}
       <div className="flex items-center justify-between">
         {/* Left Section */}
         <div className="flex items-center gap-4">

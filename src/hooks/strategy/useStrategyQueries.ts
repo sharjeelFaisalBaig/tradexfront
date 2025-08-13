@@ -11,7 +11,7 @@ import {
 
 export const useGetStrategies = () => {
   return useQuery({
-    retry:false,
+    retry: false,
     queryKey: [QUERY_KEYS.STRATEGIES],
     queryFn: getStrategies,
   });
@@ -19,7 +19,7 @@ export const useGetStrategies = () => {
 
 export const useGetStrategyById = (id?: string) => {
   return useQuery({
-    retry:false,
+    retry: false,
     queryKey: [QUERY_KEYS.STRATEGY, id],
     queryFn: () => {
       if (!id) throw new Error("Strategy ID is required");

@@ -22,6 +22,8 @@ import {
   useCancelSubscriptionMutation,
 } from "@/hooks/auth/useAuth";
 import { showAPIErrorToast } from "@/lib/utils";
+import { useRouter, useSearchParams } from "next/navigation";
+import ZeroCreditsWarn from "@/components/common/ZeroCreditsWarn";
 
 const tabs = [
   { name: "Personal Information", value: "personal" },
@@ -33,6 +35,9 @@ const tabs = [
 
 function ProfilePage() {
   const successNote = useSuccessNotifier();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const activeTab = searchParams.get("tab") || "personal";
 
   // mutations
   const { mutate: uploadAvatar } = useUploadAvatarMutation();
@@ -50,8 +55,10 @@ function ProfilePage() {
     error,
   } = useGetUser();
 
-  // states
-  const [activeTab, setActiveTab] = useState("personal");
+  const credits = useMemo(
+    () => userData?.data?.credits?.current_credits,
+    [userData]
+  );
 
   // modals states
   const [showPlanModal, setShowPlanModal] = useState(false);
@@ -204,6 +211,12 @@ function ProfilePage() {
 
         {/* Main Content */}
         <main className="flex-1 px-12 py-10 overflow-y-auto bg-background">
+          {(!credits || credits < 1) && (
+            <div className="relative mb-12">
+              <ZeroCreditsWarn />
+            </div>
+          )}
+
           {isLoading && (
             <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center bg-[#f6f8fb] dark:bg-gray-900">
               <Loader text="Loading profile..." />
@@ -214,7 +227,7 @@ function ProfilePage() {
             {tabs.map((tab) => (
               <button
                 key={tab.value}
-                onClick={() => setActiveTab(tab.value)}
+                onClick={() => router.push(`/profile?tab=${tab.value}`)}
                 className={`px-4 py-2 font-medium text-sm transition-all border-b-2 ${
                   activeTab === tab.value
                     ? "border-black dark:border-white text-gray-800 dark:text-white"

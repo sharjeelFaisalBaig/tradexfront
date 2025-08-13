@@ -13,7 +13,6 @@ import Header from "@/components/Header";
 import SearchIcon from "@/icons/search.svg";
 import { IStrategy } from "@/lib/types";
 import { useGetStrategies } from "@/hooks/strategy/useStrategyQueries";
-import { toast } from "@/hooks/use-toast";
 import StrategyCard from "@/components/StrategyCard";
 import { useRouter } from "next/navigation";
 import Loader from "@/components/common/Loader";
@@ -25,7 +24,7 @@ import {
   useCopyStrategy,
   useFavouriteStrategy,
 } from "@/hooks/strategy/useStrategyMutations";
-import { showAPIErrorToast } from "@/lib/utils";
+import { getApiErrorMessage, showAPIErrorToast } from "@/lib/utils";
 
 const Dashboard = () => {
   const router = useRouter();
@@ -88,12 +87,12 @@ const Dashboard = () => {
 
   useEffect(() => {
     if (error) {
-      toast({
-        title: error?.message || "Error",
-        // @ts-ignore
-        description: error?.response?.data?.message || "Failed to send OTP.",
-        variant: "destructive",
-      });
+      // Show error toast with detailed message
+      showAPIErrorToast(error);
+      const errorMsg = String(getApiErrorMessage(error));
+      if (errorMsg.includes("no available credits")) {
+        router.push(`/profile?tab=credits`);
+      }
     }
   }, [error]);
 
@@ -232,7 +231,7 @@ const Dashboard = () => {
           ) : isError ? (
             <div className="flex items-center justify-center p-6">
               <span className="text-red-600 text-lg font-semibold">
-                Failed to load strategies.
+                {getApiErrorMessage(error) ?? "Failed to load strategies."}
               </span>
             </div>
           ) : (

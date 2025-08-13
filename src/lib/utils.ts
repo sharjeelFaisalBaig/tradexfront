@@ -52,6 +52,20 @@ export const getFullUrl = (endpoint: string = ""): string => {
   return `${DOMAIN_ROOT.replace(/\/+$/, "")}/${endpoint.replace(/^\/+/, "")}`;
 };
 
+export const getApiErrorMessage = (error?: unknown | any) => {
+  if (!error) return;
+  // if (!error) return "An unknown error occurred";
+  // Axios-style error check
+  if (error) {
+    const responseData = error?.response?.data;
+    const messageFromErrors =
+      responseData?.errors &&
+      Object.values(responseData.errors).flat().join(", ");
+    const messageFromMessage = responseData?.message;
+    return messageFromErrors || messageFromMessage;
+  }
+};
+
 export const showAPIErrorToast = (
   error?: unknown | any,
   fallbackTitle = "Validation failed",

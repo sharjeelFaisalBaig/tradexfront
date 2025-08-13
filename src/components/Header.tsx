@@ -20,6 +20,7 @@ import { signOut } from "next-auth/react";
 import { useGetUser } from "@/hooks/auth/useAuth";
 import { getFullUrl } from "@/lib/utils";
 import { useTheme } from "@/context/ThemeProvider";
+import ZeroCreditsWarn from "./common/ZeroCreditsWarn";
 
 interface HeaderInterface {}
 
@@ -35,7 +36,9 @@ const Header = ({}: HeaderInterface) => {
   const profileImage = useMemo(() => getFullUrl(userData?.avatar), [userData]);
 
   return (
-    <header className="flex items-center justify-between bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-6 py-4">
+    <header className="relative flex items-center justify-between bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-6 py-4">
+      {(!credits || credits < 1) && <ZeroCreditsWarn />}
+
       {/* Left Section */}
       <div className="flex items-center space-x-20">
         <Image

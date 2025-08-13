@@ -14,7 +14,6 @@ import Header from "@/components/Header";
 import SearchIcon from "@/icons/search.svg";
 import StrategyCard from "@/components/StrategyCard";
 import { IStrategy } from "@/lib/types";
-import { toast } from "@/hooks/use-toast";
 import { useGetStrategies } from "@/hooks/strategy/useStrategyQueries";
 import Loader from "@/components/common/Loader";
 import { Pagination } from "@/components/common/Pagination";
@@ -25,7 +24,7 @@ import {
   useFavouriteStrategy,
 } from "@/hooks/strategy/useStrategyMutations";
 import useSuccessNotifier from "@/hooks/useSuccessNotifier";
-import { showAPIErrorToast } from "@/lib/utils";
+import { getApiErrorMessage, showAPIErrorToast } from "@/lib/utils";
 
 const Strategies = () => {
   const router = useRouter();
@@ -52,12 +51,12 @@ const Strategies = () => {
 
   useEffect(() => {
     if (error) {
-      toast({
-        title: error?.message || "Error",
-        // @ts-ignore
-        description: error?.response?.data?.message || "Failed to send OTP.",
-        variant: "destructive",
-      });
+      // Show error toast with detailed message
+      showAPIErrorToast(error);
+      const errorMsg = String(getApiErrorMessage(error));
+      if (errorMsg.includes("no available credits")) {
+        router.push(`/profile?tab=credits`);
+      }
     }
   }, [error]);
 
