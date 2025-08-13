@@ -139,3 +139,17 @@ export const cancelSubscription = async () => {
   );
   return response?.data;
 };
+
+// get billing history
+export const getBillingHistory = async (params: any) => {
+  const response = await axiosInstance.get(endpoints.BILLING.HISTORY, {
+    params,
+  });
+  return response?.data;
+};
+
+// get filter options for billing history
+export const getFilterOptions = async () => {
+  const response = await axiosInstance.get(endpoints.BILLING.FILTER_OPTIONS);
+  return response?.data;
+};

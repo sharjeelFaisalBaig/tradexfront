@@ -8,4 +8,6 @@ export const QUERY_KEYS = {
   AI_MODELS: "aiModels",
   AI_CHAT_TEMPLATES: "ai-chat-templates",
   PLANS: "plans",
+  BILLING_HISTORY: "billingHistory",
+  BILLING_FILTER_OPTIONS: "billingFilterOptions",
 };

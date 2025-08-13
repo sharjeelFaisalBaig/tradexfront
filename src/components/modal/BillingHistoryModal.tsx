@@ -224,19 +224,24 @@ export default function BillingHistoryModal({
                   {billingHistory.map((entry) => {
                     // console.log({entry});
                     return (
-                    <tr key={entry.id} className="border-t">
-                      {/* <td className="p-2 border">{entry.transaction_type}</td> */}
-                      <td className="p-2 border">STRIPE</td>
-                      <td className="p-2 border">{entry.transaction_id}</td>
-                      <td className="p-2 border">
-                        {new Date(entry.processed_at).toLocaleDateString()}
-                      </td>
-                      <td className="p-2 border capitalize">{String(entry.payment_purpose).replaceAll('_',' ')}</td>
-                      <td className="p-2 border uppercase">{entry.currency}</td>
-                      <td className="p-2 border">${entry.amount}</td>
-                      <td className="p-2 border">{entry.description}</td>
-                    </tr>
-                  )})}
+                      <tr key={entry.id} className="border-t">
+                        {/* <td className="p-2 border">{entry.transaction_type}</td> */}
+                        <td className="p-2 border">STRIPE</td>
+                        <td className="p-2 border">{entry.transaction_id}</td>
+                        <td className="p-2 border">
+                          {new Date(entry.processed_at).toLocaleDateString()}
+                        </td>
+                        <td className="p-2 border capitalize">
+                          {String(entry.payment_purpose).replaceAll("_", " ")}
+                        </td>
+                        <td className="p-2 border uppercase">
+                          {entry.currency}
+                        </td>
+                        <td className="p-2 border">${entry.amount}</td>
+                        <td className="p-2 border">{entry.description}</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

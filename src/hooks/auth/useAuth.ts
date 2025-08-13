@@ -15,6 +15,8 @@ import {
   canChangePlan,
   createSubscription,
   updateSubscription,
+  getBillingHistory,
+  getFilterOptions,
 } from "@/services/auth/auth_API";
 import { SignupData } from "@/services/auth/auth_Mutation";
 import { QUERY_KEYS } from "@/lib/queryKeys";
@@ -199,5 +201,23 @@ export const useCancelSubscriptionMutation = () => {
         };
       });
     },
+  });
+};
+
+// get billing history
+export const useGetBillingHistory = (params: any) => {
+  return useQuery({
+    queryKey: [QUERY_KEYS.BILLING_HISTORY, params],
+    queryFn: () => getBillingHistory(params),
+    enabled: !!params?.page, // Only fetch if page is defined
+    // keepPreviousData: true, // Helps with pagination
+  });
+};
+
+// get filter options
+export const useGetFilterOptions = () => {
+  return useQuery({
+    queryKey: [QUERY_KEYS.BILLING_FILTER_OPTIONS],
+    queryFn: () => getFilterOptions(),
   });
 };
