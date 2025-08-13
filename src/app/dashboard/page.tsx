@@ -25,6 +25,8 @@ import {
   useFavouriteStrategy,
 } from "@/hooks/strategy/useStrategyMutations";
 import { getApiErrorMessage, showAPIErrorToast } from "@/lib/utils";
+import EmptyStrategiesPlaceholder from "@/components/common/EmptyStrategiesPlaceholder";
+import _ from "lodash";
 
 const Dashboard = () => {
   const router = useRouter();
@@ -234,6 +236,8 @@ const Dashboard = () => {
                 {getApiErrorMessage(error) ?? "Failed to load strategies."}
               </span>
             </div>
+          ) : _.isEmpty(strategies) ? (
+            <EmptyStrategiesPlaceholder />
           ) : (
             <>
               {/* Strategy Cards */}

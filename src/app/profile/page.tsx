@@ -211,7 +211,7 @@ function ProfilePage() {
 
         {/* Main Content */}
         <main className="flex-1 px-12 py-10 overflow-y-auto bg-background">
-          {(!credits || credits < 1) && (
+          {!isLoading && (!credits || credits < 1) && (
             <div className="relative mb-12">
               <ZeroCreditsWarn />
             </div>

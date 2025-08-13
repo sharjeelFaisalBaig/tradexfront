@@ -25,6 +25,8 @@ import {
 } from "@/hooks/strategy/useStrategyMutations";
 import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 import { getApiErrorMessage, showAPIErrorToast } from "@/lib/utils";
+import EmptyStrategiesPlaceholder from "@/components/common/EmptyStrategiesPlaceholder";
+import _ from "lodash";
 
 const Strategies = () => {
   const router = useRouter();
@@ -228,18 +230,13 @@ const Strategies = () => {
               <Loader text="Loading strategies..." />
             </div>
           ) : isError ? (
-            <div className="flex flex-col items-center justify-center p-6">
+            <div className="flex items-center justify-center p-6">
               <span className="text-red-600 text-lg font-semibold">
-                Failed to load strategies.
-              </span>
-              <br />
-              <span className="text-red-600 text-lg font-semibold">
-                {
-                  // @ts-ignore
-                  error?.response?.data?.message
-                }
+                {getApiErrorMessage(error) ?? "Failed to load strategies."}
               </span>
             </div>
+          ) : _.isEmpty(strategies) ? (
+            <EmptyStrategiesPlaceholder />
           ) : (
             <>
               {/* Strategy Cards */}

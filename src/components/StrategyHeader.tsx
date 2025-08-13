@@ -51,7 +51,9 @@ const StrategyHeader = ({
 
   return (
     <header className="relative bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-6 py-2">
-      {(!credits.usedCredits || credits.usedCredits < 1) && <ZeroCreditsWarn />}
+      {!isLoadingUser && (!credits.usedCredits || credits.usedCredits < 1) && (
+        <ZeroCreditsWarn />
+      )}
       <div className="flex items-center justify-between">
         {/* Left Section */}
         <div className="flex items-center gap-4">
