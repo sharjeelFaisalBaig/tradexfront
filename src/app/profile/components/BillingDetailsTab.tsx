@@ -63,6 +63,9 @@ const BillingDetailsTab = () => {
                   Amount
                 </TableHead>
                 <TableHead className="border font-semibold text-foreground">
+                  Payment Method
+                </TableHead>
+                <TableHead className="border font-semibold text-foreground">
                   Status
                 </TableHead>
               </TableRow>
@@ -84,6 +87,13 @@ const BillingDetailsTab = () => {
                           item.currency?.toUpperCase() ?? ""
                         }`
                       : "-"}
+                  </TableCell>
+                  <TableCell className="border">
+                    {item.payment_method
+                      ? `${
+                          item.payment_method.brand?.toUpperCase() ?? ""
+                        } ••••${item.payment_method.last4 ?? ""}`
+                      : "Stripe"}
                   </TableCell>
                   <TableCell
                     className={
