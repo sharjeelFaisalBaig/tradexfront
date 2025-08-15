@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useMemo } from "react";
-import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
+import { useRouter } from "next/navigation";
 import {
   Select,
   SelectContent,
@@ -26,8 +26,10 @@ import {
 import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 import { getApiErrorMessage, showAPIErrorToast } from "@/lib/utils";
 import EmptyStrategiesPlaceholder from "@/components/common/EmptyStrategiesPlaceholder";
-import _ from "lodash";
 import ShareStrategyModal from "@/components/modal/ShareStrategyModal";
+import _ from "lodash";
+
+type ModalType = "edit" | "delete" | "share" | "copy" | "";
 
 const Strategies = () => {
   const router = useRouter();
@@ -37,9 +39,8 @@ const Strategies = () => {
   const { mutate: toggleFavouriteStrategy } = useFavouriteStrategy();
 
   const [searchTerm, setSearchTerm] = useState("");
+  const [modal, setModal] = useState<ModalType>("");
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [isForEdit, setIsForEdit] = useState<boolean>(false);
-  const [isForDelete, setIsForDelete] = useState<boolean>(false);
   const [favStrategies, setFavStrategies] = useState<IStrategy[]>([]);
   const [selectedStrategy, setSelectedStrategy] = useState<IStrategy | null>(
     null
@@ -157,25 +158,25 @@ const Strategies = () => {
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-gray-50 dark:bg-gray-900">
-      {isForEdit && (
+      {modal === "share" && (
         <ShareStrategyModal
-          isOpen={isForEdit}
+          isOpen={modal === "share"}
           strategy={selectedStrategy}
-          onClose={() => setIsForEdit(false)}
+          onClose={() => setModal("")}
         />
       )}
-      {isForEdit && (
+      {modal === "edit" && (
         <NewStrategyModal
-          isOpen={isForEdit}
+          isOpen={modal === "edit"}
           strategy={selectedStrategy}
-          onClose={() => setIsForEdit(false)}
+          onClose={() => setModal("")}
         />
       )}
-      {isForDelete && (
+      {modal === "delete" && (
         <DeleteStrategyModal
-          isOpen={isForDelete}
+          isOpen={modal === "delete"}
           strategy={selectedStrategy}
-          onClose={() => setIsForDelete(false)}
+          onClose={() => setModal("")}
         />
       )}
       <Header />
@@ -258,15 +259,19 @@ const Strategies = () => {
                       key={strategy.id}
                       strategy={strategy}
                       isFavorite={isFavourite}
-                      onClick={() => router.push(`/strategies/${strategy.id}`)}
                       onCopy={handleCopyStrategy}
-                      toggleStar={() => handleToggleIsFavourite(strategy)}
+                      toggleStar={handleToggleIsFavourite}
+                      onClick={() => router.push(`/strategies/${strategy.id}`)}
                       onEdit={() => {
-                        setIsForEdit(true);
+                        setModal("edit");
                         setSelectedStrategy(strategy);
                       }}
                       onDelete={() => {
-                        setIsForDelete(true);
+                        setModal("delete");
+                        setSelectedStrategy(strategy);
+                      }}
+                      onShare={() => {
+                        setModal("share");
                         setSelectedStrategy(strategy);
                       }}
                     />

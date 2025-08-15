@@ -266,6 +266,7 @@ function ProfilePage() {
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
         <ProfileSidebar
+          isUploadingAvatar={false}
           profileData={profile}
           handleAvatarUpload={handleAvatarUpload}
         />
@@ -291,6 +292,7 @@ function ProfilePage() {
           <div className="mt-8">
             {activeTab === "personal" && (
               <PersonalInfoTab
+                isDeletingAvatar={false}
                 profileData={profile}
                 email={email}
                 setEmail={setEmail}

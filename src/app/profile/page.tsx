@@ -40,9 +40,11 @@ function ProfilePage() {
   const activeTab = searchParams.get("tab") || "personal";
 
   // mutations
-  const { mutate: uploadAvatar } = useUploadAvatarMutation();
-  const { mutate: deleteAvatar } = useDeleteAvatarMutation();
   const { mutate: cancelSubscription } = useCancelSubscriptionMutation();
+  const { mutate: deleteAvatar, isPending: isDeletingAvatar } =
+    useDeleteAvatarMutation();
+  const { mutate: uploadAvatar, isPending: isUploadingAvatar } =
+    useUploadAvatarMutation();
   const { mutate: updateProfile, isPending: isUpdating } =
     useUpdateProfileMutation();
 
@@ -206,6 +208,7 @@ function ProfilePage() {
         {/* Sidebar */}
         <ProfileSidebar
           profileData={userData?.data}
+          isUploadingAvatar={isUploadingAvatar}
           handleAvatarUpload={handleAvatarUpload}
         />
 
@@ -242,6 +245,7 @@ function ProfilePage() {
           <div className="mt-8">
             {activeTab === "personal" && (
               <PersonalInfoTab
+                isDeletingAvatar={isDeletingAvatar}
                 profileData={userData?.data}
                 email={email}
                 setEmail={setEmail}

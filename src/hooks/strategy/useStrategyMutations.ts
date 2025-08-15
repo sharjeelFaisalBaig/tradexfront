@@ -44,6 +44,7 @@ import {
   deleteAnnotationPeer,
   sendPeerAiNote,
   deleteStrategy,
+  shareStrategy,
 } from "@/services/strategy/strategy_Mutation";
 import { IStrategy } from "@/lib/types";
 import { QUERY_KEYS } from "@/lib/queryKeys";
@@ -132,6 +133,34 @@ export const useDeleteStrategy = () => {
           };
         }
       );
+    },
+  });
+};
+
+export const useShareStrategy = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: { strategyId: string; userIds: string[] }) =>
+      shareStrategy(payload),
+    onSuccess: (newData) => {
+      console.log("Share Strategy Success Data:", newData);
+
+      // queryClient.setQueryData(
+      //   [QUERY_KEYS.STRATEGIES],
+      //   (oldData: { data: { strategies: IStrategy[] } } | undefined) => {
+      //     if (!oldData) {
+      //       return { data: { strategies: [newStrategy.data] } };
+      //     }
+      //     const updatedStrategies = [
+      //       newStrategy.data,
+      //       ...oldData.data.strategies,
+      //     ];
+      //     return {
+      //       ...oldData,
+      //       data: { ...oldData.data, strategies: updatedStrategies },
+      //     };
+      //   }
+      // );
     },
   });
 };

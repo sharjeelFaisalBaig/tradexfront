@@ -1,220 +1,262 @@
 "use client";
-
-import { Dialog } from "@headlessui/react";
-import { useState, FormEvent, KeyboardEvent, useMemo } from "react";
-import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { toast } from "@/hooks/use-toast";
+import { Dialog } from "@headlessui/react";
 import { useRouter } from "next/navigation";
-import { IStrategy } from "@/lib/types";
-import { Textarea } from "../ui/textarea";
-import { cn, showAPIErrorToast } from "@/lib/utils";
-import {
-  useCreateStrategy,
-  useUpdateStrategy,
-} from "@/hooks/strategy/useStrategyMutations";
+import { useState, FormEvent } from "react";
+import { Input } from "@/components/ui/input";
+import { IStrategy, IUser } from "@/lib/types";
+import { getFullUrl, showAPIErrorToast } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import useSuccessNotifier from "@/hooks/useSuccessNotifier";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { useShareStrategy } from "@/hooks/strategy/useStrategyMutations";
 
-const MAX_TAGS = 4; // maximum allowed tags
+// Replace with actual API call
+const mockUsers: IUser[] = [
+  {
+    id: 9,
+    name: "Sharjeel Baig 1",
+    email: "sharjeel1+1@yopmail.com",
+    email_verified_at: "2025-05-28T00:04:06.000000Z",
+    status: true,
+    created_at: "2025-05-27T23:20:51.000000Z",
+    updated_at: "2025-08-15T11:23:24.000000Z",
+    user_type: "Customer",
+    extras: null,
+    first_name: "Sharjeel",
+    last_name: "Baig",
+    otp_expires_at: null,
+    stripe_id: "cus_SaFAGNCAvl3xZv",
+    pm_type: "visa",
+    pm_last_four: "1111",
+    trial_ends_at: null,
+    google_id: null,
+    credits: 6100,
+    two_factor_enabled: false,
+    two_factor_expires_at: null,
+    two_factor_verified_at: null,
+    receive_email_notifications: true,
+    receive_inapp_notifications: true,
+    avatar: "/storage/1773/2857527.png",
+    phone_number: "+921234567890",
+    receive_success_alerts: true,
+  },
+  {
+    id: 9,
+    name: "Sharjeel Baig 2",
+    email: "sharjeel1+2@yopmail.com",
+    email_verified_at: "2025-05-28T00:04:06.000000Z",
+    status: true,
+    created_at: "2025-05-27T23:20:51.000000Z",
+    updated_at: "2025-08-15T11:23:24.000000Z",
+    user_type: "Customer",
+    extras: null,
+    first_name: "Sharjeel",
+    last_name: "Baig",
+    otp_expires_at: null,
+    stripe_id: "cus_SaFAGNCAvl3xZv",
+    pm_type: "visa",
+    pm_last_four: "1111",
+    trial_ends_at: null,
+    google_id: null,
+    credits: 6100,
+    two_factor_enabled: false,
+    two_factor_expires_at: null,
+    two_factor_verified_at: null,
+    receive_email_notifications: true,
+    receive_inapp_notifications: true,
+    avatar: "/storage/1773/2857527.png",
+    phone_number: "+921234567890",
+    receive_success_alerts: true,
+  },
+  {
+    id: 9,
+    name: "Sharjeel Baig 3",
+    email: "sharjeel1+3@yopmail.com",
+    email_verified_at: "2025-05-28T00:04:06.000000Z",
+    status: true,
+    created_at: "2025-05-27T23:20:51.000000Z",
+    updated_at: "2025-08-15T11:23:24.000000Z",
+    user_type: "Customer",
+    extras: null,
+    first_name: "Sharjeel",
+    last_name: "Baig",
+    otp_expires_at: null,
+    stripe_id: "cus_SaFAGNCAvl3xZv",
+    pm_type: "visa",
+    pm_last_four: "1111",
+    trial_ends_at: null,
+    google_id: null,
+    credits: 6100,
+    two_factor_enabled: false,
+    two_factor_expires_at: null,
+    two_factor_verified_at: null,
+    receive_email_notifications: true,
+    receive_inapp_notifications: true,
+    avatar: "/storage/1773/2857527.png",
+    phone_number: "+921234567890",
+    receive_success_alerts: true,
+  },
+];
 
-function NewStrategyForm({
+interface ShareStrategyFormProps {
+  onSuccess: (data: IStrategy) => void;
+  onClose: () => void;
+  strategy?: null | IStrategy;
+}
+
+function ShareStrategyForm({
   onSuccess,
   onClose,
   strategy,
-}: {
-  onSuccess: (data: IStrategy) => void;
-  onClose: () => void;
-  strategy?: IStrategy | null;
-}) {
-  // const pathname = usePathname();
-  // const strategyId = pathname.split("/")[2];
+}: ShareStrategyFormProps) {
   const successNote = useSuccessNotifier();
-  const createMutation = useCreateStrategy();
-  const updateMutation = useUpdateStrategy();
+  const shareMutation = useShareStrategy(); // ye mutation proper nhi hai copySrategy mutation ki copy hai srf name change hai
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedUsers, setSelectedUsers] = useState<IUser[]>([]);
+  const [suggestions, setSuggestions] = useState<IUser[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
 
-  const [name, setName] = useState(strategy?.name ?? "");
-  const [desc, setDesc] = useState(strategy?.description ?? "");
-  const [tagInput, setTagInput] = useState("");
-  const [tags, setTags] = useState<string[]>(strategy?.tags ?? []);
-  const [errors, setErrors] = useState<{
-    name?: string;
-    desc?: string;
-    tags?: string;
-  }>({});
-
-  const handleAddTag = () => {
-    const newTag = tagInput.trim();
-    if (newTag && !tags.includes(newTag) && tags.length < MAX_TAGS) {
-      setTags([...tags, newTag]);
-      setTagInput("");
+  // Mock function to simulate user search API call
+  const searchUsers = async (query: string) => {
+    setIsSearching(true);
+    try {
+      setSuggestions(
+        mockUsers.filter(
+          (user) =>
+            user.name.toLowerCase().includes(query.toLowerCase()) ||
+            user.email.toLowerCase().includes(query.toLowerCase())
+        )
+      );
+    } catch (error) {
+      showAPIErrorToast(error);
+    } finally {
+      setIsSearching(false);
     }
   };
 
-  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" || e.key === ",") {
-      e.preventDefault();
-      handleAddTag();
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const query = e.target.value;
+    setSearchQuery(query);
+    if (query.length > 2) {
+      searchUsers(query);
+    } else {
+      setSuggestions([]);
     }
   };
 
-  const handleRemoveTag = (tagToRemove: string) => {
-    setTags(tags.filter((tag) => tag !== tagToRemove));
+  const handleSelectUser = (user: IUser) => {
+    if (!selectedUsers.some((u) => u.id === user.id)) {
+      setSelectedUsers([...selectedUsers, user]);
+      setSearchQuery("");
+      setSuggestions([]);
+    }
+  };
+
+  const handleRemoveUser = (userId: string | number) => {
+    setSelectedUsers(selectedUsers.filter((user) => user.id !== userId));
   };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-
-    const newErrors: { name?: string; desc?: string; tags?: string } = {};
-    // if (!name.trim()) newErrors.name = "Strategy name is required.";
-    // if (!desc.trim()) newErrors.desc = "Description is required.";
-    // if (tags.length === 0) newErrors.tags = "Please add at least one tag.";
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return;
-    }
-
-    setErrors({});
-
-    const payload = {
-      name,
-      description: desc,
-      tags,
-    };
-
-    const onMutationSuccess = (data: any) => {
-      successNote({
-        title: strategy ? "Strategy Updated" : "Strategy Created",
-        description: `Strategy ${
-          strategy ? "updated" : "created"
-        } successfully.`,
-      });
-      onSuccess(data?.data); // assuming response has `data`
-      onClose();
-    };
-
-    if (strategy) {
-      updateMutation.mutate(
-        { id: strategy.id, data: payload },
-        {
-          onSuccess: onMutationSuccess,
-          onError: (error) => {
-            updateMutation?.isError && showAPIErrorToast(error);
-          },
-        }
-      );
-    } else {
-      createMutation.mutate(payload, {
-        onSuccess: onMutationSuccess,
-        onError: (error) => {
-          createMutation?.isError && showAPIErrorToast(error);
+    const userIds = selectedUsers.map((user) => String(user.id)) ?? [];
+    shareMutation.mutate(
+      { strategyId: strategy?.id ?? "", userIds },
+      {
+        onSuccess: (data) => {
+          successNote({
+            title: "Strategy Shared",
+            description: "Strategy shared successfully.",
+          });
+          onSuccess(data);
+          onClose();
         },
-      });
-    }
+        onError: (error) => {
+          showAPIErrorToast(error);
+        },
+      }
+    );
   };
-
-  const isLoading = useMemo(
-    () => createMutation?.isPending || updateMutation?.isPending,
-    [createMutation, updateMutation]
-  );
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {/* Name */}
+      {/* Search Users */}
       <div>
         <label className="block text-sm font-medium mb-1 text-muted-foreground">
-          Name
+          Search Users
         </label>
         <Input
           type="text"
-          placeholder="e.g. My AI Campaign"
-          disabled={isLoading}
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className={cn(
-            errors.name && "border-red-500 focus-visible:ring-red-500"
-          )}
+          placeholder="Search by name or email..."
+          value={searchQuery}
+          onChange={handleSearch}
+          disabled={shareMutation.isPending}
         />
-        {errors.name && (
-          <p className="mt-1 text-sm text-red-500">{errors.name}</p>
+        {isSearching && (
+          <p className="text-sm text-muted-foreground mt-1">Searching...</p>
         )}
-      </div>
-
-      {/* Description */}
-      <div>
-        <label className="block text-sm font-medium mb-1 text-muted-foreground">
-          Description
-        </label>
-        <Textarea
-          disabled={isLoading}
-          value={desc}
-          onChange={(e) => setDesc(e.target.value)}
-          placeholder="Describe your strategy..."
-          rows={4}
-          className={cn(
-            errors.desc && "border-red-500 focus-visible:ring-red-500"
-          )}
-        />
-        {errors.desc && (
-          <p className="mt-1 text-sm text-red-500">{errors.desc}</p>
-        )}
-      </div>
-
-      {/* Tags */}
-      <div>
-        <label className="block text-sm font-medium mb-1 text-muted-foreground">
-          Tags
-        </label>
-        <Input
-          value={tagInput}
-          onChange={(e) => setTagInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Type a tag and press enter or comma"
-          disabled={isLoading || tags.length >= MAX_TAGS} // disable input if limit reached
-          className={cn(
-            errors.tags && "border-red-500 focus-visible:ring-red-500",
-            tags.length >= MAX_TAGS && "opacity-50 cursor-not-allowed"
-          )}
-        />
-        {errors.tags && (
-          <p className="mt-1 text-sm text-red-500">{errors.tags}</p>
-        )}
-
-        {tags.length > 0 && (
-          <div className="flex flex-wrap gap-2 mt-2">
-            {tags.map((tag) => (
+        {suggestions.length > 0 && (
+          <div className="mt-2 border rounded-lg max-h-40 overflow-y-auto">
+            {suggestions.map((user) => (
               <div
-                key={tag}
-                className="flex items-center px-3 py-1 text-sm bg-muted rounded-full text-muted-foreground"
+                key={user.id}
+                className="p-2 hover:bg-muted/50 cursor-pointer flex items-center gap-2"
+                onClick={() => handleSelectUser(user)}
               >
-                {tag}
-                <button
-                  type="button"
-                  disabled={isLoading}
-                  onClick={() => handleRemoveTag(tag)}
-                  className="ml-2 text-red-500 hover:text-red-600"
-                >
-                  <X className="w-5 h-5" />
-                </button>
+                <Avatar className="w-8 h-8">
+                  <AvatarImage
+                    src={user?.avatar ? `${getFullUrl(user.avatar)}` : ""}
+                  />
+                  <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="font-medium">{user.name}</p>
+                  <p className="text-sm text-muted-foreground">{user.email}</p>
+                </div>
               </div>
             ))}
           </div>
         )}
       </div>
 
+      {/* Selected Users */}
+      {selectedUsers.length > 0 && (
+        <div>
+          <label className="block text-sm font-medium mb-1 text-muted-foreground">
+            Selected Users
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {selectedUsers.map((user) => (
+              <div
+                key={user.id}
+                className="flex items-center px-3 py-1 text-sm bg-muted rounded-full"
+              >
+                <Avatar className="w-6 h-6 mr-2">
+                  <AvatarImage
+                    src={user?.avatar ? `${getFullUrl(user.avatar)}` : ""}
+                  />
+                  <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                </Avatar>
+                {user.name}
+                <button
+                  type="button"
+                  onClick={() => handleRemoveUser(user?.id)}
+                  className="ml-2 text-red-500 hover:text-red-600"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <Button
         type="submit"
-        disabled={isLoading}
+        disabled={shareMutation.isPending || selectedUsers.length === 0}
         className="w-full h-11 text-base"
       >
-        {strategy
-          ? updateMutation.isPending
-            ? "Updating..."
-            : "Update Strategy"
-          : createMutation.isPending
-          ? "Creating..."
-          : "Create Strategy"}
+        {shareMutation.isPending ? "Sharing..." : "Share Strategy"}
       </Button>
     </form>
   );
@@ -230,17 +272,13 @@ export default function ShareStrategyModal({
   strategy?: IStrategy | null;
 }) {
   const router = useRouter();
-
   const onSuccess = (strategyData: IStrategy) => {
-    if (!strategy?.id) {
-      router.push(`/strategies/${strategyData.id}`);
-    }
+    router.push(`/strategies/${strategyData.id}`);
   };
 
   return (
     <Dialog open={isOpen} onClose={onClose} className="relative z-50">
       <div className="fixed inset-0 bg-black/50" aria-hidden="true" />
-
       <div className="fixed inset-0 flex items-center justify-center px-4">
         <Dialog.Panel className="relative dark:border dark:border-gray-800 bg-white dark:bg-background w-full max-w-md mx-auto rounded-lg shadow-lg p-6">
           <button
@@ -250,12 +288,10 @@ export default function ShareStrategyModal({
           >
             <X className="w-5 h-5" />
           </button>
-
           <Dialog.Title className="text-xl font-semibold text-center mb-4">
-            {strategy ? "Update Strategy" : "Create New Strategy"}
+            Share Strategy
           </Dialog.Title>
-
-          <NewStrategyForm
+          <ShareStrategyForm
             strategy={strategy}
             onSuccess={onSuccess}
             onClose={onClose}

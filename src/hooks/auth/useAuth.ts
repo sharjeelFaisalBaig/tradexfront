@@ -33,7 +33,6 @@ export const useGetUser = ({ enabled = true } = {}) => {
 
 export const useUpdateProfileMutation = () => {
   const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: (payload: any) => updateProfile(payload),
     onSuccess: (profileNewData) => {
@@ -51,8 +50,7 @@ export const useUploadAvatarMutation = () => {
     mutationFn: (payload: { avatar: File }) => uploadAvatar(payload),
     onSuccess: (profileNewData) => {
       queryClient.setQueryData([QUERY_KEYS.USER], (oldData: any) => {
-        console.log({ updateProfile_uploadAvatar: oldData, profileNewData });
-        return { ...oldData, data: { ...profileNewData?.data } };
+        return { ...oldData, data: { ...profileNewData?.data?.profile } };
       });
     },
   });
@@ -61,12 +59,10 @@ export const useUploadAvatarMutation = () => {
 // DELETE: Delete user profile avatar/ profile picture
 export const useDeleteAvatarMutation = () => {
   const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: () => deleteAvatar(),
     onSuccess: (profileNewData) => {
       queryClient.setQueryData([QUERY_KEYS.USER], (oldData: any) => {
-        console.log({ updateProfile_deleteAvatar: oldData, profileNewData });
         return { ...oldData, data: { ...profileNewData?.data } };
       });
     },

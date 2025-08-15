@@ -1,9 +1,10 @@
 import InputField from "@/components/common/InputField";
 import DeleteAccountModal from "@/components/modal/DeleteAccountModal";
-import { Button } from "@/components/ui/button";
 import React, { MouseEventHandler } from "react";
+import { Button } from "@/components/ui/button";
 
 interface Props {
+  isDeletingAvatar: boolean;
   profileData?: any;
   firstName: string;
   setFirstName: (val: string) => void;
@@ -19,6 +20,7 @@ interface Props {
 
 const PersonalInfoTab = (props: Props) => {
   const {
+    isDeletingAvatar,
     profileData,
     email,
     setEmail,
@@ -91,8 +93,15 @@ const PersonalInfoTab = (props: Props) => {
         </h2>
 
         <div className="flex gap-3">
-          <Button variant="destructive" onClick={handleAvatarDelete}>
-            Delete Avatar
+          <Button
+            variant="destructive"
+            disabled={isDeletingAvatar}
+            onClick={handleAvatarDelete}
+          >
+            {isDeletingAvatar
+              ? // <Loader size="xs" direction="row" />
+                "Deleting Avatar..."
+              : "Delete Avatar"}
           </Button>
           <Button
             variant="destructive"

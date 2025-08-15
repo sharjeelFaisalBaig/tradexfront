@@ -120,7 +120,7 @@ export default function ForgotPasswordPage() {
                 className="w-full py-3 h-12 rounded-full bg-cyan-600 text-white text-lg font-semibold transition-colors hover:bg-cyan-700 disabled:bg-gray-400"
               >
                 {isLoading ? (
-                  <Loader direction="row" text="Sending..." />
+                  <Loader direction="row" text="Sending..." size="md" />
                 ) : (
                   "Send OTP"
                 )}

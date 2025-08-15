@@ -64,7 +64,7 @@ const EmptyStrategiesPlaceholder = () => {
           onClick={handleCreateStrategy}
         >
           {isCreatingStrategy ? (
-            <Loader direction="row" text="Creating strategy..." />
+            <Loader direction="row" text="Creating strategy..." size="sm" />
           ) : (
             "Create Strategy"
           )}

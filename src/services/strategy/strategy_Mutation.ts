@@ -17,6 +17,17 @@ export const deleteStrategy = async (id: string) => {
   return res.data;
 };
 
+export const shareStrategy = async (payload: {
+  strategyId: string;
+  userIds: string[];
+}) => {
+  const res = await axiosInstance.post(
+    endpoints.STRATEGY.SHARE(payload?.strategyId),
+    payload
+  );
+  return res.data;
+};
+
 export const copyStrategy = async (id: string) => {
   const res = await axiosInstance.post(endpoints.STRATEGY.COPY(id));
   return res.data;
