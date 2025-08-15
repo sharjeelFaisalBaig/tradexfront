@@ -16,13 +16,52 @@ import {
 import { showAPIErrorToast } from "@/lib/utils";
 import NewStrategyModal from "../modal/NewStrategyModal";
 import DeleteStrategyModal from "../modal/DeleteStrategyModal";
+import SharedWithMeCard from "../shared/SharedWithMeCard";
+
+const sharedStrategies = [
+  {
+    title: "NuAglo Research",
+    sharedAgo: "3 days ago",
+    category: "#invest",
+    image:
+      "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?w=840&h=420&auto=format&fit=crop",
+  },
+  {
+    title: "NuAglo Research",
+    sharedAgo: "3 days ago",
+    category: "#invest",
+    image:
+      "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?w=840&h=420&auto=format&fit=crop",
+  },
+  {
+    title: "NuAglo Research",
+    sharedAgo: "3 days ago",
+    category: "#invest",
+    image:
+      "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?w=840&h=420&auto=format&fit=crop",
+  },
+  {
+    title: "NuAglo Research",
+    sharedAgo: "3 days ago",
+    category: "#invest",
+    image:
+      "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?w=840&h=420&auto=format&fit=crop",
+  },
+  {
+    title: "NuAglo Research",
+    sharedAgo: "3 days ago",
+    category: "#invest",
+    image:
+      "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?w=840&h=420&auto=format&fit=crop",
+  },
+];
 
 interface Props {
   isLoading?: boolean;
   profileData?: any;
 }
 
-const RecentInteractedStrategiesCard = (props: Props) => {
+const SharedwithMeStrategiesCard = (props: Props) => {
   const { isLoading: isProfileLoading, profileData } = props;
 
   const router = useRouter();
@@ -140,7 +179,7 @@ const RecentInteractedStrategiesCard = (props: Props) => {
       >
         <CardContent className="p-0">
           <h3 className="font-semibold text-lg text-gray-900 dark:text-white mb-3">
-            Recent Interacted Strategies
+            Shared with Me Strategies
           </h3>
 
           {isLoadingStrategies && (
@@ -158,7 +197,11 @@ const RecentInteractedStrategiesCard = (props: Props) => {
           {!isLoadingStrategies && strategies.length > 0 && (
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-4">
-                {strategies.map((strategy) => {
+                {sharedStrategies.slice(0, 3).map((strategy, index) => (
+                  <SharedWithMeCard index={index} strategy={strategy} />
+                ))}
+
+                {/* {strategies.map((strategy) => {
                   const isFavourite = favStrategies?.some(
                     (fav) => fav?.id === strategy?.id
                   );
@@ -182,9 +225,9 @@ const RecentInteractedStrategiesCard = (props: Props) => {
                       }}
                     />
                   );
-                })}
+                })} */}
               </div>
-              <Link href="/strategies">
+              <Link href="/shared">
                 <Button size="sm">View all</Button>
               </Link>
             </>
@@ -195,4 +238,4 @@ const RecentInteractedStrategiesCard = (props: Props) => {
   );
 };
 
-export default RecentInteractedStrategiesCard;
+export default SharedwithMeStrategiesCard;

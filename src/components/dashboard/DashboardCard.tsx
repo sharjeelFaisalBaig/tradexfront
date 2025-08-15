@@ -17,7 +17,7 @@ const DashboardCard = ({
 }: DashboardCardProps) => {
   return (
     <Card
-      className={`p-5 group hover:shadow-lg transition-shadow cursor-pointer overflow-hidden rounded-lg ${className}`}
+      className={`p-5 group hover:shadow-lg transition-shadow overflow-hidden rounded-lg ${className}`}
     >
       <CardContent className="p-0">
         <h3 className="font-semibold text-2xl text-gray-900 dark:text-white">

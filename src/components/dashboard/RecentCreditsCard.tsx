@@ -25,7 +25,7 @@ const RecentCreditsCard = (props: Props) => {
 
   return (
     <Card
-      className={`p-5 group hover:shadow-lg transition-shadow cursor-pointer overflow-hidden rounded-lg`}
+      className={`p-5 group hover:shadow-lg transition-shadow overflow-hidden rounded-lg`}
     >
       <CardContent className="p-0">
         <h3 className="font-semibold text-lg text-gray-900 dark:text-white mb-3">

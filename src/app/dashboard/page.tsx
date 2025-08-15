@@ -6,6 +6,7 @@ import RecentCreditsCard from "@/components/dashboard/RecentCreditsCard";
 import BillingHistoryCard from "@/components/dashboard/BillingHistoryCard";
 import DashboardCardsContainer from "@/components/dashboard/DashboardCardsContainer";
 import RecentInteractedStrategiesCard from "@/components/dashboard/RecentInteractedStrategiesCard";
+import SharedwithMeStrategiesCard from "@/components/dashboard/SharedwithMeStrategiesCard";
 
 const Dashboard = () => {
   const { data, isLoading } = useGetUser();
@@ -32,6 +33,11 @@ const Dashboard = () => {
           </section>
 
           <RecentInteractedStrategiesCard
+            isLoading={isLoading}
+            profileData={data?.data}
+          />
+
+          <SharedwithMeStrategiesCard
             isLoading={isLoading}
             profileData={data?.data}
           />

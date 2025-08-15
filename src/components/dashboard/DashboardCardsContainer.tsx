@@ -55,7 +55,7 @@ const DashboardCurrentPlanCard = ({
 
   return (
     <Card
-      className={`p-5 group hover:shadow-lg transition-shadow cursor-pointer overflow-hidden rounded-lg ${className}`}
+      className={`p-5 group hover:shadow-lg transition-shadow overflow-hidden rounded-lg ${className}`}
     >
       <CardContent className="p-0 relative">
         {!isLoading && (
