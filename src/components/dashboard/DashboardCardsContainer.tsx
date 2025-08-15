@@ -1,16 +1,21 @@
 import React, { useMemo } from "react";
-import DashboardCard from "@/components/common/DashboardCard";
 import { Card, CardContent } from "@/components/ui/card";
-import { useGetUser } from "@/hooks/auth/useAuth";
+import DashboardCard from "./DashboardCard";
 import Loader from "../common/Loader";
 
-const DashboardCardsContainer = () => {
-  const { data, isLoading } = useGetUser();
-  const credits = useMemo(() => data?.data?.credits, [data]);
-  const subscription = useMemo(() => data?.data?.subscription, [data]);
+interface DashboardCardsContainerProps {
+  isLoading?: boolean;
+  profileData?: any;
+}
+
+const DashboardCardsContainer = (props: DashboardCardsContainerProps) => {
+  const { isLoading, profileData } = props;
+
+  const credits = useMemo(() => profileData?.credits, [profileData]);
+  const subscription = useMemo(() => profileData?.subscription, [profileData]);
 
   return (
-    <section className="grid grid-cols-4 gap-6 mb-6">
+    <section className="grid grid-cols-4 gap-6">
       {/* Other Cards */}
       <DashboardCard
         isLoading={isLoading}

@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
-import DashboardCard from "@/components/common/DashboardCard";
 import { Card, CardContent } from "@/components/ui/card";
 import { useGetUser } from "@/hooks/auth/useAuth";
+import DashboardCard from "./DashboardCard";
 
 const DashboardCardsContainer = () => {
   const { data, isLoading } = useGetUser();

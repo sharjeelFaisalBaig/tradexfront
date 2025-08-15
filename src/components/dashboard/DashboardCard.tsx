@@ -1,6 +1,6 @@
 "use client";
 import { Card, CardContent } from "@/components/ui/card";
-import Loader from "./Loader";
+import Loader from "../common/Loader";
 
 interface DashboardCardProps {
   title: string;

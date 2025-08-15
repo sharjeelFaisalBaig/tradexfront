@@ -28,7 +28,7 @@ const BillingDetailsTab = (props: Props) => {
     isFetching: isBillingFetching,
   } = useGetBillingHistory({
     page: filters.page,
-    per_page: filters.perPage,
+    // per_page: filters.perPage,
   });
 
   // Extract correct data from API structure

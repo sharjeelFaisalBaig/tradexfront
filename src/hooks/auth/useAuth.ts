@@ -224,9 +224,9 @@ export const useCancelSubscriptionMutation = () => {
 // get billing history
 export const useGetBillingHistory = (params: any) => {
   return useQuery({
-    queryKey: [QUERY_KEYS.BILLING_HISTORY, params],
+    queryKey: [QUERY_KEYS.BILLING_HISTORY],
     queryFn: () => getBillingHistory(params),
-    enabled: !!params?.page, // Only fetch if page is defined
+    // enabled: !!params?.page, // Only fetch if page is defined
     // keepPreviousData: true, // Helps with pagination
   });
 };

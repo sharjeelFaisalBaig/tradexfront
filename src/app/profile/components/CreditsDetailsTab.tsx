@@ -8,6 +8,7 @@ import {
   TableBody,
   TableCell,
 } from "@/components/ui/table";
+import { format } from "date-fns";
 
 interface Props {
   profileData?: any;
@@ -83,7 +84,8 @@ const CreditsDetailsTab = (props: Props) => {
                         {activity.amount_changed}
                       </TableCell>
                       <TableCell className="border">
-                        {new Date(activity.created_at).toLocaleString()}
+                        {/* {new Date(activity.created_at).toLocaleString()} */}
+                        {format(new Date(activity.created_at), "dd MMM yyyy")}
                       </TableCell>
                     </TableRow>
                   ))
