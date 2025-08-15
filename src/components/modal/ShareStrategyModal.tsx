@@ -14,7 +14,7 @@ import { useShareStrategy } from "@/hooks/strategy/useStrategyMutations";
 // Replace with actual API call
 const mockUsers: IUser[] = [
   {
-    id: 9,
+    id: 1,
     name: "Sharjeel Baig 1",
     email: "sharjeel1+1@yopmail.com",
     email_verified_at: "2025-05-28T00:04:06.000000Z",
@@ -42,7 +42,7 @@ const mockUsers: IUser[] = [
     receive_success_alerts: true,
   },
   {
-    id: 9,
+    id: 2,
     name: "Sharjeel Baig 2",
     email: "sharjeel1+2@yopmail.com",
     email_verified_at: "2025-05-28T00:04:06.000000Z",
@@ -70,7 +70,7 @@ const mockUsers: IUser[] = [
     receive_success_alerts: true,
   },
   {
-    id: 9,
+    id: 3,
     name: "Sharjeel Baig 3",
     email: "sharjeel1+3@yopmail.com",
     email_verified_at: "2025-05-28T00:04:06.000000Z",
@@ -111,13 +111,12 @@ function ShareStrategyForm({
   strategy,
 }: ShareStrategyFormProps) {
   const successNote = useSuccessNotifier();
-  const shareMutation = useShareStrategy(); // ye mutation proper nhi hai copySrategy mutation ki copy hai srf name change hai
+  const shareMutation = useShareStrategy();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedUsers, setSelectedUsers] = useState<IUser[]>([]);
   const [suggestions, setSuggestions] = useState<IUser[]>([]);
   const [isSearching, setIsSearching] = useState(false);
 
-  // Mock function to simulate user search API call
   const searchUsers = async (query: string) => {
     setIsSearching(true);
     try {
@@ -145,12 +144,17 @@ function ShareStrategyForm({
     }
   };
 
+  const isUserSelected = (user: IUser) => {
+    return selectedUsers.some((u) => u.id === user.id);
+  };
+
   const handleSelectUser = (user: IUser) => {
-    if (!selectedUsers.some((u) => u.id === user.id)) {
+    if (isUserSelected(user)) {
+      setSelectedUsers(selectedUsers.filter((u) => u.id !== user.id));
+    } else {
       setSelectedUsers([...selectedUsers, user]);
-      setSearchQuery("");
-      setSuggestions([]);
     }
+    setSearchQuery("");
   };
 
   const handleRemoveUser = (userId: string | number) => {
@@ -195,12 +199,14 @@ function ShareStrategyForm({
         {isSearching && (
           <p className="text-sm text-muted-foreground mt-1">Searching...</p>
         )}
-        {suggestions.length > 0 && (
+        {suggestions?.length > 0 && (
           <div className="mt-2 border rounded-lg max-h-40 overflow-y-auto">
-            {suggestions.map((user) => (
+            {suggestions?.map((user) => (
               <div
                 key={user.id}
-                className="p-2 hover:bg-muted/50 cursor-pointer flex items-center gap-2"
+                className={`p-2 hover:bg-muted/50 cursor-pointer flex items-center gap-2 ${
+                  isUserSelected(user) ? "bg-blue-100 dark:bg-blue-900" : ""
+                }`}
                 onClick={() => handleSelectUser(user)}
               >
                 <Avatar className="w-8 h-8">
