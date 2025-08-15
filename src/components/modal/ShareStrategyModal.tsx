@@ -220,7 +220,7 @@ function NewStrategyForm({
   );
 }
 
-export default function NewStrategyModal({
+export default function ShareStrategyModal({
   isOpen,
   onClose,
   strategy,

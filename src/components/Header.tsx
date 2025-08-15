@@ -50,7 +50,7 @@ const Header = ({}: HeaderInterface) => {
           priority
         />
 
-        <div className="flex items-center space-x-2 mr-4">
+        {/* <div className="flex items-center space-x-2 mr-4">
           <Button
             variant="outline"
             size="sm"
@@ -67,7 +67,7 @@ const Header = ({}: HeaderInterface) => {
             <UnlockIcon />
             Unlock $100
           </Button>
-        </div>
+        </div> */}
       </div>
 
       {/* Right Section */}

@@ -27,6 +27,7 @@ import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 import { getApiErrorMessage, showAPIErrorToast } from "@/lib/utils";
 import EmptyStrategiesPlaceholder from "@/components/common/EmptyStrategiesPlaceholder";
 import _ from "lodash";
+import ShareStrategyModal from "@/components/modal/ShareStrategyModal";
 
 const Strategies = () => {
   const router = useRouter();
@@ -156,6 +157,13 @@ const Strategies = () => {
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-gray-50 dark:bg-gray-900">
+      {isForEdit && (
+        <ShareStrategyModal
+          isOpen={isForEdit}
+          strategy={selectedStrategy}
+          onClose={() => setIsForEdit(false)}
+        />
+      )}
       {isForEdit && (
         <NewStrategyModal
           isOpen={isForEdit}

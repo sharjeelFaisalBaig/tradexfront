@@ -114,7 +114,7 @@ const StrategyCard = (props: StrategyCardProps) => {
         <div className="px-5 pb-4">
           <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
             <span>
-              Last edited {new Date(strategy.updated_at).toLocaleDateString()}
+              Modified at {new Date(strategy.updated_at).toLocaleDateString()}
             </span>
             <div className="flex items-center space-x-2">
               <button
