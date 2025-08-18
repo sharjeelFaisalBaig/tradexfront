@@ -769,7 +769,7 @@ const Strategy = (props: StrategyProps) => {
                 onConnect={onConnect}
                 zoomOnScroll={true}
                 zoomOnPinch={true}
-                zoomOnDoubleClick={false}
+                zoomOnDoubleClick={true}
                 panOnScroll={true}
                 panOnScrollSpeed={0.5}
                 defaultEdgeOptions={defaultEdgeOptions}
