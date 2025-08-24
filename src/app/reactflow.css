@@ -243,3 +243,12 @@
 .react-flow__node .react-flow__handle {
   pointer-events: all;
 }
+
+.ControlsDarkCSS button {
+  background: #111827;
+  border-color: #1f2937;
+}
+
+.ControlsDarkCSS button:hover {
+  background: #1f2937;
+}

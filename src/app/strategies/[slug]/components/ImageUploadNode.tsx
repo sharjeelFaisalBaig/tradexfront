@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { X, Plus, Upload, Lightbulb, Loader2, RefreshCw } from "lucide-react";
-import { cn, preventNodeDeletionKeys } from "@/lib/utils";
+import { cn, getFullUrl, preventNodeDeletionKeys } from "@/lib/utils";
 import NodeWrapper from "./common/NodeWrapper";
 import {
   useAnalyzeImagePeer,
@@ -499,23 +499,19 @@ export default function ImageUploadNode({
     [handleFileSelect]
   );
 
-  // Effects
+  const isAutoUploadProcessedRef = useRef(false);
+
   useEffect(() => {
     // Handle auto-upload from data
-    if (data?.dataToAutoUpload?.data) {
+    if (data?.dataToAutoUpload?.data && !isAutoUploadProcessedRef.current) {
       handleFileSelect(data.dataToAutoUpload.data);
+      isAutoUploadProcessedRef.current = true; // Mark auto-upload as processed using a ref
     }
 
     // Handle existing image data
     if (data?.image) {
-      let apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
-      if (apiUrl.endsWith("/api")) apiUrl = apiUrl.replace(/\/api$/, "");
-
-      const imageUrl = data.image.startsWith("http")
-        ? data.image
-        : apiUrl + data.image;
+      const imageUrl = getFullUrl(data.image);
       setUploadedImage(imageUrl);
-
       const parts = data.image.split("/");
       setFileName(parts[parts.length - 1] || data.title || "image");
     }

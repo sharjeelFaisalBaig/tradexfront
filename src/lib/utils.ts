@@ -3,6 +3,7 @@
 import { toast } from "@/hooks/use-toast";
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { DOMAIN_ROOT } from "./endpoints";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -47,14 +48,22 @@ export const preventNodeDeletionKeys = (e: KeyboardEvent | any) => {
 
 export const getFullUrl = (endpoint: string = ""): string => {
   if (!endpoint) return "";
-
-  let baseUrl = process.env.NEXT_PUBLIC_API_URL || "";
-  if (baseUrl.endsWith("/api")) {
-    baseUrl = baseUrl.replace(/\/api$/, "");
-  }
-
   // Ensure there's exactly one slash between base URL and endpoint
-  return `${baseUrl.replace(/\/+$/, "")}/${endpoint.replace(/^\/+/, "")}`;
+  return `${DOMAIN_ROOT.replace(/\/+$/, "")}/${endpoint.replace(/^\/+/, "")}`;
+};
+
+export const getApiErrorMessage = (error?: unknown | any) => {
+  if (!error) return;
+  // if (!error) return "An unknown error occurred";
+  // Axios-style error check
+  if (error) {
+    const responseData = error?.response?.data;
+    const messageFromErrors =
+      responseData?.errors &&
+      Object.values(responseData.errors).flat().join(", ");
+    const messageFromMessage = responseData?.message;
+    return messageFromErrors || messageFromMessage;
+  }
 };
 
 export const showAPIErrorToast = (
@@ -87,13 +96,7 @@ export const showAPIErrorToast = (
 export const getFileSize = async (url?: string) => {
   if (!url) return null;
 
-  let baseUrl = process.env.NEXT_PUBLIC_API_URL || "";
-
-  if (baseUrl.endsWith("/api")) {
-    baseUrl = baseUrl.replace(/\/api$/, "");
-  }
-
-  const fileUrl = `${baseUrl}${url}`;
+  const fileUrl = getFullUrl(url);
 
   try {
     const response = await fetch(fileUrl, {

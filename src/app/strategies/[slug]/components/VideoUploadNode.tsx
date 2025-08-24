@@ -32,7 +32,7 @@ import {
   Maximize,
   RefreshCw,
 } from "lucide-react";
-import { cn, preventNodeDeletionKeys } from "@/lib/utils";
+import { cn, getFullUrl, preventNodeDeletionKeys } from "@/lib/utils";
 import NodeWrapper from "./common/NodeWrapper";
 import { useParams } from "next/navigation";
 import {
@@ -134,6 +134,7 @@ export default function VideoUploadNode({
     reset: resetAnalyzeVideoContentMutation,
   } = useAnalyzeVideoPeer();
 
+  const isAutoUploadProcessedRef = useRef(false);
   const nodeControlRef = useRef(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -183,17 +184,14 @@ export default function VideoUploadNode({
   // Sync state with incoming data props (like ImageUploadNode)
   useEffect(() => {
     // handle Droped & Pasted video
-    if (data?.dataToAutoUpload?.data) {
+    if (data?.dataToAutoUpload?.data && !isAutoUploadProcessedRef.current) {
       handleFileSelect(data?.dataToAutoUpload?.data);
+      isAutoUploadProcessedRef.current = true;
     }
 
     // Handle video from data.video (relative or absolute path)
     if (data?.video) {
-      let apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
-      if (apiUrl.endsWith("/api")) apiUrl = apiUrl.replace(/\/api$/, "");
-      const videoUrl = data.video.startsWith("http")
-        ? data.video
-        : apiUrl + data.video;
+      const videoUrl = getFullUrl(data.video);
       setUploadedVideo(videoUrl);
       // Extract file name from path or use data.title
       const parts = data.video.split("/");

@@ -86,7 +86,7 @@ function NewStrategyForm({
     const onMutationSuccess = (data: any) => {
       successNote({
         title: strategy ? "Strategy Updated" : "Strategy Created",
-        description: `Strategy "${data?.data?.name}" ${
+        description: `Strategy ${
           strategy ? "updated" : "created"
         } successfully.`,
       });
@@ -242,7 +242,7 @@ export default function NewStrategyModal({
       <div className="fixed inset-0 bg-black/50" aria-hidden="true" />
 
       <div className="fixed inset-0 flex items-center justify-center px-4">
-        <Dialog.Panel className="relative bg-white dark:bg-background w-full max-w-md mx-auto rounded-lg shadow-lg p-6">
+        <Dialog.Panel className="relative dark:border dark:border-gray-800 bg-white dark:bg-background w-full max-w-md mx-auto rounded-lg shadow-lg p-6">
           <button
             onClick={onClose}
             className="absolute top-4 right-4 text-muted-foreground hover:text-foreground"

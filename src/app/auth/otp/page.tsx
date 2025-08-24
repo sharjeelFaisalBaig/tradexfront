@@ -295,7 +295,7 @@ const OtpVerificationPage = () => {
                 className="w-full mt-8 py-3 h-12 rounded-full bg-cyan-600 text-white text-lg font-semibold transition-colors hover:bg-cyan-700 disabled:bg-gray-400"
               >
                 {verifyOtpMutation.isPending || verify2faMutation.isPending ? (
-                  <Loader direction="row" text="Verifying..." />
+                  <Loader direction="row" text="Verifying..." size="md" />
                 ) : (
                   "Verify"
                 )}

@@ -32,12 +32,12 @@ import {
   useUpdatePeerPosition,
   useConnectNodes,
 } from "@/hooks/strategy/useStrategyMutations";
-import { getPeerTypeFromNodeType } from "@/lib/utils";
+import { cn, getPeerTypeFromNodeType } from "@/lib/utils";
 import StrategyHeader from "@/components/StrategyHeader";
 import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 import ChatBoxNode from "./ChatBoxNode";
 import { useNodeOperations } from "../hooks/useNodeOperations";
-import { UndoRedoControls } from "./common/UndoRedoControls";
+import { useTheme } from "@/context/ThemeProvider";
 
 const nodeDefaults = {
   sourcePosition: Position.Right,
@@ -87,11 +87,13 @@ type PastedContentType =
 const Strategy = (props: StrategyProps) => {
   const { slug: strategyId } = props;
   const store = useStoreApi();
+  const { theme } = useTheme();
   const successNote = useSuccessNotifier();
   const { addToolNode } = useNodeOperations();
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const { fitView, getInternalNode, screenToFlowPosition } = useReactFlow();
+
   const [showNewStrategyModal, setShowNewStrategyModal] =
     useState<boolean>(false);
 
@@ -747,7 +749,7 @@ const Strategy = (props: StrategyProps) => {
       />
       <div className="flex flex-1 overflow-hidden">
         <StrategySidebar strategyId={strategyId} />
-        <main className="relative flex-1 overflow-y-auto p-6">
+        <main className="relative flex-1 overflow-y-auto">
           {isLoading ? (
             <div className="h-full flex items-center justify-center bg-[#f6f8fb] dark:bg-gray-900">
               <Loader text="Loading strategy..." />
@@ -755,6 +757,7 @@ const Strategy = (props: StrategyProps) => {
           ) : (
             <>
               <ReactFlow
+                // colorMode={theme}
                 nodes={nodes}
                 edges={edges}
                 nodeTypes={nodeTypes}
@@ -766,12 +769,12 @@ const Strategy = (props: StrategyProps) => {
                 onConnect={onConnect}
                 zoomOnScroll={true}
                 zoomOnPinch={true}
-                zoomOnDoubleClick={false}
+                zoomOnDoubleClick={true}
                 panOnScroll={true}
                 panOnScrollSpeed={0.5}
                 defaultEdgeOptions={defaultEdgeOptions}
                 elementsSelectable={true}
-                // defaultViewport={{ x: 500, y: 500, zoom: 0.7578582832551992 }}
+                defaultViewport={{ x: 500, y: 500, zoom: 0.7578582832551992 }}
                 fitView
                 fitViewOptions={{
                   padding: 0.5,
@@ -784,7 +787,14 @@ const Strategy = (props: StrategyProps) => {
                 onDrop={onDrop}
               >
                 <Background />
-                <Controls>{/* <UndoRedoControls /> */}</Controls>
+                <Controls
+                  className={cn(
+                    "dark:shadow-2xl dark:border dark:border-gray-800",
+                    theme === "dark" ? "ControlsDarkCSS" : ""
+                  )}
+                >
+                  {/* <UndoRedoControls /> */}
+                </Controls>
               </ReactFlow>
             </>
           )}

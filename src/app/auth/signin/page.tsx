@@ -279,7 +279,7 @@ export default function LoginPage() {
                 className="w-full py-3 h-12 rounded-full bg-cyan-600 text-white text-lg font-semibold transition-colors hover:bg-cyan-700 disabled:bg-gray-400"
               >
                 {formik.isSubmitting ? (
-                  <Loader direction="row" text="Signing In..." />
+                  <Loader direction="row" text="Signing In..." size="md" />
                 ) : (
                   "Sign In"
                 )}

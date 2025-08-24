@@ -27,6 +27,7 @@ export const endpoints = {
     UPDATE_PROFILE: `${API_BASE_PATH}/auth/profile`,
     UPLOAD_AVATAR: `${API_BASE_PATH}/auth/avatar`,
     DELETE_AVATAR: `${API_BASE_PATH}/auth/avatar`,
+    DELETE_ACCOUNT: `${API_BASE_PATH}/auth/delete-account`,
   },
   PLANS: {
     GET_ALL_PLANS: `${API_BASE_PATH}/membership/plans`,
@@ -64,6 +65,7 @@ export const endpoints = {
     LIST: `${API_BASE_PATH}/strategies`,
     GET: (id: string) => `${API_BASE_PATH}/strategies/${id}`,
     CREATE: `${API_BASE_PATH}/strategies`,
+    SHARE: (id: string) => `${API_BASE_PATH}/strategies/${id}/share`,
     COPY: (id: string) => `${API_BASE_PATH}/strategies/${id}/copy`,
     TOGGLE: (id: string) => `${API_BASE_PATH}/strategies/${id}/toggle`,
     FAVOURITE: (id: string) => `${API_BASE_PATH}/strategies/${id}/favourite`,

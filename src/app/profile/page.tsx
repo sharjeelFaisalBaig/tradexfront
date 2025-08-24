@@ -22,6 +22,8 @@ import {
   useCancelSubscriptionMutation,
 } from "@/hooks/auth/useAuth";
 import { showAPIErrorToast } from "@/lib/utils";
+import { useRouter, useSearchParams } from "next/navigation";
+import ZeroCreditsWarn from "@/components/common/ZeroCreditsWarn";
 
 const tabs = [
   { name: "Personal Information", value: "personal" },
@@ -33,16 +35,32 @@ const tabs = [
 
 function ProfilePage() {
   const successNote = useSuccessNotifier();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const activeTab = searchParams.get("tab") || "personal";
 
-  // quries & mutations
-  const { mutate: uploadAvatar } = useUploadAvatarMutation();
-  const { mutate: deleteAvatar } = useDeleteAvatarMutation();
-  const { mutate: updateProfile } = useUpdateProfileMutation();
+  // mutations
   const { mutate: cancelSubscription } = useCancelSubscriptionMutation();
-  const { data: userData, isLoading, isError, error } = useGetUser();
+  const { mutate: deleteAvatar, isPending: isDeletingAvatar } =
+    useDeleteAvatarMutation();
+  const { mutate: uploadAvatar, isPending: isUploadingAvatar } =
+    useUploadAvatarMutation();
+  const { mutate: updateProfile, isPending: isUpdating } =
+    useUpdateProfileMutation();
 
-  const [profile, setProfile] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState("personal");
+  // queries
+  const {
+    refetch: refetchProfile,
+    data: userData,
+    isLoading,
+    isError,
+    error,
+  } = useGetUser();
+
+  const credits = useMemo(
+    () => userData?.data?.credits?.current_credits,
+    [userData]
+  );
 
   // modals states
   const [showPlanModal, setShowPlanModal] = useState(false);
@@ -67,7 +85,6 @@ function ProfilePage() {
 
   useEffect(() => {
     if (userData?.status && userData?.data?.user) {
-      setProfile(userData?.data);
       setFirstName(userData?.data.user.first_name || "");
       setLastName(userData?.data.user.last_name || "");
       setEmail(userData?.data.user.email || "");
@@ -178,18 +195,31 @@ function ProfilePage() {
   }
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-background text-foreground">
+    <div className="relative flex flex-col h-screen overflow-hidden bg-background text-foreground">
+      {isUpdating && (
+        <div className="z-50 absolute top-0 left-0 w-full h-full flex items-center justify-center bg-[#f6f8fb]/50 dark:bg-gray-900/50">
+          <Loader text="Updating Profile..." />
+        </div>
+      )}
+
       <ProfileHeader onSave={handleSaveChanges} />
 
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
         <ProfileSidebar
           profileData={userData?.data}
+          isUploadingAvatar={isUploadingAvatar}
           handleAvatarUpload={handleAvatarUpload}
         />
 
         {/* Main Content */}
         <main className="flex-1 px-12 py-10 overflow-y-auto bg-background">
+          {!isLoading && (!credits || credits < 1) && (
+            <div className="relative mb-12">
+              <ZeroCreditsWarn />
+            </div>
+          )}
+
           {isLoading && (
             <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center bg-[#f6f8fb] dark:bg-gray-900">
               <Loader text="Loading profile..." />
@@ -200,11 +230,11 @@ function ProfilePage() {
             {tabs.map((tab) => (
               <button
                 key={tab.value}
-                onClick={() => setActiveTab(tab.value)}
+                onClick={() => router.push(`/profile?tab=${tab.value}`)}
                 className={`px-4 py-2 font-medium text-sm transition-all border-b-2 ${
                   activeTab === tab.value
-                    ? "border-black text-black"
-                    : "border-transparent text-gray-500 hover:text-black"
+                    ? "border-black dark:border-white text-gray-800 dark:text-white"
+                    : "border-transparent text-gray-500 hover:text-gray-800 dark:hover:text-white"
                 }`}
               >
                 {tab.name}
@@ -215,6 +245,7 @@ function ProfilePage() {
           <div className="mt-8">
             {activeTab === "personal" && (
               <PersonalInfoTab
+                isDeletingAvatar={isDeletingAvatar}
                 profileData={userData?.data}
                 email={email}
                 setEmail={setEmail}
@@ -248,8 +279,7 @@ function ProfilePage() {
             {activeTab === "subscription" && (
               <SubscriptionDetailsTab
                 profileData={userData?.data}
-                setShowPlanModal={setShowPlanModal}
-                setShowBillingModal={setShowBillingModal}
+                refetchProfile={refetchProfile}
                 handleCancelSubscription={handleCancelSubscription}
               />
             )}
@@ -270,7 +300,7 @@ function ProfilePage() {
               onClose={(shouldRefresh) => {
                 setShowPlanModal(false);
                 if (shouldRefresh) {
-                  // fetchProfile();
+                  refetchProfile();
                 }
               }}
               subscription={subscription}
@@ -288,7 +318,7 @@ function ProfilePage() {
               onClose={(shouldRefresh) => {
                 setShowBuyCreditsModal(false);
                 if (shouldRefresh) {
-                  // fetchProfile();
+                  refetchProfile();
                 }
               }}
             />
@@ -299,7 +329,7 @@ function ProfilePage() {
               onClose={(shouldRefresh) => {
                 setShowUpdatePaymentMethodModal(false);
                 if (shouldRefresh) {
-                  // fetchProfile();
+                  refetchProfile();
                 }
               }}
             />
@@ -310,7 +340,7 @@ function ProfilePage() {
               onClose={(shouldRefresh) => {
                 setShowUpdatePaymentMethodModal(false);
                 if (shouldRefresh) {
-                  // fetchProfile();
+                  refetchProfile();
                 }
               }}
             />

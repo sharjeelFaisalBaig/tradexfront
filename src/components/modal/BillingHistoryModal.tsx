@@ -137,7 +137,7 @@ export default function BillingHistoryModal({
     <Dialog open={isOpen} onClose={onClose} className="fixed inset-0 z-50">
       <div className="fixed inset-0 bg-black/40" aria-hidden="true" />
       <div className="fixed inset-0 flex items-center justify-center p-4">
-        <Dialog.Panel className="bg-white dark:bg-background rounded-lg shadow-lg p-6 w-full max-w-6xl">
+        <Dialog.Panel className="dark:border dark:border-gray-800 bg-white dark:bg-background rounded-lg shadow-lg p-6 w-full max-w-6xl">
           <div className="flex justify-between items-center mb-4">
             <Dialog.Title className="text-xl font-semibold">
               Billing History
@@ -221,20 +221,27 @@ export default function BillingHistoryModal({
                   </tr>
                 </thead>
                 <tbody>
-                  {billingHistory.map((entry) => (
-                    <tr key={entry.id} className="border-t">
-                      {/* <td className="p-2 border">{entry.transaction_type}</td> */}
-                      <td className="p-2 border">STRIPE</td>
-                      <td className="p-2 border">{entry.transaction_id}</td>
-                      <td className="p-2 border">
-                        {new Date(entry.processed_at).toLocaleDateString()}
-                      </td>
-                      <td className="p-2 border">{entry.payment_purpose}</td>
-                      <td className="p-2 border">{entry.currency}</td>
-                      <td className="p-2 border">${entry.amount}</td>
-                      <td className="p-2 border">{entry.description}</td>
-                    </tr>
-                  ))}
+                  {billingHistory.map((entry) => {
+                    // console.log({entry});
+                    return (
+                      <tr key={entry.id} className="border-t">
+                        {/* <td className="p-2 border">{entry.transaction_type}</td> */}
+                        <td className="p-2 border">STRIPE</td>
+                        <td className="p-2 border">{entry.transaction_id}</td>
+                        <td className="p-2 border">
+                          {new Date(entry.processed_at).toLocaleDateString()}
+                        </td>
+                        <td className="p-2 border capitalize">
+                          {String(entry.payment_purpose).replaceAll("_", " ")}
+                        </td>
+                        <td className="p-2 border uppercase">
+                          {entry.currency}
+                        </td>
+                        <td className="p-2 border">${entry.amount}</td>
+                        <td className="p-2 border">{entry.description}</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

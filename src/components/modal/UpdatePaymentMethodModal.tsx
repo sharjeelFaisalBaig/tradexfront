@@ -121,7 +121,7 @@ function UpdatePaymentMethodForm({
           New Card Information
         </label>
         <div className="p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700">
-          <CardElement options={cardElementOptions} />
+          <CardElement options={{ ...cardElementOptions, disabled: loading }} />
         </div>
       </div>
       {error && (
@@ -159,7 +159,7 @@ export default function UpdatePaymentMethodModal({
     >
       <div className="fixed inset-0 bg-black/40" aria-hidden="true" />
       <div className="fixed inset-0 flex items-center justify-center p-4">
-        <Dialog.Panel className="relative bg-white dark:bg-background rounded-lg shadow-lg p-8 w-full max-w-md">
+        <Dialog.Panel className="relative dark:border dark:border-gray-800 bg-white dark:bg-background rounded-lg shadow-lg p-8 w-full max-w-md">
           <button
             onClick={() => onClose()}
             className="absolute top-4 right-4 text-muted-foreground hover:text-foreground"

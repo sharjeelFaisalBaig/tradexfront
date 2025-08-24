@@ -5,15 +5,14 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import clsx from "clsx";
 import { X } from "lucide-react";
-import { endpoints } from "@/lib/endpoints";
-import { useSession } from "next-auth/react";
-import { fetchWithAutoRefresh } from "@/lib/fetchWithAutoRefresh";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js";
 import CheckoutForm from "./CheckoutForm";
 import Loader from "../common/Loader";
 import { toast } from "@/hooks/use-toast";
 import useSuccessNotifier from "@/hooks/useSuccessNotifier";
+import { canChangePlan } from "@/services/auth/auth_API";
+import { useGetSubscriptionPlans } from "@/hooks/auth/useAuth";
 
 const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
@@ -28,39 +27,27 @@ export default function ChangePlanModal({
   onClose: (shouldRefresh?: boolean) => void;
   subscription: any;
 }) {
-  const { data: session } = useSession();
+  const successNote = useSuccessNotifier();
   const [billingType, setBillingType] = useState<"monthly" | "annual">(
     "monthly"
   );
   const [plans, setPlans] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [selectedPlan, setSelectedPlan] = useState<any | null>(null);
   const [showCheckout, setShowCheckout] = useState(false);
   const [successData, setSuccessData] = useState<any | null>(null);
   const [hasAnnualPlan, setHasAnnualPlan] = useState(false);
 
+  const { data: plansData, isLoading: isLoadingPlans } =
+    useGetSubscriptionPlans({ enabled: isOpen });
+
   useEffect(() => {
-    async function fetchPlans() {
-      setLoading(true);
-      try {
-        const data = await fetchWithAutoRefresh(
-          endpoints.PLANS.GET_ALL_PLANS,
-          session
-        );
-        if (data?.status && data?.data?.plans) {
-          setPlans(data.data.plans);
-          setHasAnnualPlan(data.data.plans.some((p: any) => p.is_annual));
-        } else {
-          setPlans([]);
-        }
-      } catch (e) {
-        setPlans([]);
-        console.error("Error fetching plans:", e);
-      }
-      setLoading(false);
+    if (plansData?.data?.plans) {
+      setPlans(plansData?.data?.plans);
+      setHasAnnualPlan(plansData?.data?.plans?.some((p: any) => p.is_annual));
+    } else {
+      setPlans([]);
     }
-    if (isOpen && session?.accessToken) fetchPlans();
-  }, [isOpen, session?.accessToken]);
+  }, [plansData]);
 
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
@@ -74,14 +61,9 @@ export default function ChangePlanModal({
     if (subscription) {
       // Check if user can change plan
       try {
-        const eligibilityResponse = await fetchWithAutoRefresh(
-          endpoints.PLANS.CAN_CHANGE_PLAN,
-          session,
-          {
-            method: "POST",
-            body: JSON.stringify({ new_membership_plan_id: plan.id }),
-          }
-        );
+        const eligibilityResponse = await canChangePlan({
+          new_membership_plan_id: plan.id,
+        });
 
         if (!eligibilityResponse?.status) {
           toast({
@@ -125,7 +107,7 @@ export default function ChangePlanModal({
     <Dialog open={isOpen} onClose={handleClose} className="fixed inset-0 z-50">
       <div className="fixed inset-0 bg-black/40" aria-hidden="true" />
       <div className="fixed inset-0 flex items-center justify-center p-4">
-        <Dialog.Panel className="relative bg-white dark:bg-background rounded-lg shadow-lg p-8 w-full max-w-5xl">
+        <Dialog.Panel className="relative dark:border dark:border-gray-800 bg-white dark:bg-background rounded-lg shadow-lg p-8 w-full max-w-5xl">
           <button
             onClick={handleClose}
             className="absolute top-4 right-4 text-muted-foreground hover:text-foreground"
@@ -137,9 +119,6 @@ export default function ChangePlanModal({
           {successData ? (
             <div className="text-center">
               <h2 className="text-2xl font-bold mb-4">Payment Successful!</h2>
-              <p>
-                <strong>Subscription ID:</strong> {successData.subscription_id}
-              </p>
               <p>
                 <strong>Plan:</strong> {successData.subscription_name}
               </p>
@@ -196,7 +175,7 @@ export default function ChangePlanModal({
                   )}
                 </div>
               </div>
-              {loading ? (
+              {isLoadingPlans ? (
                 <div className="flex justify-center py-12">
                   <Loader text="Loading plans..." />
                 </div>
@@ -219,7 +198,7 @@ export default function ChangePlanModal({
                     return (
                       <div
                         key={plan.id}
-                        className="border rounded-xl p-6 text-center transition-all shadow-sm bg-white dark:bg-muted/50"
+                        className="flex flex-col border rounded-xl p-6 text-center transition-all shadow-sm bg-white dark:bg-muted/50"
                       >
                         <h3 className="text-xl font-semibold mb-1">
                           {plan.name}
@@ -229,13 +208,15 @@ export default function ChangePlanModal({
                             ? `$${plan.annual_price}`
                             : `$${plan.monthly_price}`}
                           <span className="text-base font-medium">
-                            {" "}
-                            /{billingType}
+                            {` Per ${
+                              billingType === "annual" ? "Year" : "Month"
+                            }`}
                           </span>
                         </p>
-                        <ul className="text-sm mb-6 space-y-2 text-left mt-4 text-muted-foreground">
-                          <li>Credits: {plan.monthly_credits}</li>
-                          <li>USD per credit: {plan.usd_per_credit}</li>
+                        <span className="text-base font-medium">
+                          Credits: {plan.monthly_credits}
+                        </span>
+                        <ul className="text-sm mb-6 space-y-2 text-center mt-4 text-muted-foreground">
                           {plan.description && (
                             <li
                               dangerouslySetInnerHTML={{
@@ -245,7 +226,7 @@ export default function ChangePlanModal({
                           )}
                         </ul>
                         <Button
-                          className="w-full"
+                          className="w-full mt-auto"
                           onClick={() => handleSubscribeClick(plan)}
                           disabled={subscription?.name === plan.name}
                         >

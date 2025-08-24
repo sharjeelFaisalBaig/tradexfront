@@ -116,6 +116,7 @@ export default function RemoteNode({
   });
 
   // Website states
+  const isAutoUploadProcessedRef = useRef(false);
   const nodeControlRef = useRef(null);
   const { setEdges, updateNodeData } = useReactFlow();
   const [websiteUrl, setWebsiteUrl] = useState<string>("");
@@ -151,12 +152,20 @@ export default function RemoteNode({
     }
   }, [data]);
 
-  // Handle pasted URL data from props (if needed)
   useEffect(() => {
-    if (data?.dataToAutoUpload?.data) {
-      setWebsiteUrl(data?.dataToAutoUpload?.data);
+    if (data?.dataToAutoUpload?.data && !isAutoUploadProcessedRef.current) {
+      const urlData = data.dataToAutoUpload.data;
+
+      // Check if the data is a string and hasn't been processed yet
+      if (typeof urlData === "string") {
+        setWebsiteUrl(urlData);
+        setTimeout(() => handleUrlSubmit(urlData), 1000);
+
+        // Update the ref to the current data to prevent reprocessing
+        isAutoUploadProcessedRef.current = true;
+      }
     }
-  }, [data]);
+  }, [data?.dataToAutoUpload?.data]);
 
   // Comprehensive URL validation
   const validateUrl = (url: string): URLValidationResult => {
@@ -296,7 +305,9 @@ export default function RemoteNode({
         },
       },
       {
-        onSuccess: (result: any) => {
+        onSuccess: () => {
+          console.log("Analysis successful, restarting polling...");
+
           // start polling
           restartPolling();
           // You may need to adjust result structure based on API
@@ -544,6 +555,20 @@ export default function RemoteNode({
               <div className="space-y-0">
                 {/* Header */}
                 <div className="bg-gradient-to-r from-cyan-500 to-cyan-600 px-4 py-3 flex items-center justify-between text-white">
+                  {/* {isProcessingAny ? (
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span className="text-sm font-medium">
+                        AI is analyzing website...
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <Globe className="w-5 h-5" />
+                      <span className="text-sm font-medium">Website</span>
+                    </div>
+                  )} */}
+
                   <div className="flex items-center gap-2">
                     <Globe className="w-5 h-5" />
                     <span className="text-sm font-medium">Website</span>
@@ -574,7 +599,7 @@ export default function RemoteNode({
                       onChange={handleUrlChange}
                       onKeyDown={handleKeyPress}
                       className={cn(
-                        "pr-12 text-base border-gray-200 focus:border-cyan-500 focus:ring-cyan-500",
+                        "bg-transparent text-gray-800 pr-12 text-base border-gray-200 focus:border-cyan-500 focus:ring-cyan-500",
                         urlValidation.isValid &&
                           "border-green-400 focus:border-green-500 focus:ring-green-500",
                         websiteUrl &&

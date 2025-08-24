@@ -200,7 +200,7 @@ export default function ForgotPasswordOtpPage() {
                 className="w-full py-3 h-12 rounded-full bg-cyan-600 text-white text-lg font-semibold transition-colors hover:bg-cyan-700 disabled:bg-gray-400"
               >
                 {verifyOtpMutation?.isPending ? (
-                  <Loader direction="row" text="Verifying..." />
+                  <Loader direction="row" text="Verifying..." size="md" />
                 ) : (
                   "Verify"
                 )}

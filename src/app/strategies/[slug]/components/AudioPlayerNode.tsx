@@ -33,7 +33,7 @@ import {
   RotateCcw,
   RefreshCw,
 } from "lucide-react";
-import { cn, preventNodeDeletionKeys } from "@/lib/utils";
+import { cn, getFullUrl, preventNodeDeletionKeys } from "@/lib/utils";
 import NodeWrapper from "./common/NodeWrapper";
 import { useParams } from "next/navigation";
 import {
@@ -110,6 +110,7 @@ export default function AudioUploadNode({
   const { setEdges, updateNodeData } = useReactFlow();
 
   // Refs
+  const isAutoUploadProcessedRef = useRef(false);
   const nodeControlRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -127,6 +128,7 @@ export default function AudioUploadNode({
     isPending: isUploading,
     isError: isUploadError,
     error: uploadError,
+    isSuccess: isUploadSuccess,
   } = useUploadAudioContent();
   const {
     mutate: analyzeAudioContent,
@@ -450,7 +452,6 @@ export default function AudioUploadNode({
     setUploadedAudio(null);
     setFileName("");
     setAiResponse(null);
-    lastUploadedFileRef.current = null;
     setProcessingState({
       isProcessing: false,
       isComplete: false,
@@ -479,6 +480,10 @@ export default function AudioUploadNode({
       ai_title: "",
       is_ready_to_interact: false,
     });
+
+    if (lastUploadedFileRef.current) {
+      lastUploadedFileRef.current = null;
+    }
 
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -711,34 +716,21 @@ export default function AudioUploadNode({
 
   // Effects
   useEffect(() => {
-    // Handle auto-upload from data
-    if (data?.dataToAutoUpload?.data) {
+    if (data?.dataToAutoUpload?.data && !isAutoUploadProcessedRef.current) {
       handleFileSelect(data.dataToAutoUpload.data);
+      isAutoUploadProcessedRef.current = true;
     }
 
-    // Handle existing audio data
     if (data?.audio) {
-      let apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
-      if (apiUrl.endsWith("/api")) apiUrl = apiUrl.replace(/\/api$/, "");
-      const audioUrl = data.audio.startsWith("http")
-        ? data.audio
-        : apiUrl + data.audio;
+      const audioUrl = getFullUrl(data?.audio);
       setUploadedAudio(audioUrl);
       const parts = data.audio.split("/");
       setFileName(parts[parts.length - 1] || data.title || "audio");
     }
 
-    // Handle AI response data
     if (data?.ai_title || data?.ai_summary) {
       try {
-        // const parsedTitle = data?.ai_title ? JSON.parse(data?.ai_title) : {};
-        // const parsedSummary = data.ai_summary? JSON.parse(data.ai_summary): {};
-
         setAiResponse({
-          // title: parsedTitle.title || data?.ai_title || data.title || "",
-          // transcription: parsedSummary.important_quotes?.join(" ") || "",
-          // summary: parsedSummary.summary || "",
-          // tags: parsedSummary.key_topics || [],
           title: data?.ai_title || data?.title || "",
           transcription: "",
           summary: "",
@@ -749,17 +741,14 @@ export default function AudioUploadNode({
           language: data.language || "en",
         });
       } catch (e) {
-        console.log({ e });
         console.error("Error parsing AI metadata:", e);
       }
     }
 
-    // Handle user notes
     if (data?.ai_notes) {
       setUserNotes(data.ai_notes);
     }
 
-    // Handle completion state
     if (data?.audio && data?.is_ready_to_interact) {
       setProcessingState((prev) => ({
         ...prev,
@@ -915,6 +904,8 @@ export default function AudioUploadNode({
     [uploadedAudio, showRecordingInterface]
   );
 
+  console.log({ isUploading, isUploadSuccess });
+
   return (
     <NodeWrapper
       id={id}
@@ -975,7 +966,7 @@ export default function AudioUploadNode({
                         setShowRecordingInterface(true);
                       }}
                       variant="outline"
-                      className="border-purple-600 text-purple-600 hover:bg-purple-50 px-6 py-3 rounded-full text-base font-medium w-full"
+                      className="bg-transparent border-purple-600 !text-purple-600 hover:bg-purple-50 px-6 py-3 rounded-full text-base font-medium w-full"
                     >
                       <Mic className="w-5 h-5 mr-2" />
                       Record audio

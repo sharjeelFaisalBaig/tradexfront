@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useMemo } from "react";
-import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
+import { useRouter } from "next/navigation";
 import {
   Select,
   SelectContent,
@@ -14,7 +14,6 @@ import Header from "@/components/Header";
 import SearchIcon from "@/icons/search.svg";
 import StrategyCard from "@/components/StrategyCard";
 import { IStrategy } from "@/lib/types";
-import { toast } from "@/hooks/use-toast";
 import { useGetStrategies } from "@/hooks/strategy/useStrategyQueries";
 import Loader from "@/components/common/Loader";
 import { Pagination } from "@/components/common/Pagination";
@@ -25,7 +24,12 @@ import {
   useFavouriteStrategy,
 } from "@/hooks/strategy/useStrategyMutations";
 import useSuccessNotifier from "@/hooks/useSuccessNotifier";
-import { showAPIErrorToast } from "@/lib/utils";
+import { getApiErrorMessage, showAPIErrorToast } from "@/lib/utils";
+import EmptyStrategiesPlaceholder from "@/components/common/EmptyStrategiesPlaceholder";
+import ShareStrategyModal from "@/components/modal/ShareStrategyModal";
+import _ from "lodash";
+
+type ModalType = "edit" | "delete" | "share" | "copy" | "";
 
 const Strategies = () => {
   const router = useRouter();
@@ -35,9 +39,8 @@ const Strategies = () => {
   const { mutate: toggleFavouriteStrategy } = useFavouriteStrategy();
 
   const [searchTerm, setSearchTerm] = useState("");
+  const [modal, setModal] = useState<ModalType>("");
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [isForEdit, setIsForEdit] = useState<boolean>(false);
-  const [isForDelete, setIsForDelete] = useState<boolean>(false);
   const [favStrategies, setFavStrategies] = useState<IStrategy[]>([]);
   const [selectedStrategy, setSelectedStrategy] = useState<IStrategy | null>(
     null
@@ -52,12 +55,12 @@ const Strategies = () => {
 
   useEffect(() => {
     if (error) {
-      toast({
-        title: error?.message || "Error",
-        // @ts-ignore
-        description: error?.response?.data?.message || "Failed to send OTP.",
-        variant: "destructive",
-      });
+      // Show error toast with detailed message
+      showAPIErrorToast(error);
+      const errorMsg = String(getApiErrorMessage(error));
+      if (errorMsg.includes("no available credits")) {
+        router.push(`/profile?tab=credits`);
+      }
     }
   }, [error]);
 
@@ -155,18 +158,25 @@ const Strategies = () => {
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-gray-50 dark:bg-gray-900">
-      {isForEdit && (
-        <NewStrategyModal
-          isOpen={isForEdit}
+      {modal === "share" && (
+        <ShareStrategyModal
+          isOpen={modal === "share"}
           strategy={selectedStrategy}
-          onClose={() => setIsForEdit(false)}
+          onClose={() => setModal("")}
         />
       )}
-      {isForDelete && (
-        <DeleteStrategyModal
-          isOpen={isForDelete}
+      {modal === "edit" && (
+        <NewStrategyModal
+          isOpen={modal === "edit"}
           strategy={selectedStrategy}
-          onClose={() => setIsForDelete(false)}
+          onClose={() => setModal("")}
+        />
+      )}
+      {modal === "delete" && (
+        <DeleteStrategyModal
+          isOpen={modal === "delete"}
+          strategy={selectedStrategy}
+          onClose={() => setModal("")}
         />
       )}
       <Header />
@@ -229,18 +239,13 @@ const Strategies = () => {
               <Loader text="Loading strategies..." />
             </div>
           ) : isError ? (
-            <div className="flex flex-col items-center justify-center p-6">
+            <div className="flex items-center justify-center p-6">
               <span className="text-red-600 text-lg font-semibold">
-                Failed to load strategies.
-              </span>
-              <br />
-              <span className="text-red-600 text-lg font-semibold">
-                {
-                  // @ts-ignore
-                  error?.response?.data?.message
-                }
+                {getApiErrorMessage(error) ?? "Failed to load strategies."}
               </span>
             </div>
+          ) : _.isEmpty(strategies) ? (
+            <EmptyStrategiesPlaceholder />
           ) : (
             <>
               {/* Strategy Cards */}
@@ -254,15 +259,19 @@ const Strategies = () => {
                       key={strategy.id}
                       strategy={strategy}
                       isFavorite={isFavourite}
-                      onClick={() => router.push(`/strategies/${strategy.id}`)}
                       onCopy={handleCopyStrategy}
-                      toggleStar={() => handleToggleIsFavourite(strategy)}
+                      toggleStar={handleToggleIsFavourite}
+                      onClick={() => router.push(`/strategies/${strategy.id}`)}
                       onEdit={() => {
-                        setIsForEdit(true);
+                        setModal("edit");
                         setSelectedStrategy(strategy);
                       }}
                       onDelete={() => {
-                        setIsForDelete(true);
+                        setModal("delete");
+                        setSelectedStrategy(strategy);
+                      }}
+                      onShare={() => {
+                        setModal("share");
                         setSelectedStrategy(strategy);
                       }}
                     />

@@ -198,7 +198,7 @@ const ResetPasswordPage = () => {
                 className="my-6 w-full py-3 h-12 rounded-full bg-cyan-600 text-white text-lg font-semibold transition-colors hover:bg-cyan-700 disabled:bg-gray-400"
               >
                 {formik.isSubmitting || isPending ? (
-                  <Loader direction="row" text="Resetting..." />
+                  <Loader direction="row" text="Resetting..." size="md" />
                 ) : (
                   "Reset Password"
                 )}
