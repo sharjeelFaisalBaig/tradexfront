@@ -774,7 +774,7 @@ const Strategy = (props: StrategyProps) => {
                 panOnScrollSpeed={0.5}
                 defaultEdgeOptions={defaultEdgeOptions}
                 elementsSelectable={true}
-                // defaultViewport={{ x: 500, y: 500, zoom: 0.7578582832551992 }}
+                defaultViewport={{ x: 500, y: 500, zoom: 0.7578582832551992 }}
                 fitView
                 fitViewOptions={{
                   padding: 0.5,
