@@ -10,6 +10,8 @@ import {
   useStoreApi,
   useReactFlow,
   type Connection,
+  type Node,
+  type Edge,
   Controls,
 } from "@xyflow/react";
 import { Position } from "@xyflow/react";
@@ -44,8 +46,8 @@ const nodeDefaults = {
   targetPosition: Position.Left,
 };
 
-const initialNodes: any = [];
-const initialEdges: any = [];
+const initialNodes: Node[] = [];
+const initialEdges: Edge[] = [];
 
 const nodeTypes = {
   chatbox: ChatBoxNode,
@@ -64,6 +66,28 @@ const edgeTypes = {
 };
 
 const MIN_DISTANCE = 150;
+
+// Optimized regex patterns (created once, reused)
+const URL_REGEX = /https?:\/\/[^\s]+/i;
+const IMAGE_FILE_EXTENSION_REGEX = /\.(jpg|jpeg|png|gif|webp|svg)$/i;
+const SOCIAL_MEDIA_PLATFORMS = [
+  {
+    name: "youtube",
+    regex: /(?:https?:\/\/)?(?:www\.|m\.)?(?:youtube\.com|youtu\.be)\/(?:watch\?v=|embed\/|v\/)?([\w-]{11})(?:\S+)?/i,
+  },
+  {
+    name: "tiktok", 
+    regex: /(?:https?:\/\/)?(?:www\.)?(?:tiktok\.com)\/@([\w.-]+)\/video\/(\d+)(?:\S+)?/i,
+  },
+  {
+    name: "instagram",
+    regex: /(?:https?:\/\/)?(?:www\.)?(?:instagram\.com)\/(?:p|reel|tv)\/([\w-]+)(?:\S+)?/i,
+  },
+  {
+    name: "facebook",
+    regex: /(?:https?:\/\/)?(?:www\.)?(?:facebook\.com)\/(?:video\.php\?v=|watch\/\?v=|permalink\.php\?story_fbid=|groups\/[\w.-]+\/permalink\/)?([\w.-]+)(?:\S+)?/i,
+  },
+] as const;
 
 interface StrategyProps {
   slug: string;
@@ -108,24 +132,23 @@ const Strategy = (props: StrategyProps) => {
     edges: initialEdges,
   });
 
-  useEffect(() => {
-    if (nodes.length > 0) {
-      fitView({
-        padding: 0.5,
-        includeHiddenNodes: false,
-        duration: 300,
-      });
-    }
-  }, [nodes, fitView]);
-
   // Save to history when nodes or edges change (debounced)
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      // Only save if the state actually changed
-      const nodesChanged =
-        JSON.stringify(nodes) !== JSON.stringify(lastSavedState.nodes);
-      const edgesChanged =
-        JSON.stringify(edges) !== JSON.stringify(lastSavedState.edges);
+      // Only save if the state actually changed (optimized comparison)
+      const nodesChanged = nodes.length !== lastSavedState.nodes.length ||
+        nodes.some((node, index) => {
+          const lastNode = lastSavedState.nodes[index];
+          return !lastNode || node.id !== lastNode.id || 
+                 node.position.x !== lastNode.position.x || 
+                 node.position.y !== lastNode.position.y;
+        });
+      
+      const edgesChanged = edges.length !== lastSavedState.edges.length ||
+        edges.some((edge, index) => {
+          const lastEdge = lastSavedState.edges[index];
+          return !lastEdge || edge.id !== lastEdge.id;
+        });
       if (nodesChanged || edgesChanged) {
         // saveToHistory(nodes, edges);
         setLastSavedState({ nodes, edges });
@@ -191,30 +214,7 @@ const Strategy = (props: StrategyProps) => {
       if (!items) {
         return { type: "unknown", data: null };
       }
-      const urlRegex = /https?:\/\/[^\s]+/i;
-      const imageFileExtensionRegex = /\.(jpg|jpeg|png|gif|webp|svg)$/i;
-      const socialMediaPlatforms = [
-        {
-          name: "youtube",
-          regex:
-            /(?:https?:\/\/)?(?:www\.|m\.)?(?:youtube\.com|youtu\.be)\/(?:watch\?v=|embed\/|v\/)?([\w-]{11})(?:\S+)?/i,
-        },
-        {
-          name: "tiktok",
-          regex:
-            /(?:https?:\/\/)?(?:www\.)?(?:tiktok\.com)\/@([\w.-]+)\/video\/(\d+)(?:\S+)?/i,
-        },
-        {
-          name: "instagram",
-          regex:
-            /(?:https?:\/\/)?(?:www\.)?(?:instagram\.com)\/(?:p|reel|tv)\/([\w-]+)(?:\S+)?/i,
-        },
-        {
-          name: "facebook",
-          regex:
-            /(?:https?:\/\/)?(?:www\.)?(?:facebook\.com)\/(?:video\.php\?v=|watch\/\?v=|permalink\.php\?story_fbid=|groups\/[\w.-]+\/permalink\/)?([\w.-]+)(?:\S+)?/i,
-        },
-      ] as const;
+      
       const itemPromises: Promise<PastedContentType | null>[] = [];
       for (let i = 0; i < items.length; i++) {
         const item = items[i];
@@ -259,13 +259,13 @@ const Strategy = (props: StrategyProps) => {
           const stringPromise = new Promise<PastedContentType | null>(
             (resolve) => {
               item.getAsString((text) => {
-                if (urlRegex.test(text)) {
-                  if (imageFileExtensionRegex.test(text)) {
+                if (URL_REGEX.test(text)) {
+                  if (IMAGE_FILE_EXTENSION_REGEX.test(text)) {
                     resolve({ type: "image-url", data: text });
                   } else {
                     let matchedPlatform: PastedContentType["type"] =
                       "website url";
-                    for (const p of socialMediaPlatforms) {
+                    for (const p of SOCIAL_MEDIA_PLATFORMS) {
                       if (p.regex.test(text)) {
                         matchedPlatform = p.name;
                         break;
@@ -333,8 +333,7 @@ const Strategy = (props: StrategyProps) => {
           (flows[0] as any)[key].length === 0
       );
     if (!flows || flows.length === 0 || isEmptyFlows) {
-      console.log("Nodes not exists");
-      // Clear history when loading empty strategy
+      // No nodes exist, initialize empty strategy
       // clearHistory([], []);
     } else {
       const flow = flows[0];
@@ -423,8 +422,7 @@ const Strategy = (props: StrategyProps) => {
       }
       const items = e.clipboardData?.items;
       if (!items) {
-        console.log("No clipboard items found.");
-        return;
+        return; // No clipboard items available
       }
       // Prevent default paste behavior for all relevant types upfront
       for (let i = 0; i < items.length; i++) {
@@ -776,11 +774,6 @@ const Strategy = (props: StrategyProps) => {
                 elementsSelectable={true}
                 defaultViewport={{ x: 500, y: 500, zoom: 0.7578582832551992 }}
                 fitView
-                fitViewOptions={{
-                  padding: 0.5,
-                  includeHiddenNodes: false,
-                  duration: 300,
-                }}
                 minZoom={0.1}
                 maxZoom={2}
                 onDragOver={onDragOver}

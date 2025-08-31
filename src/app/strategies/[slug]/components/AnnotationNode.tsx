@@ -100,8 +100,6 @@ export default function AnnotationNode({
   data,
   selected,
 }: AnnotationNodeProps) {
-  // console.log("AnnotationNode_Data", { data });
-
   const strategyId = useParams()?.slug as string;
   const successNote = useSuccessNotifier();
 

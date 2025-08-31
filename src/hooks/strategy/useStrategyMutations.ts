@@ -143,8 +143,8 @@ export const useShareStrategy = () => {
     mutationFn: (payload: { strategyId: string; userIds: string[] }) =>
       shareStrategy(payload),
     onSuccess: (newData) => {
-      console.log("Share Strategy Success Data:", newData);
-
+      // Strategy shared successfully
+      
       // queryClient.setQueryData(
       //   [QUERY_KEYS.STRATEGIES],
       //   (oldData: { data: { strategies: IStrategy[] } } | undefined) => {

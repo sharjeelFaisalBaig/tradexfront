@@ -463,11 +463,11 @@ export default function ChatBoxNode({
               data: { title: newTitle },
             });
           } catch (titleError) {
-            console.warn("Failed to update conversation title:", titleError);
+            // Failed to update conversation title silently
           }
         }
       } catch (error: any) {
-        console.error("Send message error:", error);
+        // Handle message send error
         removeOptimisticMessage(optimisticUserId);
         const errorMessage =
           error?.response?.data?.message ||
@@ -761,8 +761,7 @@ export default function ChatBoxNode({
     const element = fullscreenElementRef.current;
     const chatBox = chatBoxRef.current;
     if (!element) {
-      console.error("Fullscreen element not found");
-      return;
+      return; // Element not found
     }
     if (document.fullscreenElement) {
       if (document.exitFullscreen) {
@@ -778,7 +777,7 @@ export default function ChatBoxNode({
             }
           })
           .catch((err) => {
-            console.error("Error attempting to exit fullscreen mode:", err);
+            // Failed to exit fullscreen mode
           });
       }
     } else {
@@ -794,7 +793,7 @@ export default function ChatBoxNode({
             }
           })
           .catch((err) => {
-            console.error("Error attempting to enable fullscreen mode:", err);
+            // Failed to enable fullscreen mode
           });
       }
     }

@@ -49,8 +49,6 @@ export default function LoginPage() {
           redirect: false,
         });
 
-        console.log({ res });
-
         // Handle different possible login responses
         if (res?.error) {
           // Set redirect flag in localStorage

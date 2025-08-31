@@ -600,7 +600,7 @@ export default function AudioUploadNode({
         audioLevel: 0,
       });
     } catch (error) {
-      console.error("Error starting recording:", error);
+      // Failed to start recording
       setProcessingState({
         isProcessing: false,
         isComplete: false,
@@ -678,7 +678,7 @@ export default function AudioUploadNode({
           setIsPlaying(true);
         })
         .catch((error) => {
-          console.error("Error playing audio:", error);
+          // Failed to play audio
           setProcessingState((prev) => ({
             ...prev,
             error: "Failed to play audio.",
