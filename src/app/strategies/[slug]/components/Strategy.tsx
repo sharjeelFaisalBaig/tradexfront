@@ -40,6 +40,7 @@ import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 import ChatBoxNode from "./ChatBoxNode";
 import { useNodeOperations } from "../hooks/useNodeOperations";
 import { useTheme } from "@/context/ThemeProvider";
+import GroupContainerNode from "./GroupContainerNode";
 
 const nodeDefaults = {
   sourcePosition: Position.Right,
@@ -59,6 +60,7 @@ const nodeTypes = {
   videoUploadNode: VideoUploadNode,
   annotationNode: AnnotationNode,
   chartNode: ChartNode,
+  groupContainer: GroupContainerNode,
 };
 
 const edgeTypes = {
@@ -439,7 +441,6 @@ const Strategy = (props: StrategyProps) => {
       }
       const finalPastedItem = await processDataTransferItems(items);
       if (finalPastedItem.type !== "unknown") {
-        console.log("Known Pasted Item:", finalPastedItem);
         // Call handleCreateNode based on the detected type
         switch (finalPastedItem.type) {
           case "plain text":
@@ -468,12 +469,19 @@ const Strategy = (props: StrategyProps) => {
             handleCreateNode("audio", finalPastedItem.data as File);
             break;
           default:
-            // @ts-ignore
-            console.log("Unhandled pasted item type:", finalPastedItem.type);
+            toast({
+              title: "Unsupported content",
+              description: "This type of content is not supported yet.",
+              variant: "destructive",
+            });
             break;
         }
       } else {
-        console.log("Pasted Item Type: Unknown");
+        toast({
+          title: "Unknown content",
+          description: "Unable to identify the pasted content type.",
+          variant: "destructive",
+        });
       }
     };
     // Add event listener to the document
@@ -661,12 +669,7 @@ const Strategy = (props: StrategyProps) => {
           x: event.clientX,
           y: event.clientY,
         });
-        console.log(
-          "Known Dropped Item:",
-          finalDroppedItem,
-          "at position:",
-          position
-        );
+        
         switch (finalDroppedItem.type) {
           case "plain text":
             handleCreateNode(
@@ -710,12 +713,19 @@ const Strategy = (props: StrategyProps) => {
             handleCreateNode("audio", finalDroppedItem.data as File, position);
             break;
           default:
-            // @ts-ignore
-            console.log("Unhandled dropped item type:", finalDroppedItem.type);
+            toast({
+              title: "Unsupported content",
+              description: "This type of dropped content is not supported yet.",
+              variant: "destructive",
+            });
             break;
         }
       } else {
-        console.log("Dropped Item Type: Unknown");
+        toast({
+          title: "Unknown content",
+          description: "Unable to identify the dropped content type.",
+          variant: "destructive",
+        });
       }
     },
     [screenToFlowPosition, handleCreateNode, processDataTransferItems]

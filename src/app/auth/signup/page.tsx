@@ -115,8 +115,11 @@ const Signup = () => {
     try {
       await signIn("google", { callbackUrl: "/dashboard" });
     } catch (error) {
-      console.error("Error during Google sign-in:", error);
-      // Optionally, show an error message to the user
+      toast({
+        title: "Sign-up Failed",
+        description: "Unable to sign up with Google. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 

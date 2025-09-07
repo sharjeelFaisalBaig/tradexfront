@@ -304,8 +304,6 @@ export default function RemoteNode({
       },
       {
         onSuccess: () => {
-          console.log("Analysis successful, restarting polling...");
-
           // start polling
           restartPolling();
           // You may need to adjust result structure based on API

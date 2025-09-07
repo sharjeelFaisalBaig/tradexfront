@@ -78,7 +78,6 @@ export const useGetPeerAnalysisStatus = ({
 
   // 🔁 Restart polling: update key to force React Query to re-run
   const restartPolling = () => {
-    console.log("Restarting polling...");
     setShouldPoll(true);
     setIsPollingLoading(true);
     setPollingRestartKey((prev) => prev + 1); // 👈 force new queryKey

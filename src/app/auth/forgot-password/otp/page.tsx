@@ -29,7 +29,6 @@ export default function ForgotPasswordOtpPage() {
 
   useEffect(() => {
     if (!redirected || !expiresIn || !email) {
-      console.log("access denied");
       router.replace("/auth/signin");
       sessionStorage.removeItem("otpRedirected");
     }

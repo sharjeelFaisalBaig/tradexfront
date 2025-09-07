@@ -64,7 +64,6 @@ const ResetPasswordPage = () => {
 
   useEffect(() => {
     if (!token || !email) {
-      console.log("access denied");
       router.replace("/auth/signin");
       sessionStorage.removeItem("password_reset_token");
     }

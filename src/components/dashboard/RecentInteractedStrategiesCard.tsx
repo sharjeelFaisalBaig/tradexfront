@@ -28,7 +28,11 @@ const RecentInteractedStrategiesCard = (props: Props) => {
   const router = useRouter();
   const successNote = useSuccessNotifier();
 
-  const { data, isLoading: isLoadingStrategies } = useGetStrategies();
+  const { data, isLoading: isLoadingStrategies } = useGetStrategies({
+    search: "",
+    sort_by: "updated_at",
+    sort_order: "desc",
+  });
 
   const strategies: IStrategy[] = useMemo(
     () =>

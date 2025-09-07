@@ -29,7 +29,7 @@ export const decodeBase64 = (encoded: string): string => {
   }
 };
 
-export const preventNodeDeletionKeys = (e: KeyboardEvent) => {
+export const preventNodeDeletionKeys = (e: React.KeyboardEvent) => {
   // This function is currently disabled but preserved for future use
   // when keyboard shortcuts for node deletion are implemented
 };
@@ -89,11 +89,9 @@ export const getFileSize = async (url?: string) => {
       const size = response.headers.get("content-length");
       return size;
     } else {
-      console.error("Failed to fetch file size");
       return null;
     }
   } catch (error) {
-    console.error("Error fetching file size:", error);
     return null;
   }
 };
@@ -358,8 +356,7 @@ export const extractSocialVideoDetails = (
       thumbnail = `/placeholder.svg?height=360&width=640&text=TikTok+Video`;
     }
   } catch (e) {
-    console.error("Error extracting video details:", e);
-    // Keep default placeholder
+    // Keep default placeholder for unsupported platforms
   }
 
   const platformConfig =
