@@ -1,5 +1,6 @@
 export const QUERY_KEYS = {
   STRATEGIES: "strategies",
+  STRATEGIES_TAGS: "strategiesTags",
   STRATEGY: "strategy",
   USER: "user",
   CHAT: "chat",

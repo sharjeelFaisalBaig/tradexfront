@@ -196,10 +196,9 @@ export default function SocialMediaNode({
       setSocialUrl(data?.dataToAutoUpload?.data);
       setUrlValidation(validation);
       if (validation.isValid) {
-        console.log("Valid URL:", data?.dataToAutoUpload?.data);
         handleProcessUrl(data?.dataToAutoUpload?.data);
       } else {
-        console.error("Invalid URL:", data?.dataToAutoUpload?.data);
+        // Invalid URL will be handled by UI feedback
       }
       isAutoUploadProcessedRef.current = true;
     }
@@ -254,7 +253,11 @@ export default function SocialMediaNode({
     const validation = validateSocialMediaUrl(urlToUse);
 
     if (!validation.isValid || !validation.platform) {
-      console.error("URL is not valid or platform is not supported");
+      toast({
+        title: "Invalid URL",
+        description: "Please enter a valid social media URL",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -270,12 +273,9 @@ export default function SocialMediaNode({
     resetAnalyze();
 
     try {
-      console.log("Processing URL:", urlToUse);
       const videoData = extractSocialVideoDetails(urlToUse);
-      console.log("Extracted video data:", videoData);
 
       if (videoData) {
-        console.log("Setting social media data:", videoData);
         setSocialMediaData(videoData);
       } else {
         throw new Error("Could not extract video details.");
@@ -290,7 +290,6 @@ export default function SocialMediaNode({
         },
       });
     } catch (error: any) {
-      console.error("Error processing URL:", error);
       setProcessingState({
         isProcessing: false,
         isComplete: false,
@@ -446,8 +445,6 @@ export default function SocialMediaNode({
       );
     }
   }, [canConnect, id, setEdges, data]);
-
-  console.log({ socialMediaData });
 
   return (
     <>

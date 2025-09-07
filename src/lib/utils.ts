@@ -29,21 +29,9 @@ export const decodeBase64 = (encoded: string): string => {
   }
 };
 
-export const preventNodeDeletionKeys = (e: KeyboardEvent | any) => {
-  // if (["Backspace", "Delete", "Escape"].includes(e.key)) {
-  //   e.stopPropagation();
-  //   e.preventDefault();
-  // }
-  // const activeElement = document.activeElement;
-  // // Allow default behavior if the active element is an input or textarea
-  // if (activeElement && ["INPUT", "TEXTAREA"].includes(activeElement.tagName)) {
-  //   return;
-  // }
-  // // Prevent node deletion for specific keys
-  // if (["Backspace", "Delete", "Escape"].includes(e.key)) {
-  //   e.stopPropagation();
-  //   e.preventDefault();
-  // }
+export const preventNodeDeletionKeys = (e: React.KeyboardEvent) => {
+  // This function is currently disabled but preserved for future use
+  // when keyboard shortcuts for node deletion are implemented
 };
 
 export const getFullUrl = (endpoint: string = ""): string => {
@@ -52,39 +40,33 @@ export const getFullUrl = (endpoint: string = ""): string => {
   return `${DOMAIN_ROOT.replace(/\/+$/, "")}/${endpoint.replace(/^\/+/, "")}`;
 };
 
-export const getApiErrorMessage = (error?: unknown | any) => {
-  if (!error) return;
-  // if (!error) return "An unknown error occurred";
-  // Axios-style error check
-  if (error) {
-    const responseData = error?.response?.data;
+export const getApiErrorMessage = (error?: unknown): string | undefined => {
+  if (!error || typeof error !== 'object') return undefined;
+  
+  // Type guard for axios-style errors
+  const isAxiosError = (err: any): err is { response?: { data?: any } } => 
+    err && typeof err === 'object' && 'response' in err;
+  
+  if (isAxiosError(error)) {
+    const responseData = error.response?.data;
     const messageFromErrors =
       responseData?.errors &&
+      typeof responseData.errors === 'object' &&
       Object.values(responseData.errors).flat().join(", ");
     const messageFromMessage = responseData?.message;
     return messageFromErrors || messageFromMessage;
   }
+  
+  return undefined;
 };
 
 export const showAPIErrorToast = (
-  error?: unknown | any,
+  error?: unknown,
   fallbackTitle = "Validation failed",
   fallbackMessage = "Something went wrong"
 ) => {
-  let description = fallbackMessage;
-
-  // Axios-style error check
-  if (error) {
-    const responseData = error.response?.data;
-
-    const messageFromErrors =
-      responseData?.errors &&
-      Object.values(responseData.errors).flat().join(", ");
-
-    const messageFromMessage = responseData?.message;
-
-    description = messageFromErrors || messageFromMessage || fallbackMessage;
-  }
+  const errorMessage = getApiErrorMessage(error);
+  const description = errorMessage || fallbackMessage;
 
   toast({
     title: fallbackTitle,
@@ -107,11 +89,9 @@ export const getFileSize = async (url?: string) => {
       const size = response.headers.get("content-length");
       return size;
     } else {
-      console.error("Failed to fetch file size");
       return null;
     }
   } catch (error) {
-    console.error("Error fetching file size:", error);
     return null;
   }
 };
@@ -376,8 +356,7 @@ export const extractSocialVideoDetails = (
       thumbnail = `/placeholder.svg?height=360&width=640&text=TikTok+Video`;
     }
   } catch (e) {
-    console.error("Error extracting video details:", e);
-    // Keep default placeholder
+    // Keep default placeholder for unsupported platforms
   }
 
   const platformConfig =

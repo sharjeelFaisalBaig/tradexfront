@@ -45,9 +45,14 @@ const Strategies = () => {
   const [selectedStrategy, setSelectedStrategy] = useState<IStrategy | null>(
     null
   );
-  const [sortOption, setSortOption] = useState<string>("modified"); // State for sort option
-
-  const { data, isLoading, isError, error } = useGetStrategies();
+  const [debouncedSearch, setDebouncedSearch] = useState(searchTerm);
+  const [sortOption, setSortOption] = useState<string>("last_modified"); // State for sort option
+  const [strategyQueryParams, setStrategyQueryParams] = useState({
+    search: "",
+    sort_by: "updated_at",
+    sort_order: "desc",
+  });
+  const { data, isLoading, isError, error, refetch: refetchStrategies } = useGetStrategies(strategyQueryParams);
   const strategies: IStrategy[] = useMemo(
     () => data?.data?.strategies || [],
     [data]
@@ -73,32 +78,26 @@ const Strategies = () => {
   }, [strategies]);
 
   // Filter based on search
-  const filteredStrategies = strategies
-    .filter((strategy) => {
-      const nameMatches = strategy.name
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase());
-      const tagsMatch = strategy.tags?.some((tag) =>
-        tag.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-      return nameMatches || tagsMatch;
-    })
-    .sort((a, b) => {
-      // Sorting logic based on the selected option
-      switch (sortOption) {
-        case "name":
-          return a.name.localeCompare(b.name);
-        case "created":
-          return (
-            new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-          );
-        case "modified":
-        default:
-          return (
-            new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
-          );
-      }
+  const filteredStrategies = strategies;
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 500);
+
+    return () => {
+      clearTimeout(handler); // cleanup on new keystroke
+    };
+  }, [searchTerm]);
+
+  useEffect(() => {
+    let sort_order = sortOption === "name" ? "asc" : "desc";
+
+    setStrategyQueryParams({
+      search: debouncedSearch, // 👈 use debounced value
+      sort_by: sortOption,
+      sort_order,
     });
+  }, [debouncedSearch, sortOption]);
 
   const handleToggleIsFavourite = (strategy: IStrategy) => {
     const newFavouriteState = !favStrategies?.some(
@@ -117,9 +116,8 @@ const Strategies = () => {
       title: newFavouriteState
         ? "Added to Favourite"
         : "Removed from Favourite",
-      description: `“${strategy?.name}” has been ${
-        newFavouriteState ? "added to" : "removed from"
-      } favourites.`,
+      description: `“${strategy?.name}” has been ${newFavouriteState ? "added to" : "removed from"
+        } favourites.`,
     });
     // API call
     toggleFavouriteStrategy(
@@ -218,18 +216,17 @@ const Strategies = () => {
                 </SelectContent>
               </Select> */}
               <Select
-                defaultValue="modified"
+                defaultValue="last_modified"
                 onValueChange={(value) => setSortOption(value)}
               >
                 <SelectTrigger className="w-48">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="modified">
+                  <SelectItem value="last_modified">
                     Sort by: Last Modified
                   </SelectItem>
                   <SelectItem value="name">Sort by: Name</SelectItem>
-                  <SelectItem value="created">Sort by: Created</SelectItem>
                 </SelectContent>
               </Select>
             </div>

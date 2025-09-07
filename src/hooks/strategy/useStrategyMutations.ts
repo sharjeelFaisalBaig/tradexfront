@@ -49,6 +49,53 @@ import {
 import { IStrategy } from "@/lib/types";
 import { QUERY_KEYS } from "@/lib/queryKeys";
 
+// Type interfaces for better type safety
+interface PeerMutationParams {
+  strategyId: string;
+  data: any;
+}
+
+interface PeerDeleteParams {
+  strategyId: string;
+  peerId: string;
+}
+
+interface PeerUploadParams {
+  strategyId: string;
+  peerId: string;
+  data: {
+    file: File;
+    title: string;
+  };
+}
+
+interface PeerAnalysisParams {
+  strategyId: string;
+  peerId: string;
+  data?: {
+    search_query?: string;
+    ai_notes?: string;
+    source_url?: string;
+  };
+}
+
+interface PeerPositionParams {
+  strategyId: string;
+  peerId: string;
+  peerType: string;
+  position_x: number;
+  position_y: number;
+}
+
+interface ConnectionParams {
+  strategyId: string;
+  data: {
+    source_peer_type: string;
+    source_peer_id: string;
+    thread_peer_id: string;
+  };
+}
+
 export const useCreateStrategy = () => {
   const queryClient = useQueryClient();
   return useMutation({
@@ -143,24 +190,7 @@ export const useShareStrategy = () => {
     mutationFn: (payload: { strategyId: string; userIds: string[] }) =>
       shareStrategy(payload),
     onSuccess: (newData) => {
-      console.log("Share Strategy Success Data:", newData);
-
-      // queryClient.setQueryData(
-      //   [QUERY_KEYS.STRATEGIES],
-      //   (oldData: { data: { strategies: IStrategy[] } } | undefined) => {
-      //     if (!oldData) {
-      //       return { data: { strategies: [newStrategy.data] } };
-      //     }
-      //     const updatedStrategies = [
-      //       newStrategy.data,
-      //       ...oldData.data.strategies,
-      //     ];
-      //     return {
-      //       ...oldData,
-      //       data: { ...oldData.data, strategies: updatedStrategies },
-      //     };
-      //   }
-      // );
+      // Strategy shared successfully - no cache update needed
     },
   });
 };
@@ -229,11 +259,7 @@ export const useSavePeerPositions = () => {
         position_y: number;
       }>;
     }) => savePeerPositions({ strategyId, positions }),
-    // onSuccess: (_data, { strategyId }) => {
-    //   queryClient.invalidateQueries({
-    //     queryKey: [QUERY_KEYS.STRATEGY, strategyId],
-    //   });
-    // },
+    // Cache invalidation disabled for performance - positions are saved automatically
   });
 };
 
@@ -277,11 +303,7 @@ export const useUpdatePeerPosition = () => {
         position_x,
         position_y,
       }),
-    // onSuccess: (_data, { strategyId }) => {
-    //   queryClient.invalidateQueries({
-    //     queryKey: [QUERY_KEYS.STRATEGY, strategyId],
-    //   });
-    // },
+    // Cache invalidation disabled for performance - position updates are frequent
   });
 };
 
@@ -290,11 +312,6 @@ export const useCreateAnnotationPeer = () => {
   return useMutation({
     mutationFn: ({ strategyId, data }: { strategyId: string; data: any }) =>
       createAnnotationPeer(strategyId, data),
-    // onSuccess: (_data, { strategyId }) => {
-    //   queryClient.invalidateQueries({
-    //     queryKey: [QUERY_KEYS.STRATEGY, strategyId],
-    //   });
-    // },
   });
 };
 
@@ -303,11 +320,6 @@ export const useCreateImagePeer = () => {
   return useMutation({
     mutationFn: ({ strategyId, data }: { strategyId: string; data: any }) =>
       createImagePeer(strategyId, data),
-    // onSuccess: (_data, { strategyId }) => {
-    //   queryClient.invalidateQueries({
-    //      queryKey: [QUERY_KEYS.STRATEGY, strategyId],
-    //   });
-    // },
   });
 };
 

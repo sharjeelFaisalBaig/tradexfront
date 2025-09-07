@@ -64,6 +64,7 @@ export const endpoints = {
   STRATEGY: {
     LIST: `${API_BASE_PATH}/strategies`,
     GET: (id: string) => `${API_BASE_PATH}/strategies/${id}`,
+    TAGS: `${API_BASE_PATH}/strategies/tags`,
     CREATE: `${API_BASE_PATH}/strategies`,
     SHARE: (id: string) => `${API_BASE_PATH}/strategies/${id}/share`,
     COPY: (id: string) => `${API_BASE_PATH}/strategies/${id}/copy`,

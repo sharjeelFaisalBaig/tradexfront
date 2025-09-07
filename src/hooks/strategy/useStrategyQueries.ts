@@ -7,13 +7,37 @@ import {
   getAllConversations,
   getAiModels,
   getChatTemplates,
+  getStrategiesTags,
 } from "@/services/strategy/strategy_API";
 
-export const useGetStrategies = () => {
+// ✅ Hook with search & sort support
+export const useGetStrategies = ({
+  search = "",
+  sort_by = "createdAt",
+  sort_order = "desc",
+}: {
+  search?: string;
+  sort_by?: string;
+  sort_order?: "asc" | "desc";
+}) => {
   return useQuery({
     retry: false,
-    queryKey: [QUERY_KEYS.STRATEGIES],
-    queryFn: getStrategies,
+    queryKey: [QUERY_KEYS.STRATEGIES, { search, sort_by, sort_order }], // params in key
+    queryFn: () =>
+      getStrategies({
+        search,
+        sort_by,
+        sort_order,
+      })
+  });
+};
+
+
+export const useGetStrategiesTags = () => {
+  return useQuery({
+    retry: false,
+    queryKey: [QUERY_KEYS.STRATEGIES_TAGS],
+    queryFn: getStrategiesTags,
   });
 };
 

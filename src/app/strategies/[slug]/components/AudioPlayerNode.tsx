@@ -600,7 +600,7 @@ export default function AudioUploadNode({
         audioLevel: 0,
       });
     } catch (error) {
-      console.error("Error starting recording:", error);
+      // Failed to start recording
       setProcessingState({
         isProcessing: false,
         isComplete: false,
@@ -678,7 +678,7 @@ export default function AudioUploadNode({
           setIsPlaying(true);
         })
         .catch((error) => {
-          console.error("Error playing audio:", error);
+          // Failed to play audio
           setProcessingState((prev) => ({
             ...prev,
             error: "Failed to play audio.",
@@ -741,7 +741,7 @@ export default function AudioUploadNode({
           language: data.language || "en",
         });
       } catch (e) {
-        console.error("Error parsing AI metadata:", e);
+        // Silently handle parsing errors for AI metadata
       }
     }
 
@@ -851,7 +851,6 @@ export default function AudioUploadNode({
     };
 
     const handleError = (e: Event) => {
-      console.error("Audio error:", e);
       setIsLoading(false);
       setProcessingState((prev) => ({
         ...prev,
@@ -903,8 +902,6 @@ export default function AudioUploadNode({
     () => !uploadedAudio && !showRecordingInterface,
     [uploadedAudio, showRecordingInterface]
   );
-
-  console.log({ isUploading, isUploadSuccess });
 
   return (
     <NodeWrapper

@@ -49,8 +49,6 @@ export default function LoginPage() {
           redirect: false,
         });
 
-        console.log({ res });
-
         // Handle different possible login responses
         if (res?.error) {
           // Set redirect flag in localStorage
@@ -127,12 +125,14 @@ export default function LoginPage() {
 
   // Google OAuth sign-in handler
   const handleGoogleSignIn = async () => {
-    // signIn("google");
     try {
       await signIn("google", { callbackUrl: "/dashboard" });
     } catch (error) {
-      console.error("Error during Google sign-in:", error);
-      // Optionally, show an error message to the user
+      toast({
+        title: "Sign-in Failed",
+        description: "Unable to sign in with Google. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 

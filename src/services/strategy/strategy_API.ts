@@ -1,8 +1,28 @@
 import { endpoints } from "@/lib/endpoints";
 import axiosInstance from "../axios";
 
-export const getStrategies = async () => {
-  const response = await axiosInstance.get(endpoints.STRATEGY.LIST);
+export const getStrategies = async ({
+  search,
+  sort_by,
+  sort_order,
+}: {
+  search?: string;
+  sort_by?: string;
+  sort_order?: "asc" | "desc";
+}) => {
+  const response = await axiosInstance.get(endpoints.STRATEGY.LIST, {
+    params: {
+      search,
+      sort_by,
+      sort_order,
+      per_page: -1, // fetch all strategies without pagination
+    },
+  });
+  return response.data;
+};
+
+export const getStrategiesTags = async () => {
+  const response = await axiosInstance.get(endpoints.STRATEGY.TAGS);
   return response.data;
 };
 

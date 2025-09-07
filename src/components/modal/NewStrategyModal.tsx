@@ -15,6 +15,8 @@ import {
   useUpdateStrategy,
 } from "@/hooks/strategy/useStrategyMutations";
 import useSuccessNotifier from "@/hooks/useSuccessNotifier";
+import { useGetStrategiesTags } from "@/hooks/strategy/useStrategyQueries";
+import CreatableSelect from 'react-select/creatable';
 
 const MAX_TAGS = 4; // maximum allowed tags
 
@@ -30,37 +32,21 @@ function NewStrategyForm({
   // const pathname = usePathname();
   // const strategyId = pathname.split("/")[2];
   const successNote = useSuccessNotifier();
+  const { data: allStrategyTags, isLoading: isLoadingTags, isError, error } = useGetStrategiesTags();
   const createMutation = useCreateStrategy();
   const updateMutation = useUpdateStrategy();
 
   const [name, setName] = useState(strategy?.name ?? "");
   const [desc, setDesc] = useState(strategy?.description ?? "");
   const [tagInput, setTagInput] = useState("");
-  const [tags, setTags] = useState<string[]>(strategy?.tags ?? []);
+  strategy.tags = Array.isArray(strategy?.tags) ? strategy?.tags : JSON.parse(strategy?.tags);
+  
+  const [tags, setTags] = useState<{ label: string; value: string }[]>((strategy?.tags && strategy?.tags?.length > 0) ? strategy?.tags?.map((tag) => ({ label: tag, value: tag })) : []);
   const [errors, setErrors] = useState<{
     name?: string;
     desc?: string;
     tags?: string;
   }>({});
-
-  const handleAddTag = () => {
-    const newTag = tagInput.trim();
-    if (newTag && !tags.includes(newTag) && tags.length < MAX_TAGS) {
-      setTags([...tags, newTag]);
-      setTagInput("");
-    }
-  };
-
-  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" || e.key === ",") {
-      e.preventDefault();
-      handleAddTag();
-    }
-  };
-
-  const handleRemoveTag = (tagToRemove: string) => {
-    setTags(tags.filter((tag) => tag !== tagToRemove));
-  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -80,15 +66,14 @@ function NewStrategyForm({
     const payload = {
       name,
       description: desc,
-      tags,
+      tags: tags.map((tag) => tag.value),
     };
 
     const onMutationSuccess = (data: any) => {
       successNote({
         title: strategy ? "Strategy Updated" : "Strategy Created",
-        description: `Strategy ${
-          strategy ? "updated" : "created"
-        } successfully.`,
+        description: `Strategy ${strategy ? "updated" : "created"
+          } successfully.`,
       });
       onSuccess(data?.data); // assuming response has `data`
       onClose();
@@ -166,40 +151,18 @@ function NewStrategyForm({
         <label className="block text-sm font-medium mb-1 text-muted-foreground">
           Tags
         </label>
-        <Input
-          value={tagInput}
-          onChange={(e) => setTagInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Type a tag and press enter or comma"
-          disabled={isLoading || tags.length >= MAX_TAGS} // disable input if limit reached
-          className={cn(
-            errors.tags && "border-red-500 focus-visible:ring-red-500",
-            tags.length >= MAX_TAGS && "opacity-50 cursor-not-allowed"
-          )}
-        />
+        {!isLoadingTags && allStrategyTags?.data?.tags &&
+          <CreatableSelect
+            isMulti
+            options={allStrategyTags?.data?.tags.map((tag: any) => ({ label: tag, value: tag }))}
+            value={tags}
+            onChange={(selected) => setTags(selected as { label: string; value: string }[])}
+            isLoading={isLoadingTags}
+            isDisabled={isLoading}
+          />
+        }
         {errors.tags && (
           <p className="mt-1 text-sm text-red-500">{errors.tags}</p>
-        )}
-
-        {tags.length > 0 && (
-          <div className="flex flex-wrap gap-2 mt-2">
-            {tags.map((tag) => (
-              <div
-                key={tag}
-                className="flex items-center px-3 py-1 text-sm bg-muted rounded-full text-muted-foreground"
-              >
-                {tag}
-                <button
-                  type="button"
-                  disabled={isLoading}
-                  onClick={() => handleRemoveTag(tag)}
-                  className="ml-2 text-red-500 hover:text-red-600"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-            ))}
-          </div>
         )}
       </div>
 
@@ -213,8 +176,8 @@ function NewStrategyForm({
             ? "Updating..."
             : "Update Strategy"
           : createMutation.isPending
-          ? "Creating..."
-          : "Create Strategy"}
+            ? "Creating..."
+            : "Create Strategy"}
       </Button>
     </form>
   );
