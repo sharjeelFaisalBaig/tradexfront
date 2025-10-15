@@ -75,19 +75,23 @@ const IMAGE_FILE_EXTENSION_REGEX = /\.(jpg|jpeg|png|gif|webp|svg)$/i;
 const SOCIAL_MEDIA_PLATFORMS = [
   {
     name: "youtube",
-    regex: /(?:https?:\/\/)?(?:www\.|m\.)?(?:youtube\.com|youtu\.be)\/(?:watch\?v=|embed\/|v\/)?([\w-]{11})(?:\S+)?/i,
+    regex:
+      /(?:https?:\/\/)?(?:www\.|m\.)?(?:youtube\.com|youtu\.be)\/(?:watch\?v=|embed\/|v\/)?([\w-]{11})(?:\S+)?/i,
   },
   {
-    name: "tiktok", 
-    regex: /(?:https?:\/\/)?(?:www\.)?(?:tiktok\.com)\/@([\w.-]+)\/video\/(\d+)(?:\S+)?/i,
+    name: "tiktok",
+    regex:
+      /(?:https?:\/\/)?(?:www\.)?(?:tiktok\.com)\/@([\w.-]+)\/video\/(\d+)(?:\S+)?/i,
   },
   {
     name: "instagram",
-    regex: /(?:https?:\/\/)?(?:www\.)?(?:instagram\.com)\/(?:p|reel|tv)\/([\w-]+)(?:\S+)?/i,
+    regex:
+      /(?:https?:\/\/)?(?:www\.)?(?:instagram\.com)\/(?:p|reel|tv)\/([\w-]+)(?:\S+)?/i,
   },
   {
     name: "facebook",
-    regex: /(?:https?:\/\/)?(?:www\.)?(?:facebook\.com)\/(?:video\.php\?v=|watch\/\?v=|permalink\.php\?story_fbid=|groups\/[\w.-]+\/permalink\/)?([\w.-]+)(?:\S+)?/i,
+    regex:
+      /(?:https?:\/\/)?(?:www\.)?(?:facebook\.com)\/(?:video\.php\?v=|watch\/\?v=|permalink\.php\?story_fbid=|groups\/[\w.-]+\/permalink\/)?([\w.-]+)(?:\S+)?/i,
   },
 ] as const;
 
@@ -138,15 +142,20 @@ const Strategy = (props: StrategyProps) => {
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       // Only save if the state actually changed (optimized comparison)
-      const nodesChanged = nodes.length !== lastSavedState.nodes.length ||
+      const nodesChanged =
+        nodes.length !== lastSavedState.nodes.length ||
         nodes.some((node, index) => {
           const lastNode = lastSavedState.nodes[index];
-          return !lastNode || node.id !== lastNode.id || 
-                 node.position.x !== lastNode.position.x || 
-                 node.position.y !== lastNode.position.y;
+          return (
+            !lastNode ||
+            node.id !== lastNode.id ||
+            node.position.x !== lastNode.position.x ||
+            node.position.y !== lastNode.position.y
+          );
         });
-      
-      const edgesChanged = edges.length !== lastSavedState.edges.length ||
+
+      const edgesChanged =
+        edges.length !== lastSavedState.edges.length ||
         edges.some((edge, index) => {
           const lastEdge = lastSavedState.edges[index];
           return !lastEdge || edge.id !== lastEdge.id;
@@ -216,7 +225,7 @@ const Strategy = (props: StrategyProps) => {
       if (!items) {
         return { type: "unknown", data: null };
       }
-      
+
       const itemPromises: Promise<PastedContentType | null>[] = [];
       for (let i = 0; i < items.length; i++) {
         const item = items[i];
@@ -381,6 +390,21 @@ const Strategy = (props: StrategyProps) => {
       // clearHistory(nodesFromFlows, flow.strategyFlowEdges || []);
     }
   }, [strategy, setNodes, setEdges]);
+
+  // new zooming effect
+  useEffect(() => {
+    if (!strategy || nodes.length === 0) return;
+
+    const timeoutId = setTimeout(() => {
+      fitView({
+        padding: 0.1,
+        maxZoom: 0.8, // Initial render pe maximum 0.8x zoom
+        duration: 800,
+      });
+    }, 150);
+
+    return () => clearTimeout(timeoutId);
+  }, [nodes.length, strategy, fitView]);
 
   useEffect(() => {
     if (error) {
@@ -669,7 +693,7 @@ const Strategy = (props: StrategyProps) => {
           x: event.clientX,
           y: event.clientY,
         });
-        
+
         switch (finalDroppedItem.type) {
           case "plain text":
             handleCreateNode(
