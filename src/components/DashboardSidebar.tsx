@@ -3,13 +3,19 @@ import { cn, showAPIErrorToast } from "@/lib/utils";
 import { Plus } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
+import ADashboardIcon from "../icons/Adashboardicon.svg";
 import DashboardIcon from "../icons/dashboardicon.svg";
 import Chart from "../icons/chart.svg";
+import AStrategy from "../icons/Amystrategies.svg";
 import Strategy from "../icons/mystrategies.svg";
+import ARecent from "../icons/Arecent.svg";
 import Recent from "../icons/recent.svg";
+import AFavorites from "../icons/Afavorites.svg";
 import Favorites from "../icons/favorites.svg";
+import ATemplates from "../icons/Atemplates.svg";
 import Templates from "../icons/templates.svg";
 import Folder from "../icons/folder.svg";
+import AShareBlue from "../icons/Ashareblue.svg";
 import ShareBlue from "../icons/shareblue.svg";
 import { useSidebar } from "@/context/SidebarContext";
 import { useCreateStrategy } from "@/hooks/strategy/useStrategyMutations";
@@ -18,14 +24,43 @@ import Loader from "./common/Loader";
 
 const navigation = [
   // { name: "New Strategy", href: "/strategy", icon: Plus },
-  { name: "New Strategy", href: "#new-strategy", icon: Plus },
-  { name: "Dashboard", href: "/dashboard", icon: DashboardIcon },
+  {
+    name: "New Strategy",
+    href: "#new-strategy",
+    icon: Plus,
+  },
+  {
+    name: "Dashboard",
+    href: "/dashboard",
+    icon: DashboardIcon,
+    activeIcon: ADashboardIcon,
+  },
   // { name: "Charts", href: "/charts", icon: Chart },
-  { name: "My Strategies", href: "/strategies", icon: Strategy },
-  { name: "Recent", href: "/recent", icon: Recent },
-  { name: "Favorites", href: "/favorites", icon: Favorites },
-  { name: "Templates", href: "/templates", icon: Templates },
-  { name: "Shared with Me", href: "/shared", icon: ShareBlue },
+  {
+    name: "My Strategies",
+    href: "/strategies",
+    icon: Strategy,
+    activeIcon: AStrategy,
+  },
+  { name: "Recent", href: "/recent", icon: Recent, activeIcon: ARecent },
+  {
+    name: "Favorites",
+    href: "/favorites",
+    icon: Favorites,
+    activeIcon: AFavorites,
+  },
+  {
+    name: "Templates",
+    href: "/templates",
+    icon: Templates,
+    activeIcon: ATemplates,
+  },
+  {
+    name: "Shared with Me",
+    href: "/shared",
+    icon: ShareBlue,
+    activeIcon: AShareBlue,
+  },
 ];
 const DashboardSidebar = () => {
   const router = useRouter();
@@ -94,6 +129,7 @@ const DashboardSidebar = () => {
             {navigation.map((item) => {
               const isActive = pathname === item.href;
               const Icon = item.icon;
+              const ActiveIcon = item.activeIcon;
               return (
                 <div key={item.name}>
                   <Link
@@ -111,13 +147,24 @@ const DashboardSidebar = () => {
                         : "text-dark-gray dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
                     )}
                   >
-                    <Icon
-                      className={cn(
-                        "h-6 w-6",
-                        !collapsed && "mr-3",
-                        isActive ? "text-white" : "text-[#0088CC]"
-                      )}
-                    />
+                    {isActive ? (
+                      <ActiveIcon
+                        className={cn(
+                          "h-6 w-6",
+                          !collapsed && "mr-3",
+                          isActive ? "text-white" : "text-[#0088CC]"
+                        )}
+                      />
+                    ) : (
+                      <Icon
+                        className={cn(
+                          "h-6 w-6",
+                          !collapsed && "mr-3",
+                          isActive ? "text-white" : "text-[#0088CC]"
+                        )}
+                      />
+                    )}
+
                     {!collapsed && item.name}
                   </Link>
 
