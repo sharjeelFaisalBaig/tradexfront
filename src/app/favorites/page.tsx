@@ -83,7 +83,12 @@ const FavoriteStrategiesPage = () => {
   }, [strategies]);
 
   // Filter based on search
-  const filteredStrategies = strategies;
+  const filteredStrategies = strategies
+    ?.map((strategy) => {
+      const isFav = favStrategies?.some((fav) => fav?.id === strategy?.id);
+      return isFav ? strategy : null;
+    })
+    .filter(Boolean) as IStrategy[];
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedSearch(searchTerm);
