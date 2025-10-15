@@ -172,8 +172,8 @@ export default function ChatBoxNode({
   const allFetchedMessages = useMemo(
     () =>
       conversationMessagesData?.pages
-        ?.reverse()
-        ?.flatMap((page) => page.aiChats) ?? [],
+        ?.flatMap((page) => page.aiChats)
+        .reverse() ?? [],
     [conversationMessagesData]
   );
 
@@ -254,8 +254,9 @@ export default function ChatBoxNode({
       setMessages([]);
       return;
     }
-    const mappedFetchedMessages: Message[] = allFetchedMessages.flatMap(
-      (chat: any) => [
+    const mappedFetchedMessages: Message[] = allFetchedMessages
+      .slice()
+      .flatMap((chat: any) => [
         {
           id: `${chat.id}_user`,
           content: chat.prompt,
@@ -272,8 +273,7 @@ export default function ChatBoxNode({
           timestamp: parseTimestamp(chat.updated_at),
           isOptimistic: false,
         },
-      ]
-    );
+      ]);
 
     setMessages((prevMessages) => {
       const existingFetchedIds = new Set(
@@ -307,11 +307,13 @@ export default function ChatBoxNode({
   ]);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, 100);
-    return () => clearTimeout(timer);
-  }, [activeConversationId]);
+    if (!isLoadingConversationMessages) {
+      const timer = setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [activeConversationId, isLoadingConversationMessages]);
 
   useEffect(() => {
     if (!isLoadingMoreMessages) {
