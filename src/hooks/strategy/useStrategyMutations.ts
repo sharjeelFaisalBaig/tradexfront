@@ -132,9 +132,18 @@ export const useUpdateStrategy = () => {
       // Manually update the cache for the specific strategy
       queryClient.setQueryData(
         [QUERY_KEYS.STRATEGY, id],
-        (oldData: IStrategy | undefined) => {
+        (oldData: { data: IStrategy } | undefined) => {
           if (!oldData) return { ...updatedData.data };
-          return { ...oldData, data: { ...updatedData.data } };
+          return {
+            ...oldData,
+            data: {
+              ...oldData?.data,
+              name: updatedData?.data?.name,
+              tags: updatedData?.data?.tags,
+              description: updatedData?.data?.description,
+              updated_at: updatedData?.data?.updated_at,
+            },
+          };
         }
       );
 

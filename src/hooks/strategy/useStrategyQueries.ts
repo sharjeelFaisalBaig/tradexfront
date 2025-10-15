@@ -22,16 +22,16 @@ export const useGetStrategies = ({
 }) => {
   return useQuery({
     retry: false,
-    queryKey: [QUERY_KEYS.STRATEGIES, { search, sort_by, sort_order }], // params in key
+    queryKey: [QUERY_KEYS.STRATEGIES],
+    // queryKey: [QUERY_KEYS.STRATEGIES, { search, sort_by, sort_order }], // params in key
     queryFn: () =>
       getStrategies({
         search,
         sort_by,
         sort_order,
-      })
+      }),
   });
 };
-
 
 export const useGetStrategiesTags = () => {
   return useQuery({
