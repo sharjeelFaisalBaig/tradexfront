@@ -24,11 +24,10 @@ export default function TemplatesPage() {
   const [searchTerm, setSearchTerm] = useState("");
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="flex flex-col h-screen overflow-hidden bg-gray-50 dark:bg-gray-900">
       <Header />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />
-
         <main className="flex-1 overflow-y-auto p-6">
           {/* Search & Button */}
           <div className="flex items-center justify-between mb-6">

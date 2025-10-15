@@ -109,7 +109,12 @@ const DashboardSidebar = () => {
         )}
       >
         <div className="flex h-full flex-col">
-          <div className="flex items-center justify-end p-4">
+          <div
+            className={cn(
+              "flex items-center justify-end py-4",
+              collapsed ? "px-2" : "px-4"
+            )}
+          >
             <Button
               variant="ghost"
               size="sm"
