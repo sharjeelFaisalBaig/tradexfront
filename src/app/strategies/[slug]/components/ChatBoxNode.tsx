@@ -1,12 +1,7 @@
 "use client";
 import type React from "react";
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
-import {
-  NodeResizeControl,
-  NodeResizer,
-  Position,
-  useReactFlow,
-} from "@xyflow/react";
+import { NodeResizer, Position, useReactFlow } from "@xyflow/react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -42,12 +37,13 @@ import {
   useGetAiModels,
   useGetChatTemplates,
 } from "@/hooks/strategy/useStrategyQueries";
-import { cn, getFilteredAiModels, preventNodeDeletionKeys } from "@/lib/utils";
+import { getFilteredAiModels, preventNodeDeletionKeys } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
 import { toast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import NodeHandle from "./common/NodeHandle";
 import { useCredits } from "@/context/CreditContext";
+import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 
 // Types
 interface AIModel {
@@ -101,6 +97,7 @@ export default function ChatBoxNode({
   targetPosition = Position.Right,
   data,
 }: ChatBoxNodeProps) {
+  const successNote = useSuccessNotifier();
   const strategyId = useParams()?.slug as string;
   const { updateCredits } = useCredits();
   const [activeConversationId, setActiveConversationId] = useState<
@@ -753,7 +750,7 @@ export default function ChatBoxNode({
 
   const handleCopyResponse = (text: string) => {
     navigator.clipboard.writeText(text);
-    toast({
+    successNote({
       description: "Copied to clipboard",
       className: "h-10",
     });

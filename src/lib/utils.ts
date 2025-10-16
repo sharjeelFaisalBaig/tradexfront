@@ -41,22 +41,22 @@ export const getFullUrl = (endpoint: string = ""): string => {
 };
 
 export const getApiErrorMessage = (error?: unknown): string | undefined => {
-  if (!error || typeof error !== 'object') return undefined;
-  
+  if (!error || typeof error !== "object") return undefined;
+
   // Type guard for axios-style errors
-  const isAxiosError = (err: any): err is { response?: { data?: any } } => 
-    err && typeof err === 'object' && 'response' in err;
-  
+  const isAxiosError = (err: any): err is { response?: { data?: any } } =>
+    err && typeof err === "object" && "response" in err;
+
   if (isAxiosError(error)) {
     const responseData = error.response?.data;
     const messageFromErrors =
       responseData?.errors &&
-      typeof responseData.errors === 'object' &&
+      typeof responseData.errors === "object" &&
       Object.values(responseData.errors).flat().join(", ");
     const messageFromMessage = responseData?.message;
     return messageFromErrors || messageFromMessage;
   }
-  
+
   return undefined;
 };
 

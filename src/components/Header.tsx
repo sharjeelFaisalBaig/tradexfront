@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,8 +13,6 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import BellIcon from "../icons/bell.svg";
-import Affiliate from "../icons/affiliate.svg";
-import UnlockIcon from "../icons/unlock.svg";
 import { signOut } from "next-auth/react";
 import { useGetUser } from "@/hooks/auth/useAuth";
 import { getFullUrl } from "@/lib/utils";
@@ -74,7 +71,6 @@ const Header = ({}: HeaderInterface) => {
       <div className="flex items-center gap-[22px]">
         <div className="flex items-center gap-[12px]">
           <span className="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">
-            {/* {profile ? `${profile.credits.total_spent_this_month}/${profile.credits.total_earned_this_month} Credits` : "0/0 Credits"} */}
             {isLoadingUser
               ? "Loading Credits..."
               : `${credits ?? "Unknown"} Credits`}
