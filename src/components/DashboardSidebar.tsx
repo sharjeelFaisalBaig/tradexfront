@@ -42,7 +42,7 @@ const navigation = [
     icon: Strategy,
     activeIcon: AStrategy,
   },
-  { name: "Recent", href: "/recent", icon: Recent, activeIcon: ARecent },
+  { name: "Recents", href: "/recents", icon: Recent, activeIcon: ARecent },
   {
     name: "Favorites",
     href: "/favorites",

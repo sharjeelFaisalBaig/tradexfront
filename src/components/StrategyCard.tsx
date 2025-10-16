@@ -38,7 +38,9 @@ const StrategyCard = (props: StrategyCardProps) => {
     toggleStar,
   } = props;
 
-  strategy.tags = Array.isArray(strategy?.tags) ? strategy?.tags : JSON.parse(strategy?.tags);
+  strategy.tags = Array.isArray(strategy?.tags)
+    ? strategy?.tags
+    : JSON.parse(strategy?.tags || "[]");
 
   return (
     <Card
@@ -93,12 +95,13 @@ const StrategyCard = (props: StrategyCardProps) => {
         </div>
 
         <div className="px-5 pt-1 pb-2">
-
-          {strategy?.tags ? strategy?.tags?.map((tag) => (
-            <Badge key={tag} variant="secondary" className="text-xs mr-1">
-              {tag}
-            </Badge>
-          )) : ('')}
+          {strategy?.tags
+            ? strategy?.tags?.map((tag) => (
+                <Badge key={tag} variant="secondary" className="text-xs mr-1">
+                  {tag}
+                </Badge>
+              ))
+            : ""}
         </div>
 
         <div className="aspect-video px-5 mb-4">

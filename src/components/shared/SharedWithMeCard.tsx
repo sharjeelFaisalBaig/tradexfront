@@ -18,7 +18,7 @@ const SharedWithMeCard = (props: Props) => {
   return (
     <Card className="group w-full hover:shadow-lg transition-shadow cursor-pointer overflow-hidden rounded-[10px]">
       <div className="flex items-center justify-between px-5 pt-3 pb-2">
-        <div className=" ">
+        <div className="">
           <Badge variant="secondary" className="text-xs">
             {strategy.category}
           </Badge>
