@@ -47,7 +47,14 @@ const nodeDefaults = {
   targetPosition: Position.Left,
 };
 
-const initialNodes: Node[] = [];
+const initialNodes: Node[] = [
+  // {
+  //   id: "1",
+  //   type: "chartNode",
+  //   position: { x: 250, y: 100 },
+  //   data: { label: "Initial Chart Node" },
+  // },
+];
 const initialEdges: Edge[] = [];
 
 const nodeTypes = {
@@ -59,8 +66,8 @@ const nodeTypes = {
   socialMediaNode: SocialMediaNode,
   videoUploadNode: VideoUploadNode,
   annotationNode: AnnotationNode,
-  chartNode: ChartNode,
   groupContainer: GroupContainerNode,
+  chartNode: ChartNode,
 };
 
 const edgeTypes = {
@@ -338,6 +345,7 @@ const Strategy = (props: StrategyProps) => {
         "aiRemotePeers",
         "aiSocialMediaPeers",
         "aiThreadPeers",
+        "chartPeers",
       ].every(
         (key) =>
           Array.isArray((flows[0] as any)[key]) &&

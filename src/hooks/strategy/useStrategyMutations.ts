@@ -45,6 +45,10 @@ import {
   sendPeerAiNote,
   deleteStrategy,
   shareStrategy,
+  createChartPeer,
+  analyzeChartPeer,
+  uploadChartContent,
+  deleteChartPeer,
 } from "@/services/strategy/strategy_Mutation";
 import { IStrategy } from "@/lib/types";
 import { QUERY_KEYS } from "@/lib/queryKeys";
@@ -994,6 +998,82 @@ export const useSendChatMessage = () => {
         strategy_collaborator_id?: string;
       };
     }) => sendChatMessage({ strategyId, data }),
+  });
+};
+
+// new functions for chart node
+export const useCreateChartPeer = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ strategyId, data }: { strategyId: string; data: any }) =>
+      createChartPeer(strategyId, data),
+    // onSuccess: (_data, { strategyId }) => {
+    //   queryClient.invalidateQueries({
+    //     queryKey: [QUERY_KEYS.STRATEGY, strategyId],
+    //   });
+    // },
+  });
+};
+
+export const useAnalyzeChartPeer = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      strategyId,
+      peerId,
+    }: // data,
+    {
+      strategyId: string;
+      peerId: string;
+      // data: { ai_notes?: string };
+    }) => analyzeChartPeer({ strategyId, peerId }),
+    // onSuccess: (_data, { strategyId }) => {
+    //   queryClient.invalidateQueries({
+    //     queryKey: [QUERY_KEYS.STRATEGY, strategyId],
+    //   });
+    // },
+  });
+};
+
+export const useUploadChartContent = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      strategyId,
+      peerId,
+      data,
+    }: {
+      strategyId: string;
+      peerId: string;
+      data: {
+        file: any;
+        title: string;
+      };
+    }) => uploadChartContent({ strategyId, peerId, data }),
+    // onSuccess: (_data, { strategyId }) => {
+    //   queryClient.invalidateQueries({
+    //     queryKey: [QUERY_KEYS.STRATEGY, strategyId],
+    //   });
+    // },
+  });
+};
+
+export const useDeleteChartPeer = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      strategyId,
+      peerId,
+    }: {
+      strategyId: string;
+      peerId: string;
+    }) => deleteChartPeer({ strategyId, peerId }),
+    // onSuccess: (_data, { strategyId }) => {
+    //   queryClient.invalidateQueries({
+    //     queryKey: [QUERY_KEYS.STRATEGY, strategyId],
+    //   });
+    // },
   });
 };
 

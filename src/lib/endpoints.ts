@@ -127,6 +127,7 @@ export const endpoints = {
     CREATE_SOCIAL_PEER: (id: string) => `/strategies/${id}/peers/social_media`,
     CREATE_THREAD_PEER: (id: string) => `/strategies/${id}/peers/thread`,
     CREATE_REMOTE_PEER: (id: string) => `/strategies/${id}/peers/remote`,
+    CREATE_CHART_PEER: (id: string) => `/strategies/${id}/peers/chart`,
 
     // board upload peer endpoints
     UPDATE_ANNOTATION_PEER: ({ strategyId, peerId }: UploadContent) =>
@@ -145,6 +146,8 @@ export const endpoints = {
       `/strategies/${strategyId}/peers/remote/${peerId}/upload`,
     UPLOAD_THREAD_CONTENT: ({ strategyId, peerId }: UploadContent) =>
       `/strategies/${strategyId}/peers/thread/${peerId}/upload`,
+    UPLOAD_CHART_CONTENT: ({ strategyId, peerId }: UploadContent) =>
+      `/strategies/${strategyId}/peers/chart/${peerId}/upload`,
 
     // board delete peer endpoints
     DELETE_ANNOTATION_PEER: (id: string, peerId: string) =>
@@ -163,6 +166,8 @@ export const endpoints = {
       `/strategies/${id}/peers/remote/${peerId}`,
     DELETE_THREAD_PEER: (id: string, peerId: string) =>
       `/strategies/${id}/peers/thread/${peerId}`,
+    DELETE_CHART_PEER: (id: string, peerId: string) =>
+      `/strategies/${id}/peers/chart/${peerId}`,
 
     // board analyze peer endpoints
     ANALYZE_PEER: ({
@@ -173,6 +178,7 @@ export const endpoints = {
       id: string;
       peerId: string;
       peerType:
+        | "chart"
         | "social_media"
         | "remote"
         | "image"

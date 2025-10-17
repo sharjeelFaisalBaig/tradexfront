@@ -643,3 +643,64 @@ export const resetPeer = async ({
   );
   return res.data;
 };
+
+export const createChartPeer = async (strategyId: string, data: any) => {
+  const res = await axiosInstance.post(
+    endpoints.STRATEGY.CREATE_CHART_PEER(strategyId),
+    data
+  );
+  return res.data;
+};
+
+export const analyzeChartPeer = async ({
+  strategyId,
+  peerId,
+}: // data,
+{
+  strategyId: string;
+  peerId: string;
+  // data: {ai_notes?: string;};
+}) => {
+  const res = await axiosInstance.post(
+    endpoints.STRATEGY.ANALYZE_PEER({
+      peerId,
+      id: strategyId,
+      peerType: "chart",
+    })
+    // data
+  );
+  return res.data;
+};
+
+export const uploadChartContent = async ({
+  strategyId,
+  peerId,
+  data,
+}: {
+  strategyId: string;
+  peerId: string;
+  data: {
+    file: any;
+    title: string;
+  };
+}) => {
+  const res = await axiosInstance.post(
+    endpoints.STRATEGY.UPLOAD_CHART_CONTENT({ strategyId, peerId }),
+    data,
+    { headers: { "Content-Type": "multipart/form-data" } }
+  );
+  return res.data;
+};
+
+export const deleteChartPeer = async ({
+  strategyId,
+  peerId,
+}: {
+  strategyId: string;
+  peerId: string;
+}) => {
+  const res = await axiosInstance.delete(
+    endpoints.STRATEGY.DELETE_CHART_PEER(strategyId, peerId)
+  );
+  return res.data;
+};
