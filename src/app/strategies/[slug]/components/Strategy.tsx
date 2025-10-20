@@ -345,7 +345,7 @@ const Strategy = (props: StrategyProps) => {
         "aiRemotePeers",
         "aiSocialMediaPeers",
         "aiThreadPeers",
-        "chartPeers",
+        "aiChartPeers",
       ].every(
         (key) =>
           Array.isArray((flows[0] as any)[key]) &&
@@ -378,6 +378,20 @@ const Strategy = (props: StrategyProps) => {
       pushNodes(flow.aiSocialMediaPeers, "socialMediaNode");
       pushNodes(flow.aiRemotePeers, "remoteNode");
       pushNodes(flow.aiThreadPeers, "chatbox");
+      pushNodes(flow.aiChartPeers, "chatbox");
+
+      // pushNodes(
+      //   [
+      //     {
+      //       id: "1",
+      //       type: "chartNode",
+      //       position: { x: 250, y: 100 },
+      //       data: { label: "Initial Chart Node" },
+      //     },
+      //   ],
+      //   "chartNode"
+      // );
+
       setNodes(nodesFromFlows);
       if (
         Array.isArray(flow.strategyFlowEdges) &&
