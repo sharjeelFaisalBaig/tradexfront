@@ -14,7 +14,6 @@ import {
 import { fetchDealerBands, DealerBandsResponse } from "./fetchDealerBands";
 import { searchTickers, TickerSearchResult } from "./searchTickers";
 import { useAuth } from "@/context/AuthContext";
-import { useRouter } from "next/navigation";
 import { toast } from "@/hooks/use-toast";
 import { Search, X } from "lucide-react";
 
@@ -65,7 +64,6 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
   className = "",
 }) => {
   const { isLoggedIn } = useAuth();
-  const router = useRouter();
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const overlayRef = useRef<HTMLCanvasElement | null>(null);
   const chartRef = useRef<IChartApi | null>(null);
