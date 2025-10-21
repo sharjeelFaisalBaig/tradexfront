@@ -1,18 +1,19 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import type React from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   createChart,
   ColorType,
-  IChartApi,
-  CandlestickData,
-  HistogramData,
-  Time,
+  type IChartApi,
+  type CandlestickData,
+  type HistogramData,
+  type Time,
   CandlestickSeries,
   HistogramSeries,
 } from "lightweight-charts";
-import { fetchDealerBands, DealerBandsResponse } from "./fetchDealerBands";
-import { searchTickers, TickerSearchResult } from "./searchTickers";
+import { fetchDealerBands, type DealerBandsResponse } from "./fetchDealerBands";
+import { searchTickers, type TickerSearchResult } from "./searchTickers";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { Search, X } from "lucide-react";
@@ -710,7 +711,7 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
 
   const getScaleMarginsForInterval = (interval: string) => {
     // Always use dynamic calculation based on available data
-    let zones = memoZones;
+    const zones = memoZones;
 
     // If no zones, try to get price range from candlestick data
     if (zones.length === 0 && chartData?.candle) {
@@ -928,7 +929,6 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
         });
         return;
       }
-
       (series as any).applyOptions({ autoscaleInfoProvider: undefined });
       priceScale.applyOptions({ scaleMargins: { top: 0.05, bottom: 0.05 } });
       priceScale.setAutoScale(false);
@@ -1127,7 +1127,7 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
         const fromDateTimeStr = fromTime
           ? `${fromDate} ${fromTime}`
           : `${fromDate} 00:00:00`;
-        let fromDateTime = new Date(fromDateTimeStr + " UTC");
+        const fromDateTime = new Date(fromDateTimeStr + " UTC");
 
         const toDateTimeStr = toTime
           ? `${toDate} ${toTime}`
