@@ -173,9 +173,7 @@ const Header = ({}: HeaderInterface) => {
               <DropdownMenuItem onClick={() => router.push("/profile")}>
                 Profile
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => router.push("/settings")}>
-                Settings
-              </DropdownMenuItem>
+              {/* <DropdownMenuItem onClick={() => router.push("/settings")}>Settings</DropdownMenuItem> */}
               <DropdownMenuItem onClick={() => signOut()}>
                 Logout
               </DropdownMenuItem>

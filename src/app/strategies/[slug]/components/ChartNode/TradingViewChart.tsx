@@ -65,6 +65,7 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
   className = "",
 }) => {
   const { isLoggedIn } = useAuth();
+  const currentHoverDataRef = useRef<any>(null);
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const overlayRef = useRef<HTMLCanvasElement | null>(null);
   const chartRef = useRef<IChartApi | null>(null);
@@ -80,6 +81,15 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
   const [snapshotDate, setSnapshotDate] = useState<string | null>(null);
   const [currentSymbol, setCurrentSymbol] = useState(symbol);
   const [selectedInterval, setSelectedInterval] = useState<string>("5min");
+
+  // for select date range
+  const [selectedPeriod, setSelectedPeriod] = useState<{
+    start: any;
+    end: any;
+  }>({
+    start: {},
+    end: {},
+  });
 
   const [showWeekly, setShowWeekly] = useState(true);
   const [showDaily, setShowDaily] = useState(true);
@@ -2036,10 +2046,30 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
       requestAnimationFrame(() => redrawOverlay());
     };
 
+    const onChartClick = () => {
+      console.log("Jeda Function onChartClick", { animationId, isInteracting });
+
+      const candle = currentHoverDataRef.current;
+      if (candle) {
+        console.log("🕯️Jeda Candle clicked:", candle);
+        // setSelectedPeriod((prev) =>  prev.start?.time ? ({ ...prev, end: candle }) : {});
+        setSelectedPeriod((prev) => {
+          if (prev.start?.time) {
+            return { ...prev, end: candle };
+          } else {
+            return { start: candle, end: null };
+          }
+        });
+      } else {
+        console.log("⚠️ Jeda No hovered candle at click");
+      }
+    };
+
     // Mouse events
     chartElement.addEventListener("mousedown", startInteraction);
     chartElement.addEventListener("mouseup", stopInteraction);
     chartElement.addEventListener("mouseleave", stopInteraction);
+    chartElement.addEventListener("click", onChartClick);
 
     // Wheel events for scaling
     chartElement.addEventListener("wheel", handleChartInteraction);
@@ -2101,6 +2131,7 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
         chartElement.removeEventListener("touchstart", startInteraction);
         chartElement.removeEventListener("touchend", stopInteraction);
         chartElement.removeEventListener("touchcancel", stopInteraction);
+        chartElement.removeEventListener("click", onChartClick);
       }
 
       // Cancel any ongoing animation
@@ -2146,6 +2177,10 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isDarkMode, chartData]);
+
+  useEffect(() => {
+    currentHoverDataRef.current = currentHoverData;
+  }, [currentHoverData]);
 
   // Redraw overlay when toggles/zones or expected dropdown change
   useEffect(() => {
@@ -2452,6 +2487,20 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
               {interval}
             </button>
           ))}
+        </div>
+
+        <div className="flex gap-1">
+          <button
+            // onClick={() => setSelectedInterval(interval)}
+            className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+              selectedPeriod?.start?.time && selectedPeriod?.end?.time
+                ? "bg-[#00FBC7] text-black border border-[#00FBC7]"
+                : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700"
+            }`}
+          >
+            Select Dates Start: {selectedPeriod?.start?.time}, End{" "}
+            {selectedPeriod?.end?.time}
+          </button>
         </div>
       </div>
 
