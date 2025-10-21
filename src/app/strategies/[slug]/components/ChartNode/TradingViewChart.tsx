@@ -87,8 +87,19 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
     start: any;
     end: any;
   }>({
-    start: {},
-    end: {},
+    start: null,
+    end: null,
+  });
+
+  const [isSelectingPeriod, setIsSelectingPeriod] = useState(false);
+
+  // Store actual click coordinates for drawing
+  const [clickCoordinates, setClickCoordinates] = useState<{
+    start: { x: number; time: string } | null;
+    end: { x: number; time: string } | null;
+  }>({
+    start: null,
+    end: null,
   });
 
   const [showWeekly, setShowWeekly] = useState(true);
@@ -1408,7 +1419,7 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
     const container = chartContainerRef.current;
     const series = candlestickSeriesRef.current;
     if (!chart || !overlay || !container || !series) {
-      console.log("ðŸš« RedrawOverlay: Missing chart components");
+      console.log("🚫 RedrawOverlay: Missing chart components");
       return;
     }
 
@@ -1458,7 +1469,7 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
       return true;
     });
 
-    console.log("ðŸŽ­ Zones to draw after filtering:", {
+    console.log("🎭 Zones to draw after filtering:", {
       totalZones: memoZones.length,
       filteredZones: toDraw.length,
       toggles: { showWeekly: sw, showDaily: sd, showFire: sf, showMagnet: sm },
@@ -1558,6 +1569,81 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
       const labelX = right + 5; // Right side of zone with small margin
       ctx.fillText(centerLabel, labelX, roundedYCtr + 4);
     });
+
+    // Draw selected period points
+    if (clickCoordinates?.start) {
+      const startX = clickCoordinates?.start?.x;
+      const startDate = new Date(clickCoordinates.start.time);
+
+      // Draw start point marker
+      ctx.beginPath();
+      ctx.arc(startX, headerHeight + 100, 8, 0, 2 * Math.PI);
+      ctx.fillStyle = "#00FBC7";
+      ctx.fill();
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      // Draw start date label
+      ctx.font = "bold 12px Inter, sans-serif";
+      ctx.fillStyle = "#00FBC7";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "bottom";
+
+      const startLabel = startDate.toLocaleDateString("en-US", {
+        month: "short",
+        day: "2-digit",
+      });
+
+      // Draw label background
+      const labelWidth = ctx.measureText(startLabel).width + 12;
+      const labelHeight = 20;
+
+      ctx.fillStyle = "rgba(0, 251, 199, 0.9)";
+      ctx.fillRect(
+        startX - labelWidth / 2,
+        headerHeight + 120,
+        labelWidth,
+        labelHeight
+      );
+
+      ctx.fillStyle = "#000000";
+      ctx.fillText(startLabel, startX, headerHeight + 135);
+
+      if (clickCoordinates.end) {
+        // Complete period selected - draw end point marker
+        const endX = clickCoordinates.end.x;
+        const endDate = new Date(clickCoordinates.end.time);
+
+        // Draw end point marker
+        ctx.beginPath();
+        ctx.arc(endX, headerHeight + 100, 8, 0, 2 * Math.PI);
+        ctx.fillStyle = "#00FBC7";
+        ctx.fill();
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        // Draw end date label
+        const endLabel = endDate.toLocaleDateString("en-US", {
+          month: "short",
+          day: "2-digit",
+        });
+
+        const endLabelWidth = ctx.measureText(endLabel).width + 12;
+
+        ctx.fillStyle = "rgba(0, 251, 199, 0.9)";
+        ctx.fillRect(
+          endX - endLabelWidth / 2,
+          headerHeight + 120,
+          endLabelWidth,
+          labelHeight
+        );
+
+        ctx.fillStyle = "#000000";
+        ctx.fillText(endLabel, endX, headerHeight + 135);
+      }
+    }
 
     // Restore canvas context after clipping
     ctx.restore();
@@ -2046,19 +2132,90 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
       requestAnimationFrame(() => redrawOverlay());
     };
 
-    const onChartClick = () => {
-      console.log("Jeda Function onChartClick", { animationId, isInteracting });
-
+    const onChartClick = (event: MouseEvent) => {
       const candle = currentHoverDataRef.current;
       if (candle) {
-        console.log("🕯️Jeda Candle clicked:", candle);
-        // setSelectedPeriod((prev) =>  prev.start?.time ? ({ ...prev, end: candle }) : {});
+        // Get the actual click coordinates relative to the chart container
+        const chartContainer = chartContainerRef.current;
+        if (!chartContainer) return;
+
+        const rect = chartContainer.getBoundingClientRect();
+        const clickX = event.clientX - rect.left;
+
         setSelectedPeriod((prev) => {
-          if (prev.start?.time) {
-            return { ...prev, end: candle };
-          } else {
-            return { start: candle, end: null };
+          let newPeriod;
+          let newCoordinates;
+
+          // If no start date is selected, set the clicked date as start
+          if (!prev.start?.time) {
+            setIsSelectingPeriod(true);
+            newPeriod = { start: candle, end: null };
+            newCoordinates = {
+              start: { x: clickX, time: candle.time },
+              end: null,
+            };
           }
+          // If start date exists but no end date, set the clicked date as end
+          else if (prev.start?.time && !prev.end?.time) {
+            setIsSelectingPeriod(false);
+            newPeriod = { start: prev.start, end: candle };
+            newCoordinates = {
+              start: clickCoordinates.start,
+              end: { x: clickX, time: candle.time },
+            };
+          }
+          // If both start and end exist, determine which to update based on clicked date
+          else {
+            const startTime = new Date(prev.start.time).getTime();
+            const endTime = prev.end ? new Date(prev.end.time).getTime() : null;
+            const clickedTime = new Date(candle.time).getTime();
+
+            // If clicked date is before start date, update start
+            if (clickedTime < startTime) {
+              newPeriod = { start: candle, end: prev.end };
+              newCoordinates = {
+                start: { x: clickX, time: candle.time },
+                end: clickCoordinates.end,
+              };
+            }
+            // If clicked date is after end date (or if no end date), update end
+            else if (!endTime || clickedTime > endTime) {
+              newPeriod = { start: prev.start, end: candle };
+              newCoordinates = {
+                start: clickCoordinates.start,
+                end: { x: clickX, time: candle.time },
+              };
+            }
+            // If clicked date is between start and end, update the closer one
+            else {
+              const distanceToStart = Math.abs(clickedTime - startTime);
+              const distanceToEnd = Math.abs(clickedTime - endTime);
+
+              if (distanceToStart < distanceToEnd) {
+                newPeriod = { start: candle, end: prev.end };
+                newCoordinates = {
+                  start: { x: clickX, time: candle.time },
+                  end: clickCoordinates.end,
+                };
+              } else {
+                newPeriod = { start: prev.start, end: candle };
+                newCoordinates = {
+                  start: clickCoordinates.start,
+                  end: { x: clickX, time: candle.time },
+                };
+              }
+            }
+          }
+
+          // Update both states
+          setClickCoordinates(newCoordinates);
+
+          // Force redraw after a short delay to ensure state is updated
+          setTimeout(() => {
+            redrawOverlay();
+          }, 100);
+
+          return newPeriod;
         });
       } else {
         console.log("⚠️ Jeda No hovered candle at click");
@@ -2192,6 +2349,7 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
+    selectedPeriod,
     showWeekly,
     showDaily,
     showFire,
@@ -2491,15 +2649,42 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
 
         <div className="flex gap-1">
           <button
-            // onClick={() => setSelectedInterval(interval)}
-            className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+            onClick={() => {
+              // Clear selected period when clicked
+              setSelectedPeriod({ start: null, end: null });
+              setClickCoordinates({ start: null, end: null });
+              setIsSelectingPeriod(false);
+            }}
+            className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors flex items-center gap-2 ${
               selectedPeriod?.start?.time && selectedPeriod?.end?.time
                 ? "bg-[#00FBC7] text-black border border-[#00FBC7]"
+                : isSelectingPeriod
+                ? "bg-yellow-500 text-black border border-yellow-500"
                 : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700"
             }`}
+            title={
+              selectedPeriod?.start?.time && selectedPeriod?.end?.time
+                ? "Click to clear selected period"
+                : "Click on chart to select period"
+            }
           >
-            Select Dates Start: {selectedPeriod?.start?.time}, End{" "}
-            {selectedPeriod?.end?.time}
+            {selectedPeriod?.start?.time && selectedPeriod?.end?.time
+              ? `Selected: ${new Date(
+                  selectedPeriod?.start?.time
+                ).toLocaleDateString()} - ${new Date(
+                  selectedPeriod?.end?.time
+                ).toLocaleDateString()}`
+              : isSelectingPeriod
+              ? `Select End Date (Start: ${new Date(
+                  selectedPeriod?.start?.time
+                ).toLocaleDateString()})`
+              : "Click on chart to select period"}
+
+            {selectedPeriod?.start?.time && (
+              <span className="bg-red-600 text-white w-5 h-5 shrink-0 rounded-full flex items-center justify-center -mr-1">
+                <X size={18} />
+              </span>
+            )}
           </button>
         </div>
       </div>
@@ -2626,7 +2811,7 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
         )}
         <div
           ref={chartContainerRef}
-          className="w-full"
+          className={`w-full ${isSelectingPeriod ? "cursor-crosshair" : ""}`}
           style={{
             height: `${Math.max(
               400,
