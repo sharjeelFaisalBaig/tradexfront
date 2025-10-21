@@ -2262,7 +2262,10 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
                 Last Updated
               </span>
               {snapshotDate && (
-                <span className="text-sm font-semibold dark:text-[#00FBC7] text-gray-900 dark:text-white">
+                <span
+                  className="text-sm font-semibold text-gray-900 dark:text-white"
+                  // className="text-sm font-semibold dark:text-[#00FBC7] text-gray-900 dark:text-white"
+                >
                   {snapshotDate} EST
                 </span>
               )}
