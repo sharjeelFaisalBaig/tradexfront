@@ -30,7 +30,6 @@ export default function ChartNode({
           <div ref={nodeControlRef} className={`nodrag`} />
           <TooltipProvider>
             <div
-              id="JEDA_TooltipProvider"
               className="w-auto max-w-fit !min-h-fit mx-auto bg-white rounded-lg shadow-sm border overflow-hidden relative"
               // className="w-[1000px] max-w-md min-h-80 mx-auto bg-white rounded-lg shadow-sm border overflow-hidden relative"
               onWheel={(e) => e.stopPropagation()}

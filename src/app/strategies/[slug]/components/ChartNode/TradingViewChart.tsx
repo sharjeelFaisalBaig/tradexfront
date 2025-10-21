@@ -2245,7 +2245,7 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
   };
 
   return (
-    <div id="DEV_JEDA" className={`w-full h-auto p-2`}>
+    <div className={`w-full h-auto p-2`}>
       {/* Currently Selected Ticker Display */}
       <div className="mb-4 p-3 bg-gradient-to-r from-[#00FBC7]/10 to-[#00d4aa]/10 border border-[#00FBC7]/30 rounded-lg">
         <div className="flex items-center justify-between">
