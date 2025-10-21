@@ -43,7 +43,7 @@ const Dashboard = () => {
             profileData={data?.data}
           />
 
-          <TradingViewChart />
+          {/* <TradingViewChart /> */}
         </main>
       </div>
     </div>
