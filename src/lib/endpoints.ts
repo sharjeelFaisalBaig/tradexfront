@@ -204,7 +204,6 @@ export const endpoints = {
       conversationId: string;
     }) => `/strategies/${id}/ai-conversations/${conversationId}?page=${page}`,
   },
-
   CHAT_BOX: {
     // get ai-models endpoint
     GET_AI_MODELS: `/ai-models`,
@@ -212,5 +211,12 @@ export const endpoints = {
     UPDATE_AI_MODEL: (id: string, conversationId: string) =>
       `/strategies/${id}/ai-conversations-model/${conversationId}`,
     CHAT: (id: string) => `/strategies/${id}/ai-chats`,
+  },
+  FOLDER: {
+    LIST: `${API_BASE_PATH}/folders/tree=false`,
+    TREE: `${API_BASE_PATH}/folders/tree=true`,
+    CREATE: `${API_BASE_PATH}/folders`,
+    UPDATE: (id: string) => `${API_BASE_PATH}/folders/${id}`,
+    DELETE: (id: string) => `${API_BASE_PATH}/folders/${id}`,
   },
 };

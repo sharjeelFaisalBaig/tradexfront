@@ -9,7 +9,16 @@ interface Props {
   onRename?: () => void;
 }
 
-export default function ContextMenu({ x, y, isBackground, onDelete, onCopy, onPaste, onAddFolder, onRename }: Props) {
+export default function ContextMenu({
+  x,
+  y,
+  isBackground,
+  onDelete,
+  onCopy,
+  onPaste,
+  onAddFolder,
+  onRename,
+}: Props) {
   return (
     <ul
       className="absolute z-50 bg-white border border-gray-300 shadow-md rounded text-sm w-40"

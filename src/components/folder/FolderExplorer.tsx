@@ -2,10 +2,15 @@
 import { useState, useRef, useEffect } from "react";
 import FolderItem from "./FolderItem";
 import ContextMenu from "./ContextMenu";
+import { useCreateFolder } from "@/hooks/folder/useFolderMutations";
+import useSuccessNotifier from "@/hooks/useSuccessNotifier";
+import { showAPIErrorToast } from "@/lib/utils";
 
 let folderIdCounter = 1;
 
 export default function FolderExplorer() {
+  const successNote = useSuccessNotifier();
+
   const [folders, setFolders] = useState<
     {
       id: string;
@@ -35,6 +40,36 @@ export default function FolderExplorer() {
   ]); // Track navigation history
 
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // mutations
+  const { mutate: createFolder, isPending: isCreatingFolder } =
+    useCreateFolder();
+
+  const handleCreateFolder = async (parentId: string) => {
+    const baseName = "New Folder";
+    const parentFolder = findFolderById(folders, parentId);
+    if (parentFolder) {
+      createFolder(
+        {
+          name: "Third Folder",
+          description: "Folder description",
+          parent_folder_id: parentId,
+        }, // payload
+        {
+          onSuccess: (data: any) => {
+            successNote({
+              title: "Folder Created",
+              description: `Folder "${data?.data?.name}" created successfully.`,
+            });
+            // router.push(`/folders/${data?.data?.id}`);
+          },
+          onError: (error) => {
+            showAPIErrorToast(error);
+          },
+        }
+      );
+    }
+  };
 
   const generateUniqueFolderName = (
     baseName: string,
@@ -258,7 +293,7 @@ export default function FolderExplorer() {
 
   return (
     <div
-      className="p-4 relative"
+      className="p-4 relative bg-red-400"
       ref={containerRef}
       onContextMenu={(e) => handleContextMenu(e, currentFolderId)}
     >
@@ -269,7 +304,8 @@ export default function FolderExplorer() {
           </h2>
         </div>
         <button
-          onClick={() => createNewFolder(currentFolderId)}
+          onClick={() => handleCreateFolder(currentFolderId)}
+          // onClick={() => createNewFolder(currentFolderId)}
           className="bg-blue-500 text-white px-4 py-1 rounded hover:bg-blue-600"
         >
           + Create Folder

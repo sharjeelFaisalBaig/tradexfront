@@ -1,8 +1,8 @@
 "use client";
 
 import FolderExplorer from "@/components/folder/FolderExplorer";
-import Header from "@/components/Header"; // Adjust path if different
-import DashboardSidebar from "@/components/DashboardSidebar"; // Adjust path if different
+import DashboardSidebar from "@/components/DashboardSidebar";
+import Header from "@/components/Header";
 
 export default function FolderPage() {
   return (
@@ -10,7 +10,7 @@ export default function FolderPage() {
       <Header />
       <div className="flex flex-1 overflow-hidden">
         <DashboardSidebar />
-        <main className="relative flex-1 overflow-y-auto p-6">
+        <main className="relative flex-1 overflow-y-auto p-6 bg-green-400">
           <FolderExplorer />
         </main>
       </div>

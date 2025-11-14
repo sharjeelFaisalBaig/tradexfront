@@ -177,3 +177,16 @@ export interface UserProfile {
   credits: Credits;
   subscription: Subscription;
 }
+
+export interface Folder {
+  id: string;
+  name: string;
+  description: string | null;
+  tags: string[] | null;
+  created_by: number;
+  created_at: string; // ISO date string
+  updated_at: string; // ISO date string
+  parent_folder_id: string | null;
+  children: Folder[];
+  parent: Folder | null;
+}
