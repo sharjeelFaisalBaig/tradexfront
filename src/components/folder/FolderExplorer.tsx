@@ -18,6 +18,7 @@ export default function FolderExplorer() {
 
   const [folders, setFolders] = useState<Folder[]>([]);
 
+  const [deletingId, setDeletingId] = useState<string>("");
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
   const [folderPath, setFolderPath] = useState<(string | null)[]>([null]);
 
@@ -81,6 +82,47 @@ export default function FolderExplorer() {
     );
   };
 
+  const handleRename = (id: string, newName: string) => {
+    const trimmedName = newName.trim() || "Untitled Folder";
+
+    const folder = findFolderById(folders, id);
+    if (!folder) return;
+
+    const parentFolder = findParentFolder(folders, id);
+    const siblings = parentFolder ? parentFolder.children : rootFolders;
+
+    // DUPLICATE CHECK
+    if (siblings?.some((f) => f.name === trimmedName && f.id !== id)) {
+      setDuplicateName(trimmedName);
+      setModalOpen(true);
+      return;
+    }
+
+    // Optimistic UI update
+    setFolders((prev) => updateFolderName(prev, id, trimmedName));
+
+    // Call backend
+    renameFolder(
+      { id, name: trimmedName },
+      {
+        onSuccess: () => {
+          successNote({
+            title: "Folder Renamed",
+            description: `Renamed to "${trimmedName}"`,
+          });
+          setEditingFolderId(null);
+        },
+        onError: (error) => {
+          showAPIErrorToast(error);
+
+          // Undo UI change if API failed
+          setFolders((prev) => updateFolderName(prev, id, folder.name));
+          setEditingFolderId(null);
+        },
+      }
+    );
+  };
+
   const generateUniqueFolderName = (
     baseName: string,
     parentChildren: Folder[]
@@ -91,11 +133,6 @@ export default function FolderExplorer() {
       newName = `${baseName} (${counter++})`;
     }
     return newName;
-  };
-
-  const handleRename = (id: string, newName: string) => {
-    console.log({ handleRename: { id, newName } });
-    setEditingFolderId(null);
   };
 
   const handleContextMenu = (e: React.MouseEvent, id: string = "") => {
@@ -147,14 +184,20 @@ export default function FolderExplorer() {
   };
 
   const handleDelete = (id: string) => {
+    setDeletingId(id);
+
     deleteFolder(id, {
       onSuccess: () => {
         successNote({
           title: "Folder Deleted",
           description: "Folder has been deleted successfully",
         });
+        setDeletingId("");
       },
-      onError: (err) => showAPIErrorToast(err),
+      onError: (err) => {
+        showAPIErrorToast(err);
+        setDeletingId("");
+      },
     });
     handleCloseContextMenu();
   };
@@ -312,6 +355,7 @@ export default function FolderExplorer() {
         ) : (
           foldersToDisplay.map((folder) => (
             <FolderItem
+              isDeleting={deletingId === folder.id}
               key={folder.id}
               folder={folder}
               onRename={handleRename}
