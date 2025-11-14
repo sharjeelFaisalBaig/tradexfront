@@ -11,6 +11,7 @@ import { useGetFolders } from "@/hooks/folder/useFolderQueries";
 import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 import { showAPIErrorToast } from "@/lib/utils";
 import { Folder } from "@/lib/types";
+import SelectStrategiesModal from "../modal/SelectStrategiesModal";
 
 export default function FolderExplorer() {
   const successNote = useSuccessNotifier();
@@ -37,6 +38,8 @@ export default function FolderExplorer() {
   const [modalOpen, setModalOpen] = useState(false);
   const [duplicateName, setDuplicateName] = useState("");
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
+  const [selectedFolder, setSelectedFolder] = useState<Folder | null>(null);
+  const [showStrategiesModal, setShowStrategiesModal] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -121,6 +124,13 @@ export default function FolderExplorer() {
         },
       }
     );
+  };
+
+  const handleAddStrategies = (folderId: string) => {
+    // Implement the logic to add strategies to the folder with the given folderId
+    console.log("Add strategies to folder:", folderId);
+    setShowStrategiesModal(true);
+    setSelectedFolder(findFolderById(folders, folderId));
   };
 
   const generateUniqueFolderName = (
@@ -323,6 +333,12 @@ export default function FolderExplorer() {
       ref={containerRef}
       onContextMenu={(e) => handleContextMenu(e, "")}
     >
+      <SelectStrategiesModal
+        selectedFolder={selectedFolder}
+        isOpen={showStrategiesModal}
+        onClose={() => setShowStrategiesModal(false)}
+      />
+
       <div className="flex justify-between items-center mb-4">
         <div className="flex items-center">
           <h2 className="text-xl font-bold">
@@ -377,6 +393,7 @@ export default function FolderExplorer() {
           onPaste={() => handlePaste(currentFolderId)}
           onAddFolder={() => handleCreateFolder(currentFolderId)}
           onRename={() => handleRenameContext(contextMenu.folderId)}
+          onAddStrategies={() => handleAddStrategies(contextMenu.folderId)}
         />
       )}
 

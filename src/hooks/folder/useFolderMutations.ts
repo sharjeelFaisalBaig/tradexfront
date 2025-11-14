@@ -1,6 +1,7 @@
 import {
   createFolder,
   deleteFolder,
+  moveStrategyToFolder,
   updateFolderName,
 } from "@/services/folder/folder_Mutation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -121,6 +122,41 @@ export const useDeleteFolder = () => {
               folders: deleteFolderFromTree(oldData.data.folders),
             },
           };
+        }
+      );
+    },
+  });
+};
+
+export const useMoveStrategyToFolder = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { strategyId: string; folder_id: string }) =>
+      moveStrategyToFolder(data),
+    onSuccess: (_, deletedId) => {
+      queryClient.setQueryData(
+        [QUERY_KEYS.FOLDERS],
+        (oldData: { data: { folders: Folder[] } } | undefined) => {
+          console.log({ oldData });
+
+          if (!oldData) return oldData;
+
+          // const deleteFolderFromTree = (folders: Folder[]): Folder[] => {
+          //   return folders
+          //     .filter((folder) => folder.id !== deletedId)
+          //     .map((folder) => ({
+          //       ...folder,
+          //       children: deleteFolderFromTree(folder.children || []),
+          //     }));
+          // };
+
+          // return {
+          //   ...oldData,
+          //   data: {
+          //     ...oldData.data,
+          //     folders: deleteFolderFromTree(oldData.data.folders),
+          //   },
+          // };
         }
       );
     },

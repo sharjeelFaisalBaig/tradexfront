@@ -223,7 +223,7 @@ export default function ChatBoxNode({
         (conv: any) => ({
           ...conv,
           selectedModel:
-            availableModels.find((m) => m.id === conv.ai_model_id) ||
+            availableModels.find((m) => m.id === conv?.ai_model_id) ||
             availableModels[0],
           isLoading: false,
           hasError: false,
@@ -515,12 +515,12 @@ export default function ChatBoxNode({
       const conv = response?.conversation;
       if (!conv) throw new Error("No conversation returned from API");
       const model =
-        availableModels.find((m) => m.id === conv.ai_model_id) ||
+        availableModels.find((m) => m.id === conv?.ai_model_id) ||
         availableModels[0];
       const newConversation: Conversation = {
         id: conv.id,
         title: conv.title,
-        ai_model_id: conv.ai_model_id,
+        ai_model_id: conv?.ai_model_id,
         isLoading: false,
         draftMessage: "",
         selectedModel: model,

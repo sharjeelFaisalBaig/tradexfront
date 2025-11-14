@@ -218,5 +218,7 @@ export const endpoints = {
     CREATE: `${API_BASE_PATH}/folders`,
     UPDATE: (id: string) => `${API_BASE_PATH}/folders/${id}`,
     DELETE: (id: string) => `${API_BASE_PATH}/folders/${id}`,
+    MOVE_STRATEGY: (id: string) =>
+      `${API_BASE_PATH}/strategies/${id}/move-to-folder`,
   },
 };
