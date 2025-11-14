@@ -10,7 +10,7 @@ export default function FolderPage() {
       <Header />
       <div className="flex flex-1 overflow-hidden">
         <DashboardSidebar />
-        <main className="relative flex-1 overflow-y-auto p-6 bg-green-400">
+        <main className="relative flex-1 overflow-y-auto p-6">
           <FolderExplorer />
         </main>
       </div>

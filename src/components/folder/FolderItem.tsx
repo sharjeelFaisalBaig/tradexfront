@@ -1,7 +1,8 @@
+import { Folder } from "@/lib/types";
 import { useState, useEffect, useRef } from "react";
 
 interface Props {
-  folder: { id: string; name: string; children: any[] };
+  folder: Folder;
   onRename: (id: string, name: string) => void;
   onContextMenu: (e: React.MouseEvent, id: string) => void;
   isEditing: boolean;

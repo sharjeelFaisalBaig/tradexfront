@@ -187,6 +187,6 @@ export interface Folder {
   created_at: string; // ISO date string
   updated_at: string; // ISO date string
   parent_folder_id: string | null;
-  children: Folder[];
-  parent: Folder | null;
+  children?: Folder[];
+  parent?: Folder | null;
 }

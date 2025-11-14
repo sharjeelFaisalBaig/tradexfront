@@ -5,35 +5,19 @@ import ContextMenu from "./ContextMenu";
 import { useCreateFolder } from "@/hooks/folder/useFolderMutations";
 import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 import { showAPIErrorToast } from "@/lib/utils";
-import { useGetFolders } from "@/hooks/folder/useFolderQueries";
-import { Folder } from "@/lib/types";
-import _ from "lodash";
 
 let folderIdCounter = 1;
 
 export default function FolderExplorer() {
   const successNote = useSuccessNotifier();
 
-  const { data, isLoading } = useGetFolders();
-
-  const [folders, setFolders] = useState<Folder[]>(data?.data?.folders ?? []);
-
-  console.log({ data, folders });
-
-  useEffect(() => {
-    if (data?.data?.folders) {
-      setFolders(data.data.folders);
-    }
-  }, [data]);
-
-  // const [folders, setFolders] = useState<
-  //   {
-  //     id: string;
-  //     name: string;
-  //     children: { id: string; name: string; children: any[] }[];
-  //   }[]
-  // >([{ id: `folder-${folderIdCounter++}`, name: "Root", children: [] }]);
-
+  const [folders, setFolders] = useState<
+    {
+      id: string;
+      name: string;
+      children: { id: string; name: string; children: any[] }[];
+    }[]
+  >([{ id: `folder-${folderIdCounter++}`, name: "Root", children: [] }]);
   const [contextMenu, setContextMenu] = useState({
     visible: false,
     x: 0,
@@ -48,18 +32,12 @@ export default function FolderExplorer() {
   const [modalOpen, setModalOpen] = useState(false);
   const [duplicateName, setDuplicateName] = useState("");
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
-
+  const [currentFolderId, setCurrentFolderId] = useState<string>(
+    `folder-${folderIdCounter - 1}`
+  ); // Start at Root
   const [folderPath, setFolderPath] = useState<string[]>([
     `folder-${folderIdCounter - 1}`,
   ]); // Track navigation history
-
-  const [currentFolderId, setCurrentFolderId] = useState<string>("");
-
-  // useEffect(() => {
-  //   if (folders.length > 0) {
-  //     setCurrentFolderId(folders[0].id); // Root folder from backend
-  //   }
-  // }, [folders]);
 
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -67,73 +45,35 @@ export default function FolderExplorer() {
   const { mutate: createFolder, isPending: isCreatingFolder } =
     useCreateFolder();
 
-  // const createNewFolder = (parentId: string) => {
-  //   const baseName = "New Folder";
-  //   const parentFolder = findFolderById(folders, parentId);
-  //   if (parentFolder) {
-  //     const newName = generateUniqueFolderName(baseName, parentFolder.children);
-  //     const newId = `folder-${folderIdCounter++}`;
-  //     setFolders((prev) =>
-  //       updateFolderChildren(prev, parentId, [
-  //         ...parentFolder.children,
-  //         { id: newId, name: newName, children: [] },
-  //       ])
-  //     );
-  //     setEditingFolderId(newId);
-  //   }
-  // };
-
-  const handleCreateFolder = (parentId: string) => {
-    console.log({ parentId });
-
+  const handleCreateFolder = async (parentId: string) => {
+    const baseName = "New Folder";
     const parentFolder = findFolderById(folders, parentId);
-    if (!parentFolder) return;
-
-    // Generate a temp UI name before API response
-    const tempName = generateUniqueFolderName(
-      "New Folder",
-      parentFolder?.children || []
-    );
-
-    createFolder(
-      {
-        name: tempName,
-        description: "",
-        // parent_folder_id: parentId,
-      },
-      {
-        onSuccess: (res: any) => {
-          const created = res.data;
-
-          // Update local state -> insert backend folder
-          setFolders((prev) =>
-            updateFolderChildren(prev, parentId, [
-              ...(parentFolder?.children || []),
-              // {
-              //   id: created.id, // ← backend folder ID
-              //   name: created.name, // ← backend folder name
-              //   children: [],
-              // },
-            ])
-          );
-
-          // Begin rename mode immediately
-          setEditingFolderId(created.id);
-
-          successNote({
-            title: "Folder Created",
-            description: `Folder "${created.name}" created successfully.`,
-          });
-        },
-
-        onError: (error) => showAPIErrorToast(error),
-      }
-    );
+    if (parentFolder) {
+      createFolder(
+        {
+          name: "Third Folder",
+          description: "Folder description",
+          parent_folder_id: parentId,
+        }, // payload
+        {
+          onSuccess: (data: any) => {
+            successNote({
+              title: "Folder Created",
+              description: `Folder "${data?.data?.name}" created successfully.`,
+            });
+            // router.push(`/folders/${data?.data?.id}`);
+          },
+          onError: (error) => {
+            showAPIErrorToast(error);
+          },
+        }
+      );
+    }
   };
 
   const generateUniqueFolderName = (
     baseName: string,
-    parentChildren: Folder[]
+    parentChildren: { id: string; name: string; children: any[] }[]
   ) => {
     let newName = baseName;
     let counter = 1;
@@ -141,6 +81,22 @@ export default function FolderExplorer() {
       newName = `${baseName} (${counter++})`;
     }
     return newName;
+  };
+
+  const createNewFolder = (parentId: string) => {
+    const baseName = "New Folder";
+    const parentFolder = findFolderById(folders, parentId);
+    if (parentFolder) {
+      const newName = generateUniqueFolderName(baseName, parentFolder.children);
+      const newId = `folder-${folderIdCounter++}`;
+      setFolders((prev) =>
+        updateFolderChildren(prev, parentId, [
+          ...parentFolder.children,
+          { id: newId, name: newName, children: [] },
+        ])
+      );
+      setEditingFolderId(newId);
+    }
   };
 
   const handleRename = (id: string, newName: string) => {
@@ -201,13 +157,13 @@ export default function FolderExplorer() {
           : copiedFolder.name;
         const newName = generateUniqueFolderName(
           `${baseName} - Copy`,
-          parentFolder?.children || []
+          parentFolder.children
         );
         const newId = `folder-${folderIdCounter++}`;
         setFolders((prev) =>
           updateFolderChildren(prev, parentId, [
-            ...(parentFolder?.children || []),
-            // { id: newId, name: newName, children: [] },
+            ...parentFolder.children,
+            { id: newId, name: newName, children: [] },
           ])
         );
       }
@@ -281,12 +237,13 @@ export default function FolderExplorer() {
   }, [contextMenu.visible]);
 
   // Helper functions
-  const findFolderById = (items: Folder[], id: string): Folder | null => {
-    if (!Array.isArray(items)) return null;
-
-    for (let f of items) {
-      if (f.id === id) return f;
-      const found = findFolderById(f?.children || [], id);
+  const findFolderById = (
+    folders: any[],
+    id: string
+  ): { id: string; name: string; children: any[] } | null => {
+    for (let folder of folders) {
+      if (folder.id === id) return folder;
+      const found = findFolderById(folder.children, id);
       if (found) return found;
     }
     return null;
@@ -305,18 +262,15 @@ export default function FolderExplorer() {
   };
 
   const updateFolderChildren = (
-    list: Folder[],
+    folders: any[],
     id: string,
-    newChildren: Folder[]
-  ): Folder[] => {
-    return list.map((folder) => {
-      if (folder.id === id) {
-        return { ...folder, children: newChildren };
-      }
-
+    newChildren: any[]
+  ): any[] => {
+    return folders.map((folder) => {
+      if (folder.id === id) return { ...folder, children: newChildren };
       return {
         ...folder,
-        children: updateFolderChildren(folder.children || [], id, newChildren),
+        children: updateFolderChildren(folder.children, id, newChildren),
       };
     });
   };
@@ -339,7 +293,7 @@ export default function FolderExplorer() {
 
   return (
     <div
-      className="p-4 relative"
+      className="p-4 relative bg-red-400"
       ref={containerRef}
       onContextMenu={(e) => handleContextMenu(e, currentFolderId)}
     >
@@ -351,6 +305,7 @@ export default function FolderExplorer() {
         </div>
         <button
           onClick={() => handleCreateFolder(currentFolderId)}
+          // onClick={() => createNewFolder(currentFolderId)}
           className="bg-blue-500 text-white px-4 py-1 rounded hover:bg-blue-600"
         >
           + Create Folder
@@ -366,7 +321,7 @@ export default function FolderExplorer() {
       )}
 
       <div className="space-y-1">
-        {currentFolder?.children?.map((folder) => (
+        {currentFolder?.children.map((folder) => (
           <FolderItem
             key={folder.id}
             folder={folder}
@@ -386,7 +341,7 @@ export default function FolderExplorer() {
           onDelete={() => handleDelete(contextMenu.folderId)}
           onCopy={() => handleCopy(contextMenu.folderId)}
           onPaste={() => handlePaste(currentFolderId)}
-          onAddFolder={() => handleCreateFolder(currentFolderId)}
+          onAddFolder={() => createNewFolder(currentFolderId)}
           onRename={() => handleRenameContext(contextMenu.folderId)}
         />
       )}

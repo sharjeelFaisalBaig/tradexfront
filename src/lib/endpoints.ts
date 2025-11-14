@@ -213,8 +213,8 @@ export const endpoints = {
     CHAT: (id: string) => `/strategies/${id}/ai-chats`,
   },
   FOLDER: {
-    LIST: `${API_BASE_PATH}/folders/tree=false`,
-    TREE: `${API_BASE_PATH}/folders/tree=true`,
+    LIST: `${API_BASE_PATH}/folders?tree=false`,
+    TREE: `${API_BASE_PATH}/folders?tree=true`,
     CREATE: `${API_BASE_PATH}/folders`,
     UPDATE: (id: string) => `${API_BASE_PATH}/folders/${id}`,
     DELETE: (id: string) => `${API_BASE_PATH}/folders/${id}`,
