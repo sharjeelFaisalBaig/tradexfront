@@ -13,6 +13,8 @@ export const updateFolderName = async (id: string, name: string) => {
 };
 
 export const deleteFolder = async (id: string) => {
-  const res = await axiosInstance.delete(endpoints.FOLDER.DELETE(id));
+  const res = await axiosInstance.delete(endpoints.FOLDER.DELETE(id), {
+    data: { action: "delete_all" },
+  });
   return res.data;
 };
