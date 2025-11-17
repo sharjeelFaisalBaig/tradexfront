@@ -14,11 +14,13 @@ import Header from "@/components/Header";
 import SearchIcon from "@/icons/search.svg";
 import StrategyCard from "@/components/StrategyCard";
 import { IStrategy } from "@/lib/types";
+import {
+  useGetFavouriteStrategies,
+  useGetStrategies,
+} from "@/hooks/strategy/useStrategyQueries";
 import Loader from "@/components/common/Loader";
-import { Pagination } from "@/components/common/Pagination";
-import { useGetRecentStrategies } from "@/hooks/strategy/useStrategyQueries";
-import DeleteStrategyModal from "@/components/modal/DeleteStrategyModal";
 import NewStrategyModal from "@/components/modal/NewStrategyModal";
+import DeleteStrategyModal from "@/components/modal/DeleteStrategyModal";
 import {
   useCopyStrategy,
   useFavouriteStrategy,
@@ -31,7 +33,7 @@ import _ from "lodash";
 
 type ModalType = "edit" | "delete" | "share" | "copy" | "";
 
-const Strategies = () => {
+const FavoriteStrategiesPage = () => {
   const router = useRouter();
   const successNote = useSuccessNotifier();
   // mutations
@@ -58,22 +60,12 @@ const Strategies = () => {
   });
 
   const { data, isLoading, isError, error } =
-    useGetRecentStrategies(strategyQueryParams);
+    useGetFavouriteStrategies(strategyQueryParams);
+  // const { data, isLoading, isError, error } = useGetStrategies(strategyQueryParams);
   const strategies: IStrategy[] = useMemo(
     () => data?.data?.strategies || [],
     [data]
   );
-
-  useEffect(() => {
-    let sort_by = sortOption === "last_modified" ? "updated_at" : "name";
-    let sort_order: "asc" | "desc" = sortOption === "name" ? "asc" : "desc";
-
-    setStrategyQueryParams({
-      search: debouncedSearch,
-      sort_by,
-      sort_order,
-    });
-  }, [debouncedSearch, sortOption]);
 
   useEffect(() => {
     if (error) {
@@ -95,20 +87,12 @@ const Strategies = () => {
   }, [strategies]);
 
   // Filter based on search
-  const filteredStrategies = useMemo(() => {
-    if (!strategies) return [];
-
-    if (!debouncedSearch.trim()) return strategies;
-
-    return strategies.filter((s) => {
-      const name = s.name?.toLowerCase() || "";
-      const tags = s.tags?.join(" ").toLowerCase() || "";
-      const search = debouncedSearch.toLowerCase();
-
-      return name.includes(search) || tags.includes(search);
-    });
-  }, [strategies, debouncedSearch]);
-
+  const filteredStrategies = strategies
+    ?.map((strategy) => {
+      const isFav = favStrategies?.some((fav) => fav?.id === strategy?.id);
+      return isFav ? strategy : null;
+    })
+    .filter(Boolean) as IStrategy[];
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedSearch(searchTerm);
@@ -236,6 +220,16 @@ const Strategies = () => {
             </div>
             {/* Filters */}
             <div className="flex items-center space-x-4">
+              {/* <Select defaultValue="10">
+                <SelectTrigger className="w-32">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10 per page</SelectItem>
+                  <SelectItem value="25">25 per page</SelectItem>
+                  <SelectItem value="50">50 per page</SelectItem>
+                </SelectContent>
+              </Select> */}
               <Select
                 defaultValue="last_modified"
                 onValueChange={(value) => setSortOption(value)}
@@ -310,4 +304,4 @@ const Strategies = () => {
   );
 };
 
-export default Strategies;
+export default FavoriteStrategiesPage;

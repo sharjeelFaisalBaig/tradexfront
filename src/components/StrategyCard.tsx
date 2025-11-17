@@ -16,7 +16,7 @@ import {
 import { IStrategy } from "@/lib/types";
 
 interface StrategyCardProps {
-  isFavorite: boolean;
+  isFavorite?: boolean;
   strategy: IStrategy;
   onClick: (data: IStrategy) => void;
   onEdit?: (data: IStrategy) => void;

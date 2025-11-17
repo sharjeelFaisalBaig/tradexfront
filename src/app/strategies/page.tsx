@@ -194,7 +194,7 @@ const Strategies = () => {
               onClick={(e) => e.stopPropagation()}
               className="fixed top-0 left-0 w-full h-full flex items-center justify-center bg-[#f6f8fb]/80 dark:bg-gray-900/80 z-50"
             >
-              <Loader text="Copy strategy..." />
+              <Loader text="Copying strategy..." />
             </div>
           )}
           {/* Header Controls */}

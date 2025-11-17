@@ -237,11 +237,16 @@ export const useCopyStrategy = () => {
 
 export const useFavouriteStrategy = () => {
   const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: ({ id, is_favourite }: { id: string; is_favourite: boolean }) =>
       favouriteStrategy(id, is_favourite),
+
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.STRATEGIES] });
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.FAVOURITE_STRATEGIES],
+      });
     },
   });
 };
