@@ -5,7 +5,6 @@ import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import ADashboardIcon from "../icons/Adashboardicon.svg";
 import DashboardIcon from "../icons/dashboardicon.svg";
-import Chart from "../icons/chart.svg";
 import AStrategy from "../icons/Amystrategies.svg";
 import Strategy from "../icons/mystrategies.svg";
 import ARecent from "../icons/Arecent.svg";
@@ -15,6 +14,7 @@ import Favorites from "../icons/favorites.svg";
 import ATemplates from "../icons/Atemplates.svg";
 import Templates from "../icons/templates.svg";
 import Folder from "../icons/folder.svg";
+import AFolder from "../icons/Afolder.svg";
 import AShareBlue from "../icons/Ashareblue.svg";
 import ShareBlue from "../icons/shareblue.svg";
 import { useSidebar } from "@/context/SidebarContext";
@@ -54,6 +54,12 @@ const navigation = [
     href: "/templates",
     icon: Templates,
     activeIcon: ATemplates,
+  },
+  {
+    name: "Folders",
+    href: "/folders",
+    icon: Folder,
+    activeIcon: AFolder,
   },
   {
     name: "Shared with Me",
@@ -173,12 +179,18 @@ const DashboardSidebar = () => {
                     {!collapsed && item.name}
                   </Link>
 
-                  {!collapsed && item.name === "Templates" && (
+                  {/* {!collapsed && item.name === "Templates" && (
                     <div className="mt-1">
                       <Link
                         href="/folders"
                         className={cn(
-                          "group flex items-center px-[8px] py-[15px] text-sm font-medium rounded-[10px] transition-colors text-dark-gray dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
+                          "group flex px-[8px] py-[15px] text-sm font-medium rounded-[10px] transition-colors",
+                          collapsed
+                            ? "justify-center items-center"
+                            : "items-center",
+                          isActive
+                            ? "bg-[#00AA67] text-white"
+                            : "text-dark-gray dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
                         )}
                       >
                         <Folder className="h-6 w-6 mr-3 text-[#0088CC]" />
@@ -190,7 +202,7 @@ const DashboardSidebar = () => {
                         ></Button>
                       </Link>
                     </div>
-                  )}
+                  )} */}
                 </div>
               );
             })}
