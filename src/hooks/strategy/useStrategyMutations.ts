@@ -49,9 +49,9 @@ import {
   analyzeChartPeer,
   uploadChartContent,
   deleteChartPeer,
-} from "@/services/strategy/strategy_Mutation";
-import { IStrategy } from "@/lib/types";
+} from "@/services/strategy/strategy_mutation";
 import { QUERY_KEYS } from "@/lib/queryKeys";
+import { IStrategy } from "@/lib/types";
 
 // Type interfaces for better type safety
 interface PeerMutationParams {
@@ -1007,11 +1007,11 @@ export const useCreateChartPeer = () => {
   return useMutation({
     mutationFn: ({ strategyId, data }: { strategyId: string; data: any }) =>
       createChartPeer(strategyId, data),
-    // onSuccess: (_data, { strategyId }) => {
-    //   queryClient.invalidateQueries({
-    //     queryKey: [QUERY_KEYS.STRATEGY, strategyId],
-    //   });
-    // },
+    onSuccess: (_data, { strategyId }) => {
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.STRATEGY, strategyId],
+      });
+    },
   });
 };
 

@@ -47,14 +47,7 @@ const nodeDefaults = {
   targetPosition: Position.Left,
 };
 
-const initialNodes: Node[] = [
-  // {
-  //   id: "1",
-  //   type: "chartNode",
-  //   position: { x: 250, y: 100 },
-  //   data: { label: "Initial Chart Node" },
-  // },
-];
+const initialNodes: Node[] = [];
 const initialEdges: Edge[] = [];
 
 const nodeTypes = {
@@ -378,21 +371,10 @@ const Strategy = (props: StrategyProps) => {
       pushNodes(flow.aiSocialMediaPeers, "socialMediaNode");
       pushNodes(flow.aiRemotePeers, "remoteNode");
       pushNodes(flow.aiThreadPeers, "chatbox");
-      pushNodes(flow.aiChartPeers, "chatbox");
-
-      // pushNodes(
-      //   [
-      //     {
-      //       id: "1",
-      //       type: "chartNode",
-      //       position: { x: 250, y: 100 },
-      //       data: { label: "Initial Chart Node" },
-      //     },
-      //   ],
-      //   "chartNode"
-      // );
+      pushNodes(flow.aiChartPeers, "chartNode");
 
       setNodes(nodesFromFlows);
+
       if (
         Array.isArray(flow.strategyFlowEdges) &&
         flow.strategyFlowEdges.length > 0

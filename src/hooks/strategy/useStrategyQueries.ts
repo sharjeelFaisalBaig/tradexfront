@@ -10,7 +10,7 @@ import {
   getStrategiesTags,
   getRecentStrategies,
   getFavouriteStrategies,
-} from "@/services/strategy/strategy_API";
+} from "@/services/strategy/strategy_api";
 
 // Hook with search & sort support
 export const useGetStrategies = ({

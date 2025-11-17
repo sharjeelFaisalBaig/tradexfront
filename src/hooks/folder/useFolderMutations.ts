@@ -3,7 +3,7 @@ import {
   deleteFolder,
   moveStrategyToFolder,
   updateFolderName,
-} from "@/services/folder/folder_Mutation";
+} from "@/services/folder/folder_mutation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { QUERY_KEYS } from "@/lib/queryKeys";
 import { Folder } from "@/lib/types";

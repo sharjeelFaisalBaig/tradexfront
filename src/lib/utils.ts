@@ -127,6 +127,7 @@ export const getPeerTypeFromNodeType = (nodeType: string): string => {
     remoteNode: "remote",
     chatbox: "thread",
     annotationNode: "annotation",
+    chartNode: "chart",
   };
   // Return the corresponding peer type or an empty string if not found
   return nodeTypeToPeerTypeMap[nodeType] || "";

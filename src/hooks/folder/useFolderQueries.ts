@@ -1,6 +1,6 @@
-import { getFoldersList } from "@/services/folder/folder_API";
-import { QUERY_KEYS } from "@/lib/queryKeys";
+import { getFoldersList } from "@/services/folder/folder_api";
 import { useQuery } from "@tanstack/react-query";
+import { QUERY_KEYS } from "@/lib/queryKeys";
 
 export const useGetFolders = () => {
   return useQuery({

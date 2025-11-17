@@ -2,7 +2,7 @@
 
 import { useCredits } from "@/context/CreditContext";
 import { QUERY_KEYS } from "@/lib/queryKeys";
-import { getPeerAnalysisStatus } from "@/services/strategy/strategy_API";
+import { getPeerAnalysisStatus } from "@/services/strategy/strategy_api";
 import { useQuery } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 
