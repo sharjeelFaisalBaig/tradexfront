@@ -90,7 +90,11 @@ export default function SharedWithMe() {
                 s.title.toLowerCase().includes(searchTerm.toLowerCase())
               )
               .map((strategy, index) => (
-                <SharedWithMeCard index={index} strategy={strategy} />
+                <SharedWithMeCard
+                  index={index}
+                  strategy={strategy}
+                  key={`${index}-${strategy.title}`}
+                />
               ))}
           </div>
 

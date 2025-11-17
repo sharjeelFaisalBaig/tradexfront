@@ -5,35 +5,41 @@ import { useAuth } from "@/context/AuthContext";
 import { useGetUser } from "./auth/useAuth";
 import { toast } from "./use-toast";
 
+interface NotifyOptions {
+  title?: string;
+  description?: string;
+  className?: string;
+}
+
+/**
+ * Custom hook to show success toasts only if
+ * the user has enabled in-app notifications (after login).
+ */
+
 export const useSuccessNotifier = () => {
-  // const { isLoggedIn, user } = useAuth();
+  const { isLoggedIn } = useAuth();
 
-  // const { data } = useGetUser({ enabled: isLoggedIn });
+  // Fetch user info only if logged in
+  const { data, isLoading } = useGetUser({ enabled: isLoggedIn });
 
-  // const isInAppNotificationsEnabled = useMemo(
-  //   () => data?.data?.user?.receive_inapp_notifications,
-  //   [data]
-  // );
+  // Extract flag safely
+  const isSuccessAlertsEnabled = useMemo(() => {
+    if (!isLoggedIn || isLoading) return false; // wait until data is ready
+    return Boolean(data?.data?.user?.receive_success_alerts);
+  }, [isLoggedIn, isLoading, data]);
 
-  // console.log("useSuccessNotifier", {
-  //   isLoggedIn,
-  //   user,
-  //   data,
-  //   isInAppNotificationsEnabled,
-  // });
-
-  const isInAppNotificationsEnabled = true;
-
+  /**
+   * notify - show toast if notifications are allowed
+   */
   const notify = useCallback(
-    async ({ title, description }: { title: string; description?: string }) => {
-      if (isInAppNotificationsEnabled) {
-        toast({
-          title,
-          description: description,
-        });
-      }
+    ({ title, description, className }: NotifyOptions) => {
+      // console.log({ isLoggedIn, isSuccessAlertsEnabled, data });
+
+      if (!isSuccessAlertsEnabled) return; // do nothing if not allowed
+
+      toast({ title, description, className });
     },
-    []
+    [isSuccessAlertsEnabled]
   );
 
   return notify;

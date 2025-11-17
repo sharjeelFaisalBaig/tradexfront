@@ -1,12 +1,7 @@
 "use client";
 import type React from "react";
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
-import {
-  NodeResizeControl,
-  NodeResizer,
-  Position,
-  useReactFlow,
-} from "@xyflow/react";
+import { NodeResizer, Position, useReactFlow } from "@xyflow/react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -42,12 +37,13 @@ import {
   useGetAiModels,
   useGetChatTemplates,
 } from "@/hooks/strategy/useStrategyQueries";
-import { cn, getFilteredAiModels, preventNodeDeletionKeys } from "@/lib/utils";
+import { getFilteredAiModels, preventNodeDeletionKeys } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
 import { toast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import NodeHandle from "./common/NodeHandle";
 import { useCredits } from "@/context/CreditContext";
+import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 
 // Types
 interface AIModel {
@@ -101,6 +97,7 @@ export default function ChatBoxNode({
   targetPosition = Position.Right,
   data,
 }: ChatBoxNodeProps) {
+  const successNote = useSuccessNotifier();
   const strategyId = useParams()?.slug as string;
   const { updateCredits } = useCredits();
   const [activeConversationId, setActiveConversationId] = useState<
@@ -172,8 +169,8 @@ export default function ChatBoxNode({
   const allFetchedMessages = useMemo(
     () =>
       conversationMessagesData?.pages
-        ?.reverse()
-        ?.flatMap((page) => page.aiChats) ?? [],
+        ?.flatMap((page) => page.aiChats)
+        .reverse() ?? [],
     [conversationMessagesData]
   );
 
@@ -226,7 +223,7 @@ export default function ChatBoxNode({
         (conv: any) => ({
           ...conv,
           selectedModel:
-            availableModels.find((m) => m.id === conv.ai_model_id) ||
+            availableModels.find((m) => m.id === conv?.ai_model_id) ||
             availableModels[0],
           isLoading: false,
           hasError: false,
@@ -254,8 +251,9 @@ export default function ChatBoxNode({
       setMessages([]);
       return;
     }
-    const mappedFetchedMessages: Message[] = allFetchedMessages.flatMap(
-      (chat: any) => [
+    const mappedFetchedMessages: Message[] = allFetchedMessages
+      .slice()
+      .flatMap((chat: any) => [
         {
           id: `${chat.id}_user`,
           content: chat.prompt,
@@ -272,8 +270,7 @@ export default function ChatBoxNode({
           timestamp: parseTimestamp(chat.updated_at),
           isOptimistic: false,
         },
-      ]
-    );
+      ]);
 
     setMessages((prevMessages) => {
       const existingFetchedIds = new Set(
@@ -307,11 +304,13 @@ export default function ChatBoxNode({
   ]);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, 100);
-    return () => clearTimeout(timer);
-  }, [activeConversationId]);
+    if (!isLoadingConversationMessages) {
+      const timer = setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [activeConversationId, isLoadingConversationMessages]);
 
   useEffect(() => {
     if (!isLoadingMoreMessages) {
@@ -516,12 +515,12 @@ export default function ChatBoxNode({
       const conv = response?.conversation;
       if (!conv) throw new Error("No conversation returned from API");
       const model =
-        availableModels.find((m) => m.id === conv.ai_model_id) ||
+        availableModels.find((m) => m.id === conv?.ai_model_id) ||
         availableModels[0];
       const newConversation: Conversation = {
         id: conv.id,
         title: conv.title,
-        ai_model_id: conv.ai_model_id,
+        ai_model_id: conv?.ai_model_id,
         isLoading: false,
         draftMessage: "",
         selectedModel: model,
@@ -751,7 +750,7 @@ export default function ChatBoxNode({
 
   const handleCopyResponse = (text: string) => {
     navigator.clipboard.writeText(text);
-    toast({
+    successNote({
       description: "Copied to clipboard",
       className: "h-10",
     });

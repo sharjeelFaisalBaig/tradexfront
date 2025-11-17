@@ -1,8 +1,8 @@
 "use client";
 
 import FolderExplorer from "@/components/folder/FolderExplorer";
-import Header from "@/components/Header"; // Adjust path if different
-import DashboardSidebar from "@/components/DashboardSidebar"; // Adjust path if different
+import DashboardSidebar from "@/components/DashboardSidebar";
+import Header from "@/components/Header";
 
 export default function FolderPage() {
   return (

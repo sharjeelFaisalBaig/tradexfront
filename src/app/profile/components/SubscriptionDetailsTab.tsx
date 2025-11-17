@@ -15,7 +15,7 @@ import { useGetSubscriptionPlans } from "@/hooks/auth/useAuth";
 import clsx from "clsx";
 import Loader from "@/components/common/Loader";
 import { toast } from "@/hooks/use-toast";
-import { canChangePlan } from "@/services/auth/auth_API";
+import { canChangePlan } from "@/services/auth/auth_api";
 import { Elements } from "@stripe/react-stripe-js";
 import CheckoutForm from "@/components/modal/CheckoutForm";
 import { loadStripe } from "@stripe/stripe-js";

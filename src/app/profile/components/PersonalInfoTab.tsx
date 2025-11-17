@@ -58,7 +58,6 @@ const PersonalInfoTab = (props: Props) => {
             value={email}
             setValue={setEmail}
             type="email"
-            disabled
           />
           <InputField
             label="Phone Number"

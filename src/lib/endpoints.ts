@@ -66,6 +66,8 @@ export const endpoints = {
     GET: (id: string) => `${API_BASE_PATH}/strategies/${id}`,
     TAGS: `${API_BASE_PATH}/strategies/tags`,
     CREATE: `${API_BASE_PATH}/strategies`,
+    RECENTS: `${API_BASE_PATH}/strategies/user/recent`,
+    FAVOURITES: `${API_BASE_PATH}/strategies/user/favourite`,
     SHARE: (id: string) => `${API_BASE_PATH}/strategies/${id}/share`,
     COPY: (id: string) => `${API_BASE_PATH}/strategies/${id}/copy`,
     TOGGLE: (id: string) => `${API_BASE_PATH}/strategies/${id}/toggle`,
@@ -127,6 +129,7 @@ export const endpoints = {
     CREATE_SOCIAL_PEER: (id: string) => `/strategies/${id}/peers/social_media`,
     CREATE_THREAD_PEER: (id: string) => `/strategies/${id}/peers/thread`,
     CREATE_REMOTE_PEER: (id: string) => `/strategies/${id}/peers/remote`,
+    CREATE_CHART_PEER: (id: string) => `/strategies/${id}/peers/chart`,
 
     // board upload peer endpoints
     UPDATE_ANNOTATION_PEER: ({ strategyId, peerId }: UploadContent) =>
@@ -145,6 +148,8 @@ export const endpoints = {
       `/strategies/${strategyId}/peers/remote/${peerId}/upload`,
     UPLOAD_THREAD_CONTENT: ({ strategyId, peerId }: UploadContent) =>
       `/strategies/${strategyId}/peers/thread/${peerId}/upload`,
+    UPLOAD_CHART_CONTENT: ({ strategyId, peerId }: UploadContent) =>
+      `/strategies/${strategyId}/peers/chart/${peerId}/upload`,
 
     // board delete peer endpoints
     DELETE_ANNOTATION_PEER: (id: string, peerId: string) =>
@@ -163,6 +168,8 @@ export const endpoints = {
       `/strategies/${id}/peers/remote/${peerId}`,
     DELETE_THREAD_PEER: (id: string, peerId: string) =>
       `/strategies/${id}/peers/thread/${peerId}`,
+    DELETE_CHART_PEER: (id: string, peerId: string) =>
+      `/strategies/${id}/peers/chart/${peerId}`,
 
     // board analyze peer endpoints
     ANALYZE_PEER: ({
@@ -173,6 +180,7 @@ export const endpoints = {
       id: string;
       peerId: string;
       peerType:
+        | "chart"
         | "social_media"
         | "remote"
         | "image"
@@ -198,7 +206,6 @@ export const endpoints = {
       conversationId: string;
     }) => `/strategies/${id}/ai-conversations/${conversationId}?page=${page}`,
   },
-
   CHAT_BOX: {
     // get ai-models endpoint
     GET_AI_MODELS: `/ai-models`,
@@ -206,5 +213,26 @@ export const endpoints = {
     UPDATE_AI_MODEL: (id: string, conversationId: string) =>
       `/strategies/${id}/ai-conversations-model/${conversationId}`,
     CHAT: (id: string) => `/strategies/${id}/ai-chats`,
+  },
+  FOLDER: {
+    LIST: `${API_BASE_PATH}/folders?tree=false`,
+    TREE: `${API_BASE_PATH}/folders?tree=true`,
+    CREATE: `${API_BASE_PATH}/folders`,
+    UPDATE: (id: string) => `${API_BASE_PATH}/folders/${id}`,
+    DELETE: (id: string) => `${API_BASE_PATH}/folders/${id}`,
+    MOVE_STRATEGY: (id: string) =>
+      `${API_BASE_PATH}/strategies/${id}/move-to-folder`,
+  },
+  INVITATION: {
+    SEARCH_USER: `${API_BASE_PATH}/user/search`,
+    GET_MY_INVITATIONS: `${API_BASE_PATH}/strategies/invitations/all`,
+    INVITE: (StrategyId: string) =>
+      `${API_BASE_PATH}/strategies/${StrategyId}/invite`,
+    ACCEPT: (invitationId: string) =>
+      `${API_BASE_PATH}/strategies/invitations/${invitationId}/accept`,
+    REJECT: (invitationId: string) =>
+      `${API_BASE_PATH}/strategies/invitations/${invitationId}/reject`,
+    GET_STRATEGY_INVITATIONS: (strategyId: string) =>
+      `${API_BASE_PATH}/strategies/${strategyId}/invitations`,
   },
 };

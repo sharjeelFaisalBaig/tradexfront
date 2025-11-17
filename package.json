@@ -55,6 +55,7 @@
     "formik": "^2.4.6",
     "i": "^0.3.7",
     "input-otp": "^1.2.4",
+    "lightweight-charts": "^5.0.9",
     "lodash": "^4.17.21",
     "lucide-react": "^0.462.0",
     "marked": "^16.1.1",

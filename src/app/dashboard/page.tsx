@@ -7,6 +7,7 @@ import BillingHistoryCard from "@/components/dashboard/BillingHistoryCard";
 import DashboardCardsContainer from "@/components/dashboard/DashboardCardsContainer";
 import RecentInteractedStrategiesCard from "@/components/dashboard/RecentInteractedStrategiesCard";
 import SharedwithMeStrategiesCard from "@/components/dashboard/SharedwithMeStrategiesCard";
+// import TradingViewChart from "../strategies/[slug]/components/ChartNode/TradingViewChart";
 
 const Dashboard = () => {
   const { data, isLoading } = useGetUser();
@@ -41,6 +42,8 @@ const Dashboard = () => {
             isLoading={isLoading}
             profileData={data?.data}
           />
+
+          {/* <TradingViewChart /> */}
         </main>
       </div>
     </div>

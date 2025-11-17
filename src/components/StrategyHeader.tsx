@@ -189,9 +189,7 @@ const StrategyHeader = ({
                 <DropdownMenuItem onClick={() => router.push("/profile")}>
                   Profile
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => router.push("/settings")}>
-                  Settings
-                </DropdownMenuItem>
+                {/* <DropdownMenuItem onClick={() => router.push("/settings")}>Settings</DropdownMenuItem> */}
                 <DropdownMenuItem onClick={() => signOut()}>
                   Logout
                 </DropdownMenuItem>

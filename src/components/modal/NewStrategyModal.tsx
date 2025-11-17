@@ -16,7 +16,7 @@ import {
 } from "@/hooks/strategy/useStrategyMutations";
 import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 import { useGetStrategiesTags } from "@/hooks/strategy/useStrategyQueries";
-import CreatableSelect from 'react-select/creatable';
+import CreatableSelect from "react-select/creatable";
 
 const MAX_TAGS = 4; // maximum allowed tags
 
@@ -32,16 +32,23 @@ function NewStrategyForm({
   // const pathname = usePathname();
   // const strategyId = pathname.split("/")[2];
   const successNote = useSuccessNotifier();
-  const { data: allStrategyTags, isLoading: isLoadingTags, isError, error } = useGetStrategiesTags();
+  const { data: allStrategyTags, isLoading: isLoadingTags } =
+    useGetStrategiesTags();
   const createMutation = useCreateStrategy();
   const updateMutation = useUpdateStrategy();
 
   const [name, setName] = useState(strategy?.name ?? "");
   const [desc, setDesc] = useState(strategy?.description ?? "");
   const [tagInput, setTagInput] = useState("");
-  strategy.tags = Array.isArray(strategy?.tags) ? strategy?.tags : JSON.parse(strategy?.tags);
-  
-  const [tags, setTags] = useState<{ label: string; value: string }[]>((strategy?.tags && strategy?.tags?.length > 0) ? strategy?.tags?.map((tag) => ({ label: tag, value: tag })) : []);
+  strategy.tags = Array.isArray(strategy?.tags)
+    ? strategy?.tags
+    : JSON.parse(strategy?.tags);
+
+  const [tags, setTags] = useState<{ label: string; value: string }[]>(
+    strategy?.tags && strategy?.tags?.length > 0
+      ? strategy?.tags?.map((tag) => ({ label: tag, value: tag }))
+      : []
+  );
   const [errors, setErrors] = useState<{
     name?: string;
     desc?: string;
@@ -72,8 +79,9 @@ function NewStrategyForm({
     const onMutationSuccess = (data: any) => {
       successNote({
         title: strategy ? "Strategy Updated" : "Strategy Created",
-        description: `Strategy ${strategy ? "updated" : "created"
-          } successfully.`,
+        description: `Strategy ${
+          strategy ? "updated" : "created"
+        } successfully.`,
       });
       onSuccess(data?.data); // assuming response has `data`
       onClose();
@@ -151,16 +159,21 @@ function NewStrategyForm({
         <label className="block text-sm font-medium mb-1 text-muted-foreground">
           Tags
         </label>
-        {!isLoadingTags && allStrategyTags?.data?.tags &&
+        {!isLoadingTags && allStrategyTags?.data?.tags && (
           <CreatableSelect
             isMulti
-            options={allStrategyTags?.data?.tags.map((tag: any) => ({ label: tag, value: tag }))}
+            options={allStrategyTags?.data?.tags.map((tag: any) => ({
+              label: tag,
+              value: tag,
+            }))}
             value={tags}
-            onChange={(selected) => setTags(selected as { label: string; value: string }[])}
+            onChange={(selected) =>
+              setTags(selected as { label: string; value: string }[])
+            }
             isLoading={isLoadingTags}
             isDisabled={isLoading}
           />
-        }
+        )}
         {errors.tags && (
           <p className="mt-1 text-sm text-red-500">{errors.tags}</p>
         )}
@@ -176,8 +189,8 @@ function NewStrategyForm({
             ? "Updating..."
             : "Update Strategy"
           : createMutation.isPending
-            ? "Creating..."
-            : "Create Strategy"}
+          ? "Creating..."
+          : "Create Strategy"}
       </Button>
     </form>
   );

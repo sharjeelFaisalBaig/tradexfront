@@ -202,7 +202,11 @@ const SharedwithMeStrategiesCard = (props: Props) => {
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-4">
                 {sharedStrategies.slice(0, 3).map((strategy, index) => (
-                  <SharedWithMeCard index={index} strategy={strategy} />
+                  <SharedWithMeCard
+                    index={index}
+                    strategy={strategy}
+                    key={`${index}-${strategy.title}`}
+                  />
                 ))}
 
                 {/* {strategies.map((strategy) => {

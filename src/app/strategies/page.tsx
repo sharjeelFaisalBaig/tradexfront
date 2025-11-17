@@ -47,12 +47,18 @@ const Strategies = () => {
   );
   const [debouncedSearch, setDebouncedSearch] = useState(searchTerm);
   const [sortOption, setSortOption] = useState<string>("last_modified"); // State for sort option
-  const [strategyQueryParams, setStrategyQueryParams] = useState({
+  const [strategyQueryParams, setStrategyQueryParams] = useState<{
+    search: string;
+    sort_by: string;
+    sort_order: "asc" | "desc";
+  }>({
     search: "",
     sort_by: "updated_at",
     sort_order: "desc",
   });
-  const { data, isLoading, isError, error, refetch: refetchStrategies } = useGetStrategies(strategyQueryParams);
+
+  const { data, isLoading, isError, error } =
+    useGetStrategies(strategyQueryParams);
   const strategies: IStrategy[] = useMemo(
     () => data?.data?.strategies || [],
     [data]
@@ -90,12 +96,12 @@ const Strategies = () => {
   }, [searchTerm]);
 
   useEffect(() => {
-    let sort_order = sortOption === "name" ? "asc" : "desc";
+    let sort_order: "asc" | "desc" = sortOption === "name" ? "asc" : "desc";
 
     setStrategyQueryParams({
       search: debouncedSearch, // 👈 use debounced value
       sort_by: sortOption,
-      sort_order,
+      sort_order: sort_order,
     });
   }, [debouncedSearch, sortOption]);
 
@@ -116,8 +122,9 @@ const Strategies = () => {
       title: newFavouriteState
         ? "Added to Favourite"
         : "Removed from Favourite",
-      description: `“${strategy?.name}” has been ${newFavouriteState ? "added to" : "removed from"
-        } favourites.`,
+      description: `“${strategy?.name}” has been ${
+        newFavouriteState ? "added to" : "removed from"
+      } favourites.`,
     });
     // API call
     toggleFavouriteStrategy(

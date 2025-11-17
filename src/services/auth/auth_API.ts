@@ -1,5 +1,5 @@
 import { endpoints } from "@/lib/endpoints";
-import { SignupData } from "./auth_Mutation";
+import { SignupData } from "./auth_mutation";
 import axiosInstance from "../axios";
 
 // Get logged-in user profile

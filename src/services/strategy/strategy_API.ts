@@ -21,6 +21,46 @@ export const getStrategies = async ({
   return response.data;
 };
 
+export const getRecentStrategies = async ({
+  search,
+  sort_by,
+  sort_order,
+}: {
+  search?: string;
+  sort_by?: string;
+  sort_order?: "asc" | "desc";
+}) => {
+  const response = await axiosInstance.get(endpoints.STRATEGY.RECENTS, {
+    params: {
+      search,
+      sort_by,
+      sort_order,
+      per_page: -1, // fetch all strategies without pagination
+    },
+  });
+  return response.data;
+};
+
+export const getFavouriteStrategies = async ({
+  search,
+  sort_by,
+  sort_order,
+}: {
+  search?: string;
+  sort_by?: string;
+  sort_order?: "asc" | "desc";
+}) => {
+  const response = await axiosInstance.get(endpoints.STRATEGY.FAVOURITES, {
+    params: {
+      search,
+      sort_by,
+      sort_order,
+      per_page: -1, // fetch all strategies without pagination
+    },
+  });
+  return response.data;
+};
+
 export const getStrategiesTags = async () => {
   const response = await axiosInstance.get(endpoints.STRATEGY.TAGS);
   return response.data;

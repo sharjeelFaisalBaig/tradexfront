@@ -12,7 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { useSignup } from "@/services/auth/auth_Mutation";
+import { useSignup } from "@/services/auth/auth_mutation";
 import { getCsrfToken } from "@/services/auth/csrf";
 import Loader from "@/components/common/Loader";
 import useSuccessNotifier from "@/hooks/useSuccessNotifier";

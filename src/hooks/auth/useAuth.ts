@@ -18,8 +18,8 @@ import {
   getBillingHistory,
   getFilterOptions,
   deleteUserAccount,
-} from "@/services/auth/auth_API";
-import { SignupData } from "@/services/auth/auth_Mutation";
+} from "@/services/auth/auth_api";
+import { SignupData } from "@/services/auth/auth_mutation";
 import { QUERY_KEYS } from "@/lib/queryKeys";
 
 // GET: Current user info

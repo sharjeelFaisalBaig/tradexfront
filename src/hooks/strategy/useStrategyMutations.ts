@@ -45,9 +45,13 @@ import {
   sendPeerAiNote,
   deleteStrategy,
   shareStrategy,
-} from "@/services/strategy/strategy_Mutation";
-import { IStrategy } from "@/lib/types";
+  createChartPeer,
+  analyzeChartPeer,
+  uploadChartContent,
+  deleteChartPeer,
+} from "@/services/strategy/strategy_mutation";
 import { QUERY_KEYS } from "@/lib/queryKeys";
+import { IStrategy } from "@/lib/types";
 
 // Type interfaces for better type safety
 interface PeerMutationParams {
@@ -132,9 +136,18 @@ export const useUpdateStrategy = () => {
       // Manually update the cache for the specific strategy
       queryClient.setQueryData(
         [QUERY_KEYS.STRATEGY, id],
-        (oldData: IStrategy | undefined) => {
+        (oldData: { data: IStrategy } | undefined) => {
           if (!oldData) return { ...updatedData.data };
-          return { ...oldData, data: { ...updatedData.data } };
+          return {
+            ...oldData,
+            data: {
+              ...oldData?.data,
+              name: updatedData?.data?.name,
+              tags: updatedData?.data?.tags,
+              description: updatedData?.data?.description,
+              updated_at: updatedData?.data?.updated_at,
+            },
+          };
         }
       );
 
@@ -985,6 +998,82 @@ export const useSendChatMessage = () => {
         strategy_collaborator_id?: string;
       };
     }) => sendChatMessage({ strategyId, data }),
+  });
+};
+
+// new functions for chart node
+export const useCreateChartPeer = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ strategyId, data }: { strategyId: string; data: any }) =>
+      createChartPeer(strategyId, data),
+    onSuccess: (_data, { strategyId }) => {
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEYS.STRATEGY, strategyId],
+      });
+    },
+  });
+};
+
+export const useAnalyzeChartPeer = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      strategyId,
+      peerId,
+    }: // data,
+    {
+      strategyId: string;
+      peerId: string;
+      // data: { ai_notes?: string };
+    }) => analyzeChartPeer({ strategyId, peerId }),
+    // onSuccess: (_data, { strategyId }) => {
+    //   queryClient.invalidateQueries({
+    //     queryKey: [QUERY_KEYS.STRATEGY, strategyId],
+    //   });
+    // },
+  });
+};
+
+export const useUploadChartContent = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      strategyId,
+      peerId,
+      data,
+    }: {
+      strategyId: string;
+      peerId: string;
+      data: {
+        file: any;
+        title: string;
+      };
+    }) => uploadChartContent({ strategyId, peerId, data }),
+    // onSuccess: (_data, { strategyId }) => {
+    //   queryClient.invalidateQueries({
+    //     queryKey: [QUERY_KEYS.STRATEGY, strategyId],
+    //   });
+    // },
+  });
+};
+
+export const useDeleteChartPeer = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      strategyId,
+      peerId,
+    }: {
+      strategyId: string;
+      peerId: string;
+    }) => deleteChartPeer({ strategyId, peerId }),
+    // onSuccess: (_data, { strategyId }) => {
+    //   queryClient.invalidateQueries({
+    //     queryKey: [QUERY_KEYS.STRATEGY, strategyId],
+    //   });
+    // },
   });
 };
 
