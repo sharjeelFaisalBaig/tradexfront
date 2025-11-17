@@ -1,5 +1,4 @@
 import { endpoints } from "@/lib/endpoints";
-import { Folder } from "@/lib/types";
 import axiosInstance from "../axios";
 
 export const inviteUsers = async (payload: {
@@ -8,12 +7,25 @@ export const inviteUsers = async (payload: {
 }) => {
   const res = await axiosInstance.post(
     endpoints.INVITATION.INVITE(payload?.strategyId),
-    { email: payload?.emails?.[0] || [] }
+    { emails: payload?.emails || [] }
   );
   return res.data;
 };
 
-export const acceptInvitation = async (data: Partial<Folder>) => {
-  const res = await axiosInstance.post(endpoints.FOLDER.CREATE, data);
+export const acceptInvitation = async (data: { invitationId: string }) => {
+  const res = await axiosInstance.patch(
+    endpoints.INVITATION.ACCEPT(data?.invitationId)
+  );
+  return res.data;
+};
+
+export const rejectInvitation = async (data: {
+  invitationId: string;
+  message: string;
+}) => {
+  const res = await axiosInstance.patch(
+    endpoints.INVITATION.REJECT(data?.invitationId),
+    { message: data?.message }
+  );
   return res.data;
 };

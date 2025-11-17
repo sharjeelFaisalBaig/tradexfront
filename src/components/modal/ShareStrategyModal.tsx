@@ -10,9 +10,10 @@ import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 import { getFullUrl, getInitials, showAPIErrorToast } from "@/lib/utils";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 // import { useShareStrategy } from "@/hooks/strategy/useStrategyMutations";
+import { useInviteUsers } from "@/hooks/invitation/useInvitationMutation";
 import { useSearchUsers } from "@/hooks/invitation/useInvitationQueries";
 import Loader from "../common/Loader";
-import { useInviteUsers } from "@/hooks/invitation/useInvitationMutation";
+import _ from "lodash";
 
 interface SearchUserType {
   id: string;
@@ -99,12 +100,15 @@ function ShareStrategyForm({
           onChange={handleSearch}
           disabled={shareMutation.isPending}
         />
-        {isSearching && (
+        {isSearching ? (
           <div className="mt-4">
             <Loader size="sm" text="Searching..." />
           </div>
-        )}
-        {searchData?.data?.length > 0 && (
+        ) : _.isEmpty(searchData?.data) ? (
+          <p className="text-sm text-center text-gray-500 dark:text-gray-400 mt-4">
+            User not found.
+          </p>
+        ) : (
           <div className="mt-2 border rounded-lg max-h-40 overflow-y-auto">
             {searchData?.data?.map((user: SearchUserType) => (
               <div
