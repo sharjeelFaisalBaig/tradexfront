@@ -14,11 +14,11 @@ import Header from "@/components/Header";
 import SearchIcon from "@/icons/search.svg";
 import StrategyCard from "@/components/StrategyCard";
 import { IStrategy } from "@/lib/types";
-import { useGetStrategies } from "@/hooks/strategy/useStrategyQueries";
 import Loader from "@/components/common/Loader";
 import { Pagination } from "@/components/common/Pagination";
-import NewStrategyModal from "@/components/modal/NewStrategyModal";
+import { useGetRecentStrategies } from "@/hooks/strategy/useStrategyQueries";
 import DeleteStrategyModal from "@/components/modal/DeleteStrategyModal";
+import NewStrategyModal from "@/components/modal/NewStrategyModal";
 import {
   useCopyStrategy,
   useFavouriteStrategy,
@@ -58,7 +58,7 @@ const Strategies = () => {
   });
 
   const { data, isLoading, isError, error } =
-    useGetStrategies(strategyQueryParams);
+    useGetRecentStrategies(strategyQueryParams);
   const strategies: IStrategy[] = useMemo(
     () => data?.data?.strategies || [],
     [data]

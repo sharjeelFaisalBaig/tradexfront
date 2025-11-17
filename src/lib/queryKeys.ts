@@ -1,5 +1,7 @@
 export const QUERY_KEYS = {
   STRATEGIES: "strategies",
+  RECENT_STRATEGIES: "recentStrategies",
+  FAVOURITE_STRATEGIES: "favouriteStrategies",
   STRATEGIES_TAGS: "strategiesTags",
   STRATEGY: "strategy",
   USER: "user",

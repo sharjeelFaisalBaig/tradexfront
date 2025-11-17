@@ -8,9 +8,11 @@ import {
   getAiModels,
   getChatTemplates,
   getStrategiesTags,
+  getRecentStrategies,
+  getFavouriteStrategies,
 } from "@/services/strategy/strategy_API";
 
-// ✅ Hook with search & sort support
+// Hook with search & sort support
 export const useGetStrategies = ({
   search = "",
   sort_by = "createdAt",
@@ -26,6 +28,50 @@ export const useGetStrategies = ({
     // queryKey: [QUERY_KEYS.STRATEGIES, { search, sort_by, sort_order }], // params in key
     queryFn: () =>
       getStrategies({
+        search,
+        sort_by,
+        sort_order,
+      }),
+  });
+};
+
+// get recent strategies hook
+export const useGetRecentStrategies = ({
+  search = "",
+  sort_by = "createdAt",
+  sort_order = "desc",
+}: {
+  search?: string;
+  sort_by?: string;
+  sort_order?: "asc" | "desc";
+}) => {
+  return useQuery({
+    retry: false,
+    queryKey: [QUERY_KEYS.RECENT_STRATEGIES],
+    queryFn: () =>
+      getRecentStrategies({
+        search,
+        sort_by,
+        sort_order,
+      }),
+  });
+};
+
+// get Favourite strategies hook
+export const useGetFavouriteStrategies = ({
+  search = "",
+  sort_by = "createdAt",
+  sort_order = "desc",
+}: {
+  search?: string;
+  sort_by?: string;
+  sort_order?: "asc" | "desc";
+}) => {
+  return useQuery({
+    retry: false,
+    queryKey: [QUERY_KEYS.FAVOURITE_STRATEGIES],
+    queryFn: () =>
+      getFavouriteStrategies({
         search,
         sort_by,
         sort_order,
