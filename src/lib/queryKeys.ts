@@ -14,4 +14,7 @@ export const QUERY_KEYS = {
   BILLING_HISTORY: "billingHistory",
   BILLING_FILTER_OPTIONS: "billingFilterOptions",
   FOLDERS: "folders",
+
+  // Invitation related query keys
+  SEARCH_USERS: "searchUsers",
 };

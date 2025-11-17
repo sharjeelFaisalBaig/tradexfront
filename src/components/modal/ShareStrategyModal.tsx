@@ -1,103 +1,25 @@
 "use client";
 import { X } from "lucide-react";
+import { IStrategy } from "@/lib/types";
 import { Dialog } from "@headlessui/react";
 import { useRouter } from "next/navigation";
 import { useState, FormEvent } from "react";
 import { Input } from "@/components/ui/input";
-import { IStrategy, IUser } from "@/lib/types";
-import { getFullUrl, showAPIErrorToast } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import useSuccessNotifier from "@/hooks/useSuccessNotifier";
+import { getFullUrl, getInitials, showAPIErrorToast } from "@/lib/utils";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { useShareStrategy } from "@/hooks/strategy/useStrategyMutations";
+// import { useShareStrategy } from "@/hooks/strategy/useStrategyMutations";
+import { useSearchUsers } from "@/hooks/invitation/useInvitationQueries";
+import Loader from "../common/Loader";
+import { useInviteUsers } from "@/hooks/invitation/useInvitationMutation";
 
-// Replace with actual API call
-const mockUsers: IUser[] = [
-  {
-    id: 1,
-    name: "Sharjeel Baig 1",
-    email: "sharjeel1+1@yopmail.com",
-    email_verified_at: "2025-05-28T00:04:06.000000Z",
-    status: true,
-    created_at: "2025-05-27T23:20:51.000000Z",
-    updated_at: "2025-08-15T11:23:24.000000Z",
-    user_type: "Customer",
-    extras: null,
-    first_name: "Sharjeel",
-    last_name: "Baig",
-    otp_expires_at: null,
-    stripe_id: "cus_SaFAGNCAvl3xZv",
-    pm_type: "visa",
-    pm_last_four: "1111",
-    trial_ends_at: null,
-    google_id: null,
-    credits: 6100,
-    two_factor_enabled: false,
-    two_factor_expires_at: null,
-    two_factor_verified_at: null,
-    receive_email_notifications: true,
-    receive_inapp_notifications: true,
-    avatar: "/storage/1773/2857527.png",
-    phone_number: "+921234567890",
-    receive_success_alerts: true,
-  },
-  {
-    id: 2,
-    name: "Sharjeel Baig 2",
-    email: "sharjeel1+2@yopmail.com",
-    email_verified_at: "2025-05-28T00:04:06.000000Z",
-    status: true,
-    created_at: "2025-05-27T23:20:51.000000Z",
-    updated_at: "2025-08-15T11:23:24.000000Z",
-    user_type: "Customer",
-    extras: null,
-    first_name: "Sharjeel",
-    last_name: "Baig",
-    otp_expires_at: null,
-    stripe_id: "cus_SaFAGNCAvl3xZv",
-    pm_type: "visa",
-    pm_last_four: "1111",
-    trial_ends_at: null,
-    google_id: null,
-    credits: 6100,
-    two_factor_enabled: false,
-    two_factor_expires_at: null,
-    two_factor_verified_at: null,
-    receive_email_notifications: true,
-    receive_inapp_notifications: true,
-    avatar: "/storage/1773/2857527.png",
-    phone_number: "+921234567890",
-    receive_success_alerts: true,
-  },
-  {
-    id: 3,
-    name: "Sharjeel Baig 3",
-    email: "sharjeel1+3@yopmail.com",
-    email_verified_at: "2025-05-28T00:04:06.000000Z",
-    status: true,
-    created_at: "2025-05-27T23:20:51.000000Z",
-    updated_at: "2025-08-15T11:23:24.000000Z",
-    user_type: "Customer",
-    extras: null,
-    first_name: "Sharjeel",
-    last_name: "Baig",
-    otp_expires_at: null,
-    stripe_id: "cus_SaFAGNCAvl3xZv",
-    pm_type: "visa",
-    pm_last_four: "1111",
-    trial_ends_at: null,
-    google_id: null,
-    credits: 6100,
-    two_factor_enabled: false,
-    two_factor_expires_at: null,
-    two_factor_verified_at: null,
-    receive_email_notifications: true,
-    receive_inapp_notifications: true,
-    avatar: "/storage/1773/2857527.png",
-    phone_number: "+921234567890",
-    receive_success_alerts: true,
-  },
-];
+interface SearchUserType {
+  id: string;
+  name: string;
+  email: string;
+  avatar?: string;
+}
 
 interface ShareStrategyFormProps {
   onSuccess: (data: IStrategy) => void;
@@ -111,44 +33,24 @@ function ShareStrategyForm({
   strategy,
 }: ShareStrategyFormProps) {
   const successNote = useSuccessNotifier();
-  const shareMutation = useShareStrategy();
+  const shareMutation = useInviteUsers();
+  // const shareMutation = useShareStrategy();
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedUsers, setSelectedUsers] = useState<IUser[]>([]);
-  const [suggestions, setSuggestions] = useState<IUser[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
+  const [selectedUsers, setSelectedUsers] = useState<SearchUserType[]>([]);
 
-  const searchUsers = async (query: string) => {
-    setIsSearching(true);
-    try {
-      setSuggestions(
-        mockUsers.filter(
-          (user) =>
-            user.name.toLowerCase().includes(query.toLowerCase()) ||
-            user.email.toLowerCase().includes(query.toLowerCase())
-        )
-      );
-    } catch (error) {
-      showAPIErrorToast(error);
-    } finally {
-      setIsSearching(false);
-    }
-  };
+  const { data: searchData, isLoading: isSearching } =
+    useSearchUsers(searchQuery);
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     const query = e.target.value;
     setSearchQuery(query);
-    if (query.length > 2) {
-      searchUsers(query);
-    } else {
-      setSuggestions([]);
-    }
   };
 
-  const isUserSelected = (user: IUser) => {
+  const isUserSelected = (user: SearchUserType) => {
     return selectedUsers.some((u) => u.id === user.id);
   };
 
-  const handleSelectUser = (user: IUser) => {
+  const handleSelectUser = (user: SearchUserType) => {
     if (isUserSelected(user)) {
       setSelectedUsers(selectedUsers.filter((u) => u.id !== user.id));
     } else {
@@ -163,9 +65,10 @@ function ShareStrategyForm({
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    const userIds = selectedUsers.map((user) => String(user.id)) ?? [];
+    // const userIds = selectedUsers.map((user) => String(user.id)) ?? [];
+    const emails = selectedUsers.map((user) => String(user.email)) ?? [];
     shareMutation.mutate(
-      { strategyId: strategy?.id ?? "", userIds },
+      { strategyId: strategy?.id ?? "", emails },
       {
         onSuccess: (data) => {
           successNote({
@@ -197,13 +100,15 @@ function ShareStrategyForm({
           disabled={shareMutation.isPending}
         />
         {isSearching && (
-          <p className="text-sm text-muted-foreground mt-1">Searching...</p>
+          <div className="mt-4">
+            <Loader size="sm" text="Searching..." />
+          </div>
         )}
-        {suggestions?.length > 0 && (
+        {searchData?.data?.length > 0 && (
           <div className="mt-2 border rounded-lg max-h-40 overflow-y-auto">
-            {suggestions?.map((user) => (
+            {searchData?.data?.map((user: SearchUserType) => (
               <div
-                key={user.id}
+                key={`${user?.id}-${user.email}`}
                 className={`p-2 hover:bg-muted/50 cursor-pointer flex items-center gap-2 ${
                   isUserSelected(user) ? "bg-blue-100 dark:bg-blue-900" : ""
                 }`}
@@ -213,7 +118,7 @@ function ShareStrategyForm({
                   <AvatarImage
                     src={user?.avatar ? `${getFullUrl(user.avatar)}` : ""}
                   />
-                  <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                  <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
                 </Avatar>
                 <div>
                   <p className="font-medium">{user.name}</p>
@@ -241,7 +146,7 @@ function ShareStrategyForm({
                   <AvatarImage
                     src={user?.avatar ? `${getFullUrl(user.avatar)}` : ""}
                   />
-                  <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                  <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
                 </Avatar>
                 {user.name}
                 <button

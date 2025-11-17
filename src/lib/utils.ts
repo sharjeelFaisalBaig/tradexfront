@@ -9,6 +9,16 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+export const getInitials = (name?: string): string => {
+  if (!name) return "";
+
+  return name
+    .trim()
+    .split(/\s+/) // split by spaces
+    .map((word) => word.charAt(0).toUpperCase())
+    .join("");
+};
+
 export const encodeBase64 = (input: string): string => {
   if (typeof window === "undefined") {
     // Server-side (Next.js 15)
