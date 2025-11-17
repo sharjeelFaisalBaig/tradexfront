@@ -12,7 +12,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { signIn } from "next-auth/react";
 import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 import Loader from "@/components/common/Loader";
-import { resendOtpRequest, verifyOtpRequest } from "@/services/auth/auth_API";
+import { resendOtpRequest, verifyOtpRequest } from "@/services/auth/auth_api";
 import { showAPIErrorToast } from "@/lib/utils";
 
 const OtpVerificationPage = () => {

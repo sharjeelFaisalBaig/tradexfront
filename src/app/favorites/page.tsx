@@ -14,7 +14,10 @@ import Header from "@/components/Header";
 import SearchIcon from "@/icons/search.svg";
 import StrategyCard from "@/components/StrategyCard";
 import { IStrategy } from "@/lib/types";
-import { useGetStrategies } from "@/hooks/strategy/useStrategyQueries";
+import {
+  useGetFavouriteStrategies,
+  useGetStrategies,
+} from "@/hooks/strategy/useStrategyQueries";
 import Loader from "@/components/common/Loader";
 import NewStrategyModal from "@/components/modal/NewStrategyModal";
 import DeleteStrategyModal from "@/components/modal/DeleteStrategyModal";
@@ -57,7 +60,8 @@ const FavoriteStrategiesPage = () => {
   });
 
   const { data, isLoading, isError, error } =
-    useGetStrategies(strategyQueryParams);
+    useGetFavouriteStrategies(strategyQueryParams);
+  // const { data, isLoading, isError, error } = useGetStrategies(strategyQueryParams);
   const strategies: IStrategy[] = useMemo(
     () => data?.data?.strategies || [],
     [data]

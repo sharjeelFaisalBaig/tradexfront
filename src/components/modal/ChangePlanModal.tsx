@@ -11,7 +11,7 @@ import CheckoutForm from "./CheckoutForm";
 import Loader from "../common/Loader";
 import { toast } from "@/hooks/use-toast";
 import useSuccessNotifier from "@/hooks/useSuccessNotifier";
-import { canChangePlan } from "@/services/auth/auth_API";
+import { canChangePlan } from "@/services/auth/auth_api";
 import { useGetSubscriptionPlans } from "@/hooks/auth/useAuth";
 
 const stripePromise = loadStripe(

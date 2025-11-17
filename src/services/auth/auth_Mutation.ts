@@ -1,5 +1,5 @@
 import { useMutation, UseMutationResult } from "@tanstack/react-query";
-import { createUser } from "./auth_API";
+import { createUser } from "./auth_api";
 
 export interface SignupData {
   first_name: string;

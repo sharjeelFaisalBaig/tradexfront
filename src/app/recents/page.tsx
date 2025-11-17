@@ -65,6 +65,17 @@ const Strategies = () => {
   );
 
   useEffect(() => {
+    let sort_by = sortOption === "last_modified" ? "updated_at" : "name";
+    let sort_order: "asc" | "desc" = sortOption === "name" ? "asc" : "desc";
+
+    setStrategyQueryParams({
+      search: debouncedSearch,
+      sort_by,
+      sort_order,
+    });
+  }, [debouncedSearch, sortOption]);
+
+  useEffect(() => {
     if (error) {
       // Show error toast with detailed message
       showAPIErrorToast(error);
@@ -84,7 +95,20 @@ const Strategies = () => {
   }, [strategies]);
 
   // Filter based on search
-  const filteredStrategies = strategies;
+  const filteredStrategies = useMemo(() => {
+    if (!strategies) return [];
+
+    if (!debouncedSearch.trim()) return strategies;
+
+    return strategies.filter((s) => {
+      const name = s.name?.toLowerCase() || "";
+      const tags = s.tags?.join(" ").toLowerCase() || "";
+      const search = debouncedSearch.toLowerCase();
+
+      return name.includes(search) || tags.includes(search);
+    });
+  }, [strategies, debouncedSearch]);
+
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedSearch(searchTerm);
@@ -212,16 +236,6 @@ const Strategies = () => {
             </div>
             {/* Filters */}
             <div className="flex items-center space-x-4">
-              {/* <Select defaultValue="10">
-                <SelectTrigger className="w-32">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="10">10 per page</SelectItem>
-                  <SelectItem value="25">25 per page</SelectItem>
-                  <SelectItem value="50">50 per page</SelectItem>
-                </SelectContent>
-              </Select> */}
               <Select
                 defaultValue="last_modified"
                 onValueChange={(value) => setSortOption(value)}

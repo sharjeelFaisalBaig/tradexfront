@@ -223,4 +223,16 @@ export const endpoints = {
     MOVE_STRATEGY: (id: string) =>
       `${API_BASE_PATH}/strategies/${id}/move-to-folder`,
   },
+  INVITATION: {
+    SEARCH_USER: `${API_BASE_PATH}/user/search`,
+    GET_MY_INVITATIONS: `${API_BASE_PATH}/strategies/invitations/all`,
+    INVITE: (StrategyId: string) =>
+      `${API_BASE_PATH}/strategies/${StrategyId}/invite`,
+    ACCEPT: (invitationId: string) =>
+      `${API_BASE_PATH}/strategies/invitations/${invitationId}/accept`,
+    REJECT: (invitationId: string) =>
+      `${API_BASE_PATH}/strategies/invitations/${invitationId}/reject`,
+    GET_STRATEGY_INVITATIONS: (strategyId: string) =>
+      `${API_BASE_PATH}/strategies/${strategyId}/invitations`,
+  },
 };
