@@ -105,10 +105,21 @@ function BuyCreditsForm({
         }
       );
 
-      if (
-        !paymentIntentResponse?.status ||
-        !paymentIntentResponse?.data?.client_secret
-      ) {
+      // if (!paymentIntentResponse?.status || !paymentIntentResponse?.data?.client_secret) {
+      //   throw new Error(
+      //     paymentIntentResponse?.message || "Failed to create payment intent."
+      //   );
+      // }
+
+      if (!paymentIntentResponse?.status) {
+        // Extract validation errors if available
+        if (paymentIntentResponse?.errors) {
+          const firstError = Object.values(paymentIntentResponse.errors)[0];
+          throw new Error(
+            Array.isArray(firstError) ? firstError[0] : firstError
+          );
+        }
+
         throw new Error(
           paymentIntentResponse?.message || "Failed to create payment intent."
         );
@@ -139,6 +150,12 @@ function BuyCreditsForm({
       );
 
       if (!confirmResponse?.status) {
+        if (confirmResponse?.errors) {
+          const firstError = Object.values(confirmResponse.errors)[0];
+          throw new Error(
+            Array.isArray(firstError) ? firstError[0] : firstError
+          );
+        }
         throw new Error(
           confirmResponse?.message || "Failed to confirm credits purchase."
         );
