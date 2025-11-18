@@ -190,3 +190,19 @@ export interface Folder {
   children?: Folder[];
   parent?: Folder | null;
 }
+
+export interface SharedInvitation {
+  id: string;
+  strategy_id: string;
+  action: "pending" | "accepted" | "rejected" | string;
+  invited_at: string;
+  action_at: string | null;
+
+  invited_by: {
+    name: string;
+    email: string;
+    status: boolean;
+    phone: string | null;
+    avatar: string | null;
+  };
+}

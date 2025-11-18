@@ -61,6 +61,29 @@ export const getFavouriteStrategies = async ({
   return response.data;
 };
 
+export const getSharedStrategies = async ({
+  search,
+  sort_by,
+  sort_order,
+}: {
+  search?: string;
+  sort_by?: string;
+  sort_order?: "asc" | "desc";
+}) => {
+  const response = await axiosInstance.get(
+    endpoints.INVITATION.GET_SHARED_WITH_ME,
+    {
+      params: {
+        search,
+        sort_by,
+        sort_order,
+        per_page: -1, // fetch all strategies without pagination
+      },
+    }
+  );
+  return response.data;
+};
+
 export const getStrategiesTags = async () => {
   const response = await axiosInstance.get(endpoints.STRATEGY.TAGS);
   return response.data;

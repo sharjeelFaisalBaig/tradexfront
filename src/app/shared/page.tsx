@@ -3,33 +3,20 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import SearchIcon from "@/icons/search.svg";
 import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-} from "@/components/ui/pagination";
-import SearchIcon from "@/icons/search.svg";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import SharedWithMeCard from "@/components/shared/SharedWithMeCard";
+import SharedWithMeCardCopy from "@/components/shared/SharedWithMeCard copy";
+import { useGetSharedStrategies } from "@/hooks/strategy/useStrategyQueries";
+import _ from "lodash";
+import Loader from "@/components/common/Loader";
+import { getApiErrorMessage } from "@/lib/utils";
+import EmptyStrategiesPlaceholder from "@/components/common/EmptyStrategiesPlaceholder";
+import { Pagination } from "@/components/common/Pagination";
+import { SharedInvitation } from "@/lib/types";
 
-const sharedStrategies = [
-  {
-    title: "NuAglo Research",
-    sharedAgo: "3 days ago",
-    category: "#invest",
-    image:
-      "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?w=840&h=420&auto=format&fit=crop",
-  },
-  {
-    title: "NuAglo Research",
-    sharedAgo: "3 days ago",
-    category: "#invest",
-    image:
-      "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?w=840&h=420&auto=format&fit=crop",
-  },
+const staticSharedStrategies = [
   {
     title: "NuAglo Research",
     sharedAgo: "3 days ago",
@@ -55,6 +42,17 @@ const sharedStrategies = [
 
 export default function SharedWithMe() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState<number>(1);
+
+  const { data, isLoading, isError, error } = useGetSharedStrategies({
+    search: searchTerm,
+    sort_by: "createdAt",
+    sort_order: "desc",
+  });
+
+  const sharedStrategies: SharedInvitation[] = data?.data || [];
+
+  console.log({ data, sharedStrategies });
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -83,90 +81,57 @@ export default function SharedWithMe() {
             </Button>
           </div>
 
-          {/* Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
-            {sharedStrategies
+          {isLoading ? (
+            <div className="h-4/5 flex items-center justify-center bg-[#f6f8fb] dark:bg-gray-900">
+              <Loader text="Loading strategies..." />
+            </div>
+          ) : isError ? (
+            <div className="flex items-center justify-center p-6">
+              <span className="text-red-600 text-lg font-semibold">
+                {getApiErrorMessage(error) ?? "Failed to load strategies."}
+              </span>
+            </div>
+          ) : _.isEmpty(sharedStrategies) ? (
+            <EmptyStrategiesPlaceholder />
+          ) : (
+            <>
+              {/* Strategy Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                {sharedStrategies.map(
+                  (strategy: SharedInvitation, index: number) => {
+                    return (
+                      <SharedWithMeCard
+                        index={index}
+                        strategy={strategy}
+                        key={`${strategy.id}-${strategy?.id}`}
+                      />
+                    );
+                  }
+                )}
+              </div>
+              {/* Pagination */}
+              <Pagination
+                totalPages={10}
+                currentPage={currentPage}
+                onPageChange={(page) => setCurrentPage(page)}
+              />
+            </>
+          )}
+
+          {/* Old Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 my-10">
+            {staticSharedStrategies
               .filter((s) =>
-                s.title.toLowerCase().includes(searchTerm.toLowerCase())
+                s?.title?.toLowerCase().includes(searchTerm.toLowerCase())
               )
-              .map((strategy, index) => (
-                <SharedWithMeCard
+              .map((strategy, index: number) => (
+                <SharedWithMeCardCopy
                   index={index}
                   strategy={strategy}
-                  key={`${index}-${strategy.title}`}
+                  key={`${index}-${strategy?.title}`}
                 />
               ))}
           </div>
-
-          {/* Pagination */}
-          <Pagination>
-            <PaginationContent>
-              {/* Previous Button */}
-              <PaginationItem>
-                <PaginationLink
-                  href="#"
-                  className="w-10 h-10 flex items-center justify-center rounded-lg border"
-                  style={{ borderColor: "#CBD5E0", color: "#00AA67" }}
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </PaginationLink>
-              </PaginationItem>
-
-              {/* Page Numbers */}
-              <PaginationItem>
-                <PaginationLink
-                  href="#"
-                  isActive
-                  className="w-10 h-10 flex items-center justify-center rounded-lg border"
-                  style={{ borderColor: "#CBD5E0", color: "#CBD5E0" }}
-                >
-                  1
-                </PaginationLink>
-              </PaginationItem>
-
-              <PaginationItem>
-                <PaginationLink
-                  href="#"
-                  className="w-10 h-10 flex items-center justify-center rounded-lg border"
-                  style={{ borderColor: "#CBD5E0", color: "#CBD5E0" }}
-                >
-                  2
-                </PaginationLink>
-              </PaginationItem>
-
-              {/* Dots without border */}
-              <PaginationItem>
-                <PaginationLink
-                  href="#"
-                  className="w-10 h-10 flex items-center justify-center"
-                  style={{ color: "#CBD5E0" }}
-                >
-                  ...
-                </PaginationLink>
-              </PaginationItem>
-
-              <PaginationItem>
-                <PaginationLink
-                  href="#"
-                  className="w-10 h-10 flex items-center justify-center rounded-lg border"
-                  style={{ borderColor: "#CBD5E0", color: "#CBD5E0" }}
-                >
-                  10
-                </PaginationLink>
-              </PaginationItem>
-
-              {/* Next Button */}
-              <PaginationItem>
-                <PaginationLink
-                  href="#"
-                  className="w-10 h-10 flex items-center justify-center rounded-lg border"
-                  style={{ borderColor: "#CBD5E0", color: "#00AA67" }}
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </PaginationLink>
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
         </main>
       </div>
     </div>

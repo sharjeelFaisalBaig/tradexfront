@@ -7,7 +7,8 @@ export const inviteUsers = async (payload: {
 }) => {
   const res = await axiosInstance.post(
     endpoints.INVITATION.INVITE(payload?.strategyId),
-    { emails: payload?.emails || [] }
+    { email: payload?.emails?.[0] || [] }
+    // { emails: payload?.emails || [] }
   );
   return res.data;
 };

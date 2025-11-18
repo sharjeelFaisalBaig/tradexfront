@@ -10,6 +10,7 @@ import {
   getStrategiesTags,
   getRecentStrategies,
   getFavouriteStrategies,
+  getSharedStrategies,
 } from "@/services/strategy/strategy_api";
 
 // Hook with search & sort support
@@ -72,6 +73,28 @@ export const useGetFavouriteStrategies = ({
     queryKey: [QUERY_KEYS.FAVOURITE_STRATEGIES],
     queryFn: () =>
       getFavouriteStrategies({
+        search,
+        sort_by,
+        sort_order,
+      }),
+  });
+};
+
+// get Shared with me strategies hook
+export const useGetSharedStrategies = ({
+  search = "",
+  sort_by = "createdAt",
+  sort_order = "desc",
+}: {
+  search?: string;
+  sort_by?: string;
+  sort_order?: "asc" | "desc";
+}) => {
+  return useQuery({
+    retry: false,
+    queryKey: [QUERY_KEYS.SHARED_STRATEGIES],
+    queryFn: () =>
+      getSharedStrategies({
         search,
         sort_by,
         sort_order,

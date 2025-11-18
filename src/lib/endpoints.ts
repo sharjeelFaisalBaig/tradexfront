@@ -225,7 +225,7 @@ export const endpoints = {
   },
   INVITATION: {
     SEARCH_USER: `${API_BASE_PATH}/user/search`,
-    GET_MY_INVITATIONS: `${API_BASE_PATH}/strategies/invitations/all`,
+    GET_SHARED_WITH_ME: `${API_BASE_PATH}/strategies/invitations/all`,
     INVITE: (strategyId: string) =>
       `${API_BASE_PATH}/strategies/${strategyId}/invite`,
     ACCEPT: (invitationId: string) =>

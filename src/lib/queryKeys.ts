@@ -17,4 +17,5 @@ export const QUERY_KEYS = {
 
   // Invitation related query keys
   SEARCH_USERS: "searchUsers",
+  SHARED_STRATEGIES: "sharedStrategies",
 };
