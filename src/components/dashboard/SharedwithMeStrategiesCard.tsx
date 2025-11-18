@@ -1,60 +1,21 @@
 "use client";
 import { Card, CardContent } from "@/components/ui/card";
-import React, { useMemo, useState } from "react";
-import Link from "next/link";
+import React, { useState } from "react";
 import { Button } from "../ui/button";
 import Loader from "../common/Loader";
-import { useGetStrategies } from "@/hooks/strategy/useStrategyQueries";
-import { IStrategy } from "@/lib/types";
-import StrategyCard from "../StrategyCard";
-import { useRouter } from "next/navigation";
+import { useGetSharedStrategies } from "@/hooks/strategy/useStrategyQueries";
 import useSuccessNotifier from "@/hooks/useSuccessNotifier";
+import { IStrategy, SharedInvitation } from "@/lib/types";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   useCopyStrategy,
   useFavouriteStrategy,
 } from "@/hooks/strategy/useStrategyMutations";
-import { showAPIErrorToast } from "@/lib/utils";
-import NewStrategyModal from "../modal/NewStrategyModal";
 import DeleteStrategyModal from "../modal/DeleteStrategyModal";
 import SharedWithMeCard from "../shared/SharedWithMeCard";
-
-const sharedStrategies = [
-  {
-    title: "NuAglo Research",
-    sharedAgo: "3 days ago",
-    category: "#invest",
-    image:
-      "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?w=840&h=420&auto=format&fit=crop",
-  },
-  {
-    title: "NuAglo Research",
-    sharedAgo: "3 days ago",
-    category: "#invest",
-    image:
-      "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?w=840&h=420&auto=format&fit=crop",
-  },
-  {
-    title: "NuAglo Research",
-    sharedAgo: "3 days ago",
-    category: "#invest",
-    image:
-      "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?w=840&h=420&auto=format&fit=crop",
-  },
-  {
-    title: "NuAglo Research",
-    sharedAgo: "3 days ago",
-    category: "#invest",
-    image:
-      "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?w=840&h=420&auto=format&fit=crop",
-  },
-  {
-    title: "NuAglo Research",
-    sharedAgo: "3 days ago",
-    category: "#invest",
-    image:
-      "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?w=840&h=420&auto=format&fit=crop",
-  },
-];
+import NewStrategyModal from "../modal/NewStrategyModal";
+import { showAPIErrorToast } from "@/lib/utils";
 
 interface Props {
   isLoading?: boolean;
@@ -67,22 +28,13 @@ const SharedwithMeStrategiesCard = (props: Props) => {
   const router = useRouter();
   const successNote = useSuccessNotifier();
 
-  const { data, isLoading: isLoadingStrategies } = useGetStrategies({
+  const { data, isLoading: isLoadingStrategies } = useGetSharedStrategies({
     search: "",
     sort_by: "updated_at",
     sort_order: "desc",
   });
 
-  const strategies: IStrategy[] = useMemo(
-    () =>
-      data?.data?.strategies
-        ?.sort(
-          (a: any, b: any) =>
-            new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
-        )
-        ?.slice(0, 3) || [],
-    [data]
-  );
+  const sharedStrategies: SharedInvitation[] = data?.data || [];
 
   // states
   const [isForEdit, setIsForEdit] = useState<boolean>(false);
@@ -192,48 +144,22 @@ const SharedwithMeStrategiesCard = (props: Props) => {
             </div>
           )}
 
-          {!isLoadingStrategies && strategies.length === 0 && (
+          {!isLoadingStrategies && sharedStrategies.length === 0 && (
             <div className="text-center py-6 text-gray-500">
               No recent interacted strategies found.
             </div>
           )}
 
-          {!isLoadingStrategies && strategies.length > 0 && (
+          {!isLoadingStrategies && sharedStrategies.length > 0 && (
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-4">
                 {sharedStrategies.slice(0, 3).map((strategy, index) => (
                   <SharedWithMeCard
                     index={index}
                     strategy={strategy}
-                    key={`${index}-${strategy.title}`}
+                    key={`${index}-${strategy?.id}`}
                   />
                 ))}
-
-                {/* {strategies.map((strategy) => {
-                  const isFavourite = favStrategies?.some(
-                    (fav) => fav?.id === strategy?.id
-                  );
-                  return (
-                    <StrategyCard
-                      key={strategy.id}
-                      strategy={strategy}
-                      isFavorite={isFavourite}
-                      onClick={() => router.push(`/strategies/${strategy.id}`)}
-                      onCopy={handleCopyStrategy}
-                      toggleStar={() => {
-                        handleToggleIsFavourite(strategy);
-                      }}
-                      onEdit={() => {
-                        setIsForEdit(true);
-                        setSelectedStrategy(strategy);
-                      }}
-                      onDelete={() => {
-                        setIsForDelete(true);
-                        setSelectedStrategy(strategy);
-                      }}
-                    />
-                  );
-                })} */}
               </div>
               <Link href="/shared">
                 <Button size="sm">View all</Button>
