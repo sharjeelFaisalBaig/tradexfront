@@ -7,7 +7,15 @@ import { Button } from "../ui/button";
 import Image from "next/image";
 import Loader from "./Loader";
 
-const EmptyStrategiesPlaceholder = () => {
+const EmptyStrategiesPlaceholder = ({
+  title = "You haven’t created any strategies yet.",
+  description = "Start by creating your first strategy to begin trading with Tradex AI.",
+  hideButton = false,
+}: {
+  title?: string;
+  description?: string;
+  hideButton?: boolean;
+}) => {
   const router = useRouter();
   const successNote = useSuccessNotifier();
 
@@ -46,10 +54,10 @@ const EmptyStrategiesPlaceholder = () => {
 
       <section className="flex flex-col items-center justify-center text-center p-4">
         <p className="text-lg font-medium text-gray-600 dark:text-gray-300">
-          You haven’t created any strategies yet.
+          {title}
         </p>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          Start by creating your first strategy to begin trading with Tradex AI.
+          {description}
         </p>
         <Image
           src="/strategy.svg"
@@ -58,17 +66,19 @@ const EmptyStrategiesPlaceholder = () => {
           height={100}
           className="my-4"
         />
-        <Button
-          variant="secondary"
-          disabled={isCreatingStrategy}
-          onClick={handleCreateStrategy}
-        >
-          {isCreatingStrategy ? (
-            <Loader direction="row" text="Creating strategy..." size="sm" />
-          ) : (
-            "Create Strategy"
-          )}
-        </Button>
+        {!hideButton && (
+          <Button
+            variant="secondary"
+            disabled={isCreatingStrategy}
+            onClick={handleCreateStrategy}
+          >
+            {isCreatingStrategy ? (
+              <Loader direction="row" text="Creating strategy..." size="sm" />
+            ) : (
+              "Create Strategy"
+            )}
+          </Button>
+        )}
       </section>
     </>
   );

@@ -260,7 +260,11 @@ const Strategies = () => {
             </span>
           </div>
         ) : _.isEmpty(strategies) ? (
-          <EmptyStrategiesPlaceholder />
+          <EmptyStrategiesPlaceholder
+            hideButton
+            title="You haven’t used any strategies recently."
+            description="Once you start trading, your recently used strategies will appear here for quick access."
+          />
         ) : (
           <>
             {/* Strategy Cards */}

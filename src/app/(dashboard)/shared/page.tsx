@@ -84,8 +84,12 @@ export default function SharedWithMe() {
             {getApiErrorMessage(error) ?? "Failed to load strategies."}
           </span>
         </div>
-      ) : _.isEmpty(sharedStrategies) ? (
-        <EmptyStrategiesPlaceholder />
+      ) : !_.isEmpty(sharedStrategies) ? (
+        <EmptyStrategiesPlaceholder
+          hideButton
+          title="You haven’t received any shared strategies yet."
+          description="Strategies shared with you by other users will appear here for easy access and collaboration."
+        />
       ) : (
         <>
           {/* Strategy Cards */}

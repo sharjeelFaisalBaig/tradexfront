@@ -212,7 +212,11 @@ const FavoriteStrategiesPage = () => {
             </span>
           </div>
         ) : _.isEmpty(strategies) ? (
-          <EmptyStrategiesPlaceholder />
+          <EmptyStrategiesPlaceholder
+            hideButton
+            title="You haven’t any favorite strategy yet."
+            description="Add strategies from your list to mark them as favorites and easily access them here."
+          />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
             {filteredStrategies.map((strategy) => (
