@@ -7,11 +7,12 @@ import {
   useDeleteFolder,
   useRenameFolder,
 } from "@/hooks/folder/useFolderMutations";
+import SelectStrategiesModal from "../modal/SelectStrategiesModal";
 import { useGetFolders } from "@/hooks/folder/useFolderQueries";
 import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 import { showAPIErrorToast } from "@/lib/utils";
+import { Button } from "../ui/button";
 import { Folder } from "@/lib/types";
-import SelectStrategiesModal from "../modal/SelectStrategiesModal";
 
 export default function FolderExplorer() {
   const successNote = useSuccessNotifier();
@@ -345,13 +346,16 @@ export default function FolderExplorer() {
             Folders - {currentFolder ? currentFolder.name : "Root"}
           </h2>
         </div>
-        <button
-          onClick={() => handleCreateFolder(currentFolderId)}
-          className="bg-blue-500 text-white px-4 py-1 rounded hover:bg-blue-600"
+
+        {/* New Board Button */}
+        <Button
           disabled={isCreatingFolder}
+          onClick={() => handleCreateFolder(currentFolderId)}
+          className="ml-4 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-md px-4 py-2"
         >
-          {isCreatingFolder ? "Creating..." : "+ Create Folder"}
-        </button>
+          <span className="text-xl">＋</span>
+          {isCreatingFolder ? "Creating..." : "Create Folder"}
+        </Button>
       </div>
 
       {!isRoot && (

@@ -79,7 +79,7 @@ export default function SharedWithMe() {
 
             {/* New Board Button */}
             <Button className="ml-4 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-md px-4 py-2">
-              <span className="text-xl mr-2">＋</span> New Board
+              <span className="text-xl">＋</span> New Board
             </Button>
           </div>
 
@@ -92,7 +92,7 @@ export default function SharedWithMe() {
               .map((strategy, index) => (
                 <SharedWithMeCard
                   index={index}
-                  strategy={strategy}
+                  strategy={strategy as any}
                   key={`${index}-${strategy.title}`}
                 />
               ))}

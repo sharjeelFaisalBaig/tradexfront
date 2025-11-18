@@ -4,7 +4,7 @@ import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
 import { usePathname } from "next/navigation";
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;

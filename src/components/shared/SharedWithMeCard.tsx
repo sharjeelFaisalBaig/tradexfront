@@ -30,7 +30,7 @@ const SharedWithMeCard = (props: Props) => {
       <div className="p-3">
         <Image
           src="https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?w=840&h=420&auto=format&fit=crop"
-          alt={strategy?.invited_by?.name}
+          alt={strategy?.invited_by?.name || "Strategy Image"}
           width={434}
           height={180}
           className="h-[200px] w-full object-cover rounded-xl"

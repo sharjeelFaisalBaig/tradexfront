@@ -36,7 +36,7 @@ export default function TemplatesPage() {
           />
         </div>
         <Button className="ml-4 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-md px-4 py-2">
-          <span className="text-xl mr-2">＋</span> New Board
+          <span className="text-xl">＋</span> New Board
         </Button>
       </div>
 
