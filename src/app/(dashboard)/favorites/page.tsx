@@ -9,26 +9,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import Sidebar from "@/components/Sidebar";
-import Header from "@/components/Header";
-import SearchIcon from "@/icons/search.svg";
-import StrategyCard from "@/components/StrategyCard";
-import { IStrategy } from "@/lib/types";
-import {
-  useGetFavouriteStrategies,
-  useGetStrategies,
-} from "@/hooks/strategy/useStrategyQueries";
-import Loader from "@/components/common/Loader";
-import NewStrategyModal from "@/components/modal/NewStrategyModal";
+import { useGetFavouriteStrategies } from "@/hooks/strategy/useStrategyQueries";
 import DeleteStrategyModal from "@/components/modal/DeleteStrategyModal";
+import NewStrategyModal from "@/components/modal/NewStrategyModal";
+import StrategyCard from "@/components/StrategyCard";
+import Loader from "@/components/common/Loader";
+import SearchIcon from "@/icons/search.svg";
+import { IStrategy } from "@/lib/types";
 import {
   useCopyStrategy,
   useFavouriteStrategy,
 } from "@/hooks/strategy/useStrategyMutations";
-import useSuccessNotifier from "@/hooks/useSuccessNotifier";
-import { getApiErrorMessage, showAPIErrorToast } from "@/lib/utils";
 import EmptyStrategiesPlaceholder from "@/components/common/EmptyStrategiesPlaceholder";
 import ShareStrategyModal from "@/components/modal/ShareStrategyModal";
+import { getApiErrorMessage, showAPIErrorToast } from "@/lib/utils";
+import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 import _ from "lodash";
 
 type ModalType = "edit" | "delete" | "share" | "copy" | "";
@@ -126,23 +121,6 @@ const FavoriteStrategiesPage = () => {
     );
   };
 
-  /** REMOVE FROM FAVOURITE */
-  // const handleToggleIsFavourite = (strategy: IStrategy) => {
-  //   successNote({
-  //     title: "Removed from Favourite",
-  //     description: `“${strategy?.name}” has been removed from favourites.`,
-  //   });
-
-  //   toggleFavouriteStrategy(
-  //     { id: strategy.id, is_favourite: false },
-  //     {
-  //       onError: (error) => {
-  //         showAPIErrorToast(error);
-  //       },
-  //     }
-  //   );
-  // };
-
   /** COPY STRATEGY */
   const handleCopyStrategy = (strategy: IStrategy) => {
     copyStrategy(strategy?.id, {
@@ -159,7 +137,7 @@ const FavoriteStrategiesPage = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-gray-50 dark:bg-gray-900">
+    <>
       {modal === "share" && (
         <ShareStrategyModal
           isOpen
@@ -182,91 +160,87 @@ const FavoriteStrategiesPage = () => {
         />
       )}
 
-      <Header />
-      <div className="flex flex-1 overflow-hidden">
-        <Sidebar />
-        <main className="relative flex-1 overflow-y-auto p-6">
-          {/* Loader Overlay */}
-          {isLoadingCopy && (
-            <div
-              onClick={(e) => e.stopPropagation()}
-              className="fixed inset-0 flex items-center justify-center bg-[#f6f8fb]/80 dark:bg-gray-900/80 z-50"
-            >
-              <Loader text="Copying strategy..." />
-            </div>
-          )}
+      <main>
+        {/* Loader Overlay */}
+        {isLoadingCopy && (
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 flex items-center justify-center bg-[#f6f8fb]/80 dark:bg-gray-900/80 z-50"
+          >
+            <Loader text="Copying strategy..." />
+          </div>
+        )}
 
-          {/* Search + Sort Controls */}
-          <div className="flex items-center justify-between mb-6">
-            <div className="relative w-full max-w-md">
-              <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-10" />
-              <Input
-                type="text"
-                placeholder="Search strategies by name or tag"
-                className="pl-10"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-
-            <Select
-              defaultValue="last_modified"
-              onValueChange={(value) => setSortOption(value)}
-            >
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Sort" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="last_modified">
-                  Sort by: Last Modified
-                </SelectItem>
-                <SelectItem value="name">Sort by: Name</SelectItem>
-              </SelectContent>
-            </Select>
+        {/* Search + Sort Controls */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="relative w-full max-w-md">
+            <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-10" />
+            <Input
+              type="text"
+              placeholder="Search strategies by name or tag"
+              className="pl-10"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
 
-          {/* MAIN CONTENT */}
-          {isLoading ? (
-            <div className="h-4/5 flex items-center justify-center">
-              <Loader text="Loading favourite strategies..." />
-            </div>
-          ) : isError ? (
-            <div className="flex items-center justify-center p-6">
-              <span className="text-red-600 text-lg font-semibold">
-                {getApiErrorMessage(error) ?? "Failed to load strategies."}
-              </span>
-            </div>
-          ) : _.isEmpty(strategies) ? (
-            <EmptyStrategiesPlaceholder />
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-              {filteredStrategies.map((strategy) => (
-                <StrategyCard
-                  key={strategy.id}
-                  strategy={strategy}
-                  isFavorite={strategy?.is_favourite}
-                  onCopy={handleCopyStrategy}
-                  toggleStar={handleToggleIsFavourite}
-                  onClick={() => router.push(`/strategies/${strategy.id}`)}
-                  onEdit={() => {
-                    setModal("edit");
-                    setSelectedStrategy(strategy);
-                  }}
-                  onDelete={() => {
-                    setModal("delete");
-                    setSelectedStrategy(strategy);
-                  }}
-                  onShare={() => {
-                    setModal("share");
-                    setSelectedStrategy(strategy);
-                  }}
-                />
-              ))}
-            </div>
-          )}
-        </main>
-      </div>
-    </div>
+          <Select
+            defaultValue="last_modified"
+            onValueChange={(value) => setSortOption(value)}
+          >
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="Sort" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="last_modified">
+                Sort by: Last Modified
+              </SelectItem>
+              <SelectItem value="name">Sort by: Name</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* MAIN CONTENT */}
+        {isLoading ? (
+          <div className="h-4/5 flex items-center justify-center">
+            <Loader text="Loading favourite strategies..." />
+          </div>
+        ) : isError ? (
+          <div className="flex items-center justify-center p-6">
+            <span className="text-red-600 text-lg font-semibold">
+              {getApiErrorMessage(error) ?? "Failed to load strategies."}
+            </span>
+          </div>
+        ) : _.isEmpty(strategies) ? (
+          <EmptyStrategiesPlaceholder />
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            {filteredStrategies.map((strategy) => (
+              <StrategyCard
+                key={strategy.id}
+                strategy={strategy}
+                isFavorite={true}
+                onCopy={handleCopyStrategy}
+                toggleStar={handleToggleIsFavourite}
+                onClick={() => router.push(`/strategies/${strategy.id}`)}
+                onEdit={() => {
+                  setModal("edit");
+                  setSelectedStrategy(strategy);
+                }}
+                onDelete={() => {
+                  setModal("delete");
+                  setSelectedStrategy(strategy);
+                }}
+                onShare={() => {
+                  setModal("share");
+                  setSelectedStrategy(strategy);
+                }}
+              />
+            ))}
+          </div>
+        )}
+      </main>
+    </>
   );
 };
 

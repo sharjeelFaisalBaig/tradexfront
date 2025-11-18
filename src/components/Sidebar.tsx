@@ -1,3 +1,5 @@
+"use client";
+
 import { useSidebar } from "@/context/SidebarContext";
 import DashboardSidebar from "./DashboardSidebar";
 
