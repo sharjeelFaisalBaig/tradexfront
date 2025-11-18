@@ -2,7 +2,7 @@
 
 import { Node, Edge, XYPosition } from "@xyflow/react";
 import React, { createContext, ReactNode, useContext, useState } from "react";
-import { useNodeOperations } from "@/app/strategies/[slug]/hooks/useNodeOperations";
+import { useNodeOperations } from "@/app/(dashboard)/strategies/[slug]/hooks/useNodeOperations";
 import { Tool } from "@/lib/types";
 
 // Define your types and context as before

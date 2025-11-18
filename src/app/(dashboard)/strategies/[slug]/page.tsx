@@ -5,7 +5,7 @@ import { ReactFlowProvider } from "@xyflow/react";
 import Loader from "@/components/common/Loader";
 import Strategy from "./components/Strategy";
 import "@xyflow/react/dist/style.css";
-import "../../reactflow.css";
+import "../../../reactflow.css";
 
 interface PageProps {
   params: Promise<{ slug: string }>;

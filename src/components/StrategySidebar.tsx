@@ -13,10 +13,10 @@ import {
   Package,
   ChartNoAxesCombined,
 } from "lucide-react";
-import { useNodeOperations } from "@/app/strategies/[slug]/hooks/useNodeOperations";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import useSuccessNotifier from "@/hooks/useSuccessNotifier";
+import { useNodeOperations } from "@/app/(dashboard)/strategies/[slug]/hooks/useNodeOperations";
 
 const strategyTools = [
   { id: "annotation", icon: MessageSquare, label: "Annotation" },

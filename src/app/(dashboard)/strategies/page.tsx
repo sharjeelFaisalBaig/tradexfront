@@ -9,24 +9,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import Sidebar from "@/components/Sidebar";
-import Header from "@/components/Header";
-import SearchIcon from "@/icons/search.svg";
-import StrategyCard from "@/components/StrategyCard";
-import { IStrategy } from "@/lib/types";
-import { useGetStrategies } from "@/hooks/strategy/useStrategyQueries";
-import Loader from "@/components/common/Loader";
-import { Pagination } from "@/components/common/Pagination";
-import NewStrategyModal from "@/components/modal/NewStrategyModal";
 import DeleteStrategyModal from "@/components/modal/DeleteStrategyModal";
+import { useGetStrategies } from "@/hooks/strategy/useStrategyQueries";
+import NewStrategyModal from "@/components/modal/NewStrategyModal";
+import { Pagination } from "@/components/common/Pagination";
+import StrategyCard from "@/components/StrategyCard";
+import Loader from "@/components/common/Loader";
+import SearchIcon from "@/icons/search.svg";
+import { IStrategy } from "@/lib/types";
 import {
   useCopyStrategy,
   useFavouriteStrategy,
 } from "@/hooks/strategy/useStrategyMutations";
-import useSuccessNotifier from "@/hooks/useSuccessNotifier";
-import { getApiErrorMessage, showAPIErrorToast } from "@/lib/utils";
 import EmptyStrategiesPlaceholder from "@/components/common/EmptyStrategiesPlaceholder";
 import ShareStrategyModal from "@/components/modal/ShareStrategyModal";
+import { getApiErrorMessage, showAPIErrorToast } from "@/lib/utils";
+import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 import _ from "lodash";
 
 type ModalType = "edit" | "delete" | "share" | "copy" | "";
@@ -162,7 +160,7 @@ const Strategies = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-gray-50 dark:bg-gray-900">
+    <>
       {modal === "share" && (
         <ShareStrategyModal
           isOpen={modal === "share"}
@@ -184,35 +182,33 @@ const Strategies = () => {
           onClose={() => setModal("")}
         />
       )}
-      <Header />
-      <div className="flex flex-1 overflow-hidden">
-        <Sidebar />
-        <main className="relative flex-1 overflow-y-auto p-6">
-          {/* Loader Overlay */}
-          {isLoadingCopy && (
-            <div
-              onClick={(e) => e.stopPropagation()}
-              className="fixed top-0 left-0 w-full h-full flex items-center justify-center bg-[#f6f8fb]/80 dark:bg-gray-900/80 z-50"
-            >
-              <Loader text="Copying strategy..." />
-            </div>
-          )}
-          {/* Header Controls */}
-          <div className="flex items-center justify-between mb-6">
-            {/* Search */}
-            <div className="relative w-full max-w-md">
-              <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-10" />
-              <Input
-                type="text"
-                placeholder="Search strategies by name or tag"
-                className="pl-10"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-            {/* Filters */}
-            <div className="flex items-center space-x-4">
-              {/* <Select defaultValue="10">
+
+      <>
+        {/* Loader Overlay */}
+        {isLoadingCopy && (
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="fixed top-0 left-0 w-full h-full flex items-center justify-center bg-[#f6f8fb]/80 dark:bg-gray-900/80 z-50"
+          >
+            <Loader text="Copying strategy..." />
+          </div>
+        )}
+        {/* Header Controls */}
+        <div className="flex items-center justify-between mb-6">
+          {/* Search */}
+          <div className="relative w-full max-w-md">
+            <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-10" />
+            <Input
+              type="text"
+              placeholder="Search strategies by name or tag"
+              className="pl-10"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          {/* Filters */}
+          <div className="flex items-center space-x-4">
+            {/* <Select defaultValue="10">
                 <SelectTrigger className="w-32">
                   <SelectValue />
                 </SelectTrigger>
@@ -222,77 +218,76 @@ const Strategies = () => {
                   <SelectItem value="50">50 per page</SelectItem>
                 </SelectContent>
               </Select> */}
-              <Select
-                defaultValue="last_modified"
-                onValueChange={(value) => setSortOption(value)}
-              >
-                <SelectTrigger className="w-48">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="last_modified">
-                    Sort by: Last Modified
-                  </SelectItem>
-                  <SelectItem value="name">Sort by: Name</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <Select
+              defaultValue="last_modified"
+              onValueChange={(value) => setSortOption(value)}
+            >
+              <SelectTrigger className="w-48">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="last_modified">
+                  Sort by: Last Modified
+                </SelectItem>
+                <SelectItem value="name">Sort by: Name</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-          {isLoading ? (
-            <div className="h-4/5 flex items-center justify-center bg-[#f6f8fb] dark:bg-gray-900">
-              <Loader text="Loading strategies..." />
+        </div>
+        {isLoading ? (
+          <div className="h-4/5 flex items-center justify-center bg-[#f6f8fb] dark:bg-gray-900">
+            <Loader text="Loading strategies..." />
+          </div>
+        ) : isError ? (
+          <div className="flex items-center justify-center p-6">
+            <span className="text-red-600 text-lg font-semibold">
+              {getApiErrorMessage(error) ?? "Failed to load strategies."}
+            </span>
+          </div>
+        ) : _.isEmpty(strategies) ? (
+          <EmptyStrategiesPlaceholder />
+        ) : (
+          <>
+            {/* Strategy Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+              {filteredStrategies.map((strategy) => {
+                const isFavourite = favStrategies?.some(
+                  (fav) => fav?.id === strategy?.id
+                );
+                return (
+                  <StrategyCard
+                    key={strategy.id}
+                    strategy={strategy}
+                    isFavorite={isFavourite}
+                    onCopy={handleCopyStrategy}
+                    toggleStar={handleToggleIsFavourite}
+                    onClick={() => router.push(`/strategies/${strategy.id}`)}
+                    onEdit={() => {
+                      setModal("edit");
+                      setSelectedStrategy(strategy);
+                    }}
+                    onDelete={() => {
+                      setModal("delete");
+                      setSelectedStrategy(strategy);
+                    }}
+                    onShare={() => {
+                      setModal("share");
+                      setSelectedStrategy(strategy);
+                    }}
+                  />
+                );
+              })}
             </div>
-          ) : isError ? (
-            <div className="flex items-center justify-center p-6">
-              <span className="text-red-600 text-lg font-semibold">
-                {getApiErrorMessage(error) ?? "Failed to load strategies."}
-              </span>
-            </div>
-          ) : _.isEmpty(strategies) ? (
-            <EmptyStrategiesPlaceholder />
-          ) : (
-            <>
-              {/* Strategy Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                {filteredStrategies.map((strategy) => {
-                  const isFavourite = favStrategies?.some(
-                    (fav) => fav?.id === strategy?.id
-                  );
-                  return (
-                    <StrategyCard
-                      key={strategy.id}
-                      strategy={strategy}
-                      isFavorite={isFavourite}
-                      onCopy={handleCopyStrategy}
-                      toggleStar={handleToggleIsFavourite}
-                      onClick={() => router.push(`/strategies/${strategy.id}`)}
-                      onEdit={() => {
-                        setModal("edit");
-                        setSelectedStrategy(strategy);
-                      }}
-                      onDelete={() => {
-                        setModal("delete");
-                        setSelectedStrategy(strategy);
-                      }}
-                      onShare={() => {
-                        setModal("share");
-                        setSelectedStrategy(strategy);
-                      }}
-                    />
-                  );
-                })}
-              </div>
-              {/* Pagination */}
-              {/* <Pagination
+            {/* Pagination */}
+            {/* <Pagination
             totalPages={10}
             currentPage={currentPage}
             onPageChange={(page) => setCurrentPage(page)}
           /> */}
-            </>
-          )}
-        </main>
-      </div>
-    </div>
+          </>
+        )}
+      </>
+    </>
   );
 };
 
