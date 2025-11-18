@@ -235,4 +235,13 @@ export const endpoints = {
     GET_STRATEGY_INVITATIONS: (strategyId: string) =>
       `${API_BASE_PATH}/strategies/${strategyId}/invitations`,
   },
+  TEMPLATE: {
+    // LIST: `${API_BASE_PATH}/templates?search=&sort_by=created_at&sort_order=desc&per_page=15`,
+    LIST: `${API_BASE_PATH}/templates`,
+    GET: (id: string) => `${API_BASE_PATH}/templates/${id}`,
+    CREATE: (templateId: string) =>
+      `${API_BASE_PATH}/templates/${templateId}/use`,
+    TOGGLE: (strategyId: string) =>
+      `${API_BASE_PATH}/strategies/${strategyId}/template`,
+  },
 };

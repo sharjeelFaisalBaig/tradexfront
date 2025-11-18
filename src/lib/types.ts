@@ -206,3 +206,5 @@ export interface SharedInvitation {
     avatar: string | null;
   };
 }
+
+export interface Template {}

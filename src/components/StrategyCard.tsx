@@ -3,7 +3,13 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MoreHorizontal, PencilLine, Star, Trash2 } from "lucide-react";
+import {
+  FileText,
+  MoreHorizontal,
+  PencilLine,
+  Star,
+  Trash2,
+} from "lucide-react";
 import Clipboard from "@/icons/double.svg";
 import Link2 from "@/icons/sharegreen.svg";
 import Image from "next/image";
@@ -18,11 +24,13 @@ import { IStrategy } from "@/lib/types";
 interface StrategyCardProps {
   isFavorite?: boolean;
   strategy: IStrategy;
+  isTogglingTemplate: boolean;
   onClick: (data: IStrategy) => void;
   onEdit?: (data: IStrategy) => void;
   onCopy?: (data: IStrategy) => void;
   onShare?: (data: IStrategy) => void;
   onDelete?: (data: IStrategy) => void;
+  onUseAsTemplate: (data: IStrategy) => void;
   toggleStar: (data: IStrategy, isFavorite: boolean) => void;
 }
 
@@ -36,6 +44,8 @@ const StrategyCard = (props: StrategyCardProps) => {
     onShare,
     onDelete,
     toggleStar,
+    onUseAsTemplate,
+    isTogglingTemplate,
   } = props;
 
   strategy.tags = Array.isArray(strategy?.tags)
@@ -70,6 +80,16 @@ const StrategyCard = (props: StrategyCardProps) => {
               className="w-48"
               onClick={(e) => e.stopPropagation()}
             >
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onUseAsTemplate?.(strategy);
+                }}
+                className="cursor-pointer"
+              >
+                <FileText className="w-4 h-4 mr-2 rotate-180" />
+                Use as template
+              </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={(e) => {
                   e.stopPropagation();

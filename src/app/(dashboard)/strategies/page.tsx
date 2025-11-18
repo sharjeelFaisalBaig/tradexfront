@@ -26,6 +26,7 @@ import ShareStrategyModal from "@/components/modal/ShareStrategyModal";
 import { getApiErrorMessage, showAPIErrorToast } from "@/lib/utils";
 import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 import _ from "lodash";
+import { useToggleTemplate } from "@/hooks/template/useTemplateMutations";
 
 type ModalType = "edit" | "delete" | "share" | "copy" | "";
 
@@ -33,6 +34,8 @@ const Strategies = () => {
   const router = useRouter();
   const successNote = useSuccessNotifier();
   // mutations
+  const { mutate: toggleTemplate, isPending: isTogglingTemplate } =
+    useToggleTemplate();
   const { mutate: copyStrategy, isPending: isLoadingCopy } = useCopyStrategy();
   const { mutate: toggleFavouriteStrategy } = useFavouriteStrategy();
 
@@ -159,6 +162,22 @@ const Strategies = () => {
     });
   };
 
+  const handleUseAsTemplate = (strategy: IStrategy) => {
+    toggleTemplate(strategy?.id, {
+      onSuccess: (res) => {
+        successNote({
+          title: "Marked as template",
+          description:
+            res?.message ||
+            `“${strategy?.name}” marked as template successfully`,
+        });
+      },
+      onError: (error) => {
+        showAPIErrorToast(error);
+      },
+    });
+  };
+
   return (
     <>
       {modal === "share" && (
@@ -261,6 +280,8 @@ const Strategies = () => {
                     isFavorite={isFavourite}
                     onCopy={handleCopyStrategy}
                     toggleStar={handleToggleIsFavourite}
+                    onUseAsTemplate={handleUseAsTemplate}
+                    isTogglingTemplate={isTogglingTemplate}
                     onClick={() => router.push(`/strategies/${strategy.id}`)}
                     onEdit={() => {
                       setModal("edit");
