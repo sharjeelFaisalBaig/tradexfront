@@ -133,6 +133,9 @@ export const useUpdateStrategy = () => {
     mutationFn: ({ id, data }: { id: string; data: Partial<IStrategy> }) =>
       updateStrategy(id, data),
     onSuccess: (updatedData, { id }) => {
+      // 🔥 Auto-refetch all lists (Handles filters, pagination, search, etc)
+      // queryClient.invalidateQueries([QUERY_KEYS.STRATEGIES]);
+
       // Manually update the cache for the specific strategy
       queryClient.setQueryData(
         [QUERY_KEYS.STRATEGY, id],
@@ -165,6 +168,44 @@ export const useUpdateStrategy = () => {
           return {
             ...oldData,
             data: { ...oldData.data, strategies: updatedStrategies },
+          };
+        }
+      );
+
+      // Update the list of recent strategies
+      queryClient.setQueryData(
+        [QUERY_KEYS.RECENT_STRATEGIES],
+        (oldData: { data: { strategies: IStrategy[] } } | undefined) => {
+          if (!oldData)
+            return { data: { strategies: [{ ...updatedData.data }] } };
+
+          const updatedStrategies = oldData.data.strategies.map((strategy) =>
+            strategy.id === id ? { ...strategy, ...updatedData.data } : strategy
+          );
+
+          return {
+            ...oldData,
+            data: { ...oldData.data, strategies: updatedStrategies },
+          };
+        }
+      );
+
+      // Update the list of favourite strategies
+      queryClient.setQueryData(
+        [QUERY_KEYS.FAVOURITE_STRATEGIES],
+        (oldData: { data: { favourite: IStrategy[] } } | undefined) => {
+          console.log({ oldData, updatedData });
+
+          if (!oldData)
+            return { data: { favourite: [{ ...updatedData.data }] } };
+
+          const updatedStrategies = oldData.data.favourite.map((strategy) =>
+            strategy.id === id ? { ...strategy, ...updatedData.data } : strategy
+          );
+
+          return {
+            ...oldData,
+            data: { ...oldData.data, favourite: updatedStrategies },
           };
         }
       );

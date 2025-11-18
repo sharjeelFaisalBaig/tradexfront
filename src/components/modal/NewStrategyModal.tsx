@@ -1,24 +1,21 @@
 "use client";
 
 import { Dialog } from "@headlessui/react";
-import { useState, FormEvent, KeyboardEvent, useMemo } from "react";
-import { Button } from "@/components/ui/button";
-import { X } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { toast } from "@/hooks/use-toast";
-import { useRouter } from "next/navigation";
-import { IStrategy } from "@/lib/types";
-import { Textarea } from "../ui/textarea";
+import { useState, FormEvent, useMemo } from "react";
 import { cn, showAPIErrorToast } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useRouter } from "next/navigation";
+import { Textarea } from "../ui/textarea";
+import { IStrategy } from "@/lib/types";
+import { X } from "lucide-react";
 import {
   useCreateStrategy,
   useUpdateStrategy,
 } from "@/hooks/strategy/useStrategyMutations";
-import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 import { useGetStrategiesTags } from "@/hooks/strategy/useStrategyQueries";
+import useSuccessNotifier from "@/hooks/useSuccessNotifier";
 import CreatableSelect from "react-select/creatable";
-
-const MAX_TAGS = 4; // maximum allowed tags
 
 function NewStrategyForm({
   onSuccess,
@@ -29,8 +26,6 @@ function NewStrategyForm({
   onClose: () => void;
   strategy?: IStrategy | null;
 }) {
-  // const pathname = usePathname();
-  // const strategyId = pathname.split("/")[2];
   const successNote = useSuccessNotifier();
   const { data: allStrategyTags, isLoading: isLoadingTags } =
     useGetStrategiesTags();
@@ -39,10 +34,15 @@ function NewStrategyForm({
 
   const [name, setName] = useState(strategy?.name ?? "");
   const [desc, setDesc] = useState(strategy?.description ?? "");
-  const [tagInput, setTagInput] = useState("");
-  strategy.tags = Array.isArray(strategy?.tags)
-    ? strategy?.tags
-    : JSON.parse(strategy?.tags);
+  if (strategy) {
+    try {
+      strategy.tags = Array.isArray(strategy.tags)
+        ? strategy.tags
+        : JSON.parse(strategy.tags || "[]");
+    } catch {
+      strategy.tags = [];
+    }
+  }
 
   const [tags, setTags] = useState<{ label: string; value: string }[]>(
     strategy?.tags && strategy?.tags?.length > 0
